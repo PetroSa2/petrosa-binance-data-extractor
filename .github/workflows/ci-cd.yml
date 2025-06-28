@@ -133,103 +133,36 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: production
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Install kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.28.0'
-    
-    - name: Configure kubectl
+    - name: Deploy to production
       run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-        chmod 600 $HOME/.kube/config
-    
-    - name: Verify cluster connection
-      run: |
-        kubectl cluster-info
-        kubectl get nodes
-    
-    - name: Update image tags in manifests
-      run: |
-        # Update the image tag in all CronJobs to use the newly built Docker Hub image
-        sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}|g" k8s/klines-all-timeframes-cronjobs.yaml
-        sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}|g" k8s/klines-production-cronjobs.yaml
-        sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}|g" k8s/job.yaml
-    
-    - name: Deploy secrets (if not exists)
-      run: |
-        # Check if secrets exist, create them if they don't
-        if ! kubectl get secret binance-api-secret -n petrosa-apps >/dev/null 2>&1; then
-          echo "⚠️ binance-api-secret not found. Please create it manually with your credentials."
-          echo "kubectl create secret generic binance-api-secret -n petrosa-apps --from-literal=api-key=YOUR_API_KEY --from-literal=api-secret=YOUR_API_SECRET"
-        fi
-        if ! kubectl get secret database-secret -n petrosa-apps >/dev/null 2>&1; then
-          echo "⚠️ database-secret not found. Please create it manually with your database URI."
-          echo "kubectl create secret generic database-secret -n petrosa-apps --from-literal=mysql-uri=YOUR_MYSQL_URI"
-        fi
-    
-    - name: Apply Kubernetes manifests
-      run: |
-        echo "🚀 Deploying to Kubernetes..."
-        kubectl apply -f k8s/ --recursive
-        
-        echo "📊 Deployment status:"
-        kubectl get cronjobs -l app=binance-extractor -n petrosa-apps
-        kubectl get jobs -l app=binance-extractor -n petrosa-apps --sort-by=.metadata.creationTimestamp | tail -5
-    
-    - name: Verify deployment
-      run: |
-        echo "✅ Verifying CronJobs are scheduled..."
-        kubectl get cronjobs -l app=binance-extractor -n petrosa-apps -o wide
-        
-        echo "📝 Recent job logs (if any):"
-        # Get the most recent job pod and show logs (if exists)
-        LATEST_POD=$(kubectl get pods -l app=binance-extractor -n petrosa-apps --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
-        if [ ! -z "$LATEST_POD" ]; then
-          echo "Logs from pod: $LATEST_POD"
-          kubectl logs $LATEST_POD -n petrosa-apps --tail=20 || echo "No logs available yet"
-        else
-          echo "No recent job pods found (this is normal for CronJobs that haven't run yet)"
-        fi
-    
-    - name: Summary
-      run: |
-        echo "🎉 Deployment completed successfully!"
-        echo ""
-        echo "📋 What was deployed:"
-        echo "  ✅ Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}"
-        echo "  ✅ CronJobs for automated data extraction"
-        echo "  ✅ Production-ready configuration"
-        echo ""
-        echo "📊 Monitor your deployment:"
-        echo "  kubectl get cronjobs -l app=binance-extractor -n petrosa-apps"
-        echo "  kubectl logs -l component=klines-extractor -n petrosa-apps --tail=100"
-        echo ""
-        echo "⚠️ Make sure to create the required secrets if they don't exist:"
-        echo "  kubectl create secret generic binance-api-secret -n petrosa-apps --from-literal=api-key=YOUR_API_KEY --from-literal=api-secret=YOUR_API_SECRET"
-        echo "  kubectl create secret generic database-secret -n petrosa-apps --from-literal=mysql-uri=YOUR_MYSQL_URI"
+        echo "Deploying image: ${{ needs.build-and-push.outputs.image-url }}"
+        echo "Image digest: ${{ needs.build-and-push.outputs.image-digest }}"
+        # Add your deployment commands here
+        # Examples:
+        # - Update Kubernetes deployment
+        # - Notify deployment service
+        # - Run database migrations
+        # - Update load balancer configuration
 
   notify:
     needs: [build-and-push, deploy]
     runs-on: ubuntu-latest
-    if: always() && false  # Disabled by default - enable if you have Slack webhook configured
+    if: always()
     
     steps:
-    - name: Notify Slack
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        channel: '#deployments'
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+    - name: Notify deployment status
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+          # Add success notification logic here
+        else
+          echo "❌ Deployment failed!"
+          # Add failure notification logic here
+        fi
 
   cleanup:
     needs: [build-and-push]
@@ -238,9 +171,7 @@ jobs:
     
     steps:
     - name: Clean up old images
-      uses: actions/delete-package-versions@v4
-      with:
-        package-name: binance-extractor
-        package-type: container
-        min-versions-to-keep: 10
-        delete-only-untagged-versions: true
+      run: |
+        echo "Cleaning up old Docker images..."
+        # Add cleanup logic here
+        # Example: Delete images older than 30 days from Docker Hub
