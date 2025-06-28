@@ -23,7 +23,7 @@ class TradesFetcher:
     Handles recent trades and historical trades extraction.
     """
 
-    def __init__(self, client: BinanceClient = None):
+    def __init__(self, client: Optional[BinanceClient] = None):
         """
         Initialize trades fetcher.
 
@@ -288,7 +288,7 @@ class TradesFetcher:
         end_time: datetime,
         total_records: int,
         duration_seconds: float = 0.0,
-        errors: list = None,
+        errors: Optional[List[str]] = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.

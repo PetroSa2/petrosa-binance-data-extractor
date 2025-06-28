@@ -2,12 +2,13 @@
 Database adapters package.
 """
 
+from typing import Dict, Optional, Type
 from .base_adapter import BaseAdapter, DatabaseError
 from .mongodb_adapter import MongoDBAdapter
 from .mysql_adapter import MySQLAdapter
 
 # Adapter registry
-ADAPTERS = {
+ADAPTERS: Dict[str, Type[BaseAdapter]] = {
     "mongodb": MongoDBAdapter,
     "mysql": MySQLAdapter,
     "mariadb": MySQLAdapter,  # MariaDB uses same adapter as MySQL
@@ -15,7 +16,7 @@ ADAPTERS = {
 
 
 def get_adapter(
-    adapter_type: str, connection_string: str = None, **kwargs
+    adapter_type: str, connection_string: Optional[str] = None, **kwargs
 ) -> BaseAdapter:
     """
     Factory function to get the appropriate database adapter.
@@ -35,6 +36,9 @@ def get_adapter(
         raise ValueError(
             f"Unsupported adapter type: {adapter_type}. Available: {list(ADAPTERS.keys())}"
         )
+        
+    if connection_string is None:
+        raise ValueError("connection_string is required")
 
     adapter_class = ADAPTERS[adapter_type]
     return adapter_class(connection_string, **kwargs)

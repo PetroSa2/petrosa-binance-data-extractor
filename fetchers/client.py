@@ -294,7 +294,7 @@ class BinanceClient:
         Returns:
             List of funding rate data
         """
-        params = {"limit": min(limit, 1000)}
+        params: Dict[str, Any] = {"limit": min(limit, 1000)}
 
         if symbol:
             params["symbol"] = symbol.upper()

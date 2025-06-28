@@ -89,7 +89,8 @@ class MongoDBAdapter(BaseAdapter):
             return 0
 
         try:
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
             documents = []
 
             for instance in model_instances:
@@ -149,10 +150,11 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         try:
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
 
             # Build query filter
-            query = {"timestamp": {"$gte": start, "$lt": end}}
+            query: Dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
 
             if symbol:
                 query["symbol"] = symbol
@@ -172,9 +174,10 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         try:
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
 
-            query = {}
+            query: Dict[str, Any] = {}
             if symbol:
                 query["symbol"] = symbol
 
@@ -198,11 +201,12 @@ class MongoDBAdapter(BaseAdapter):
 
         try:
             # Get all timestamps in range
-            query = {"timestamp": {"$gte": start, "$lt": end}}
+            query: Dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
             if symbol:
                 query["symbol"] = symbol
 
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
             cursor = coll.find(query, {"timestamp": 1}).sort("timestamp", ASCENDING)
             timestamps = [doc["timestamp"] for doc in cursor]
 
@@ -248,9 +252,10 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         try:
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
 
-            query = {}
+            query: Dict[str, Any] = {}
             if start or end:
                 timestamp_filter = {}
                 if start:
@@ -273,7 +278,8 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         try:
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
 
             # Compound index on symbol and timestamp for efficient range queries
             coll.create_index([("symbol", ASCENDING), ("timestamp", ASCENDING)])
@@ -312,9 +318,10 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         try:
-            coll: Collection = self.database[collection]
+            db = self._get_database()
+            coll: Collection = db[collection]
 
-            query = {"timestamp": {"$gte": start, "$lt": end}}
+            query: Dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
 
             if symbol:
                 query["symbol"] = symbol
@@ -331,7 +338,8 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         try:
-            return self.database.list_collection_names()
+            db = self._get_database()
+            return db.list_collection_names()
         except Exception as e:
             raise DatabaseError(f"Failed to get collection names: {e}") from e
 
@@ -340,7 +348,8 @@ class MongoDBAdapter(BaseAdapter):
         if not self._connected:
             raise DatabaseError("Not connected to database")
 
-        self.database[collection].drop()
+        db = self._get_database()
+        db[collection].drop()
         logger.warning("Dropped collection: %s", collection)
 
     def get_database_stats(self) -> Dict[str, Any]:
@@ -348,10 +357,17 @@ class MongoDBAdapter(BaseAdapter):
         if not self._connected:
             raise DatabaseError("Not connected to database")
 
-        return self.database.command("dbStats")
+        db = self._get_database()
+        return db.command("dbStats")
 
     def _ensure_connected(self) -> Database:
         """Ensure the database is connected and return it."""
         if self.database is None:
             raise DatabaseError("Database is not connected")
+        return self.database
+
+    def _get_database(self) -> "Database[Any]":
+        """Get database connection with safety check."""
+        if self.database is None:
+            raise DatabaseError("Database connection is None. Call connect() first.")
         return self.database

@@ -289,5 +289,5 @@ def retry_on_http_errors(max_retries: Optional[int] = None, base_delay: Optional
         max_retries=max_retries,
         base_delay=base_delay,
         retryable_exceptions=http_retryable_exceptions,
-        non_retryable_exceptions=(KeyboardInterrupt, SystemExit, NonRetryableError),
+        non_retryable_exceptions=(KeyboardInterrupt, SystemExit, NonRetryableError),  # type: ignore[arg-type]
     )

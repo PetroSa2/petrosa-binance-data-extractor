@@ -16,7 +16,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +25,7 @@ sys.path.insert(0, project_root)
 import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
+from models.base import BaseModel
 from utils.logger import (get_logger, log_extraction_completion,
                           log_extraction_start, setup_logging)
 from utils.time_utils import (binance_interval_to_table_suffix,
@@ -56,8 +57,8 @@ class ProductionKlinesExtractor:
         self.logger = get_logger(__name__)
         self._lock = threading.Lock()
         
-        # Statistics
-        self.stats = {
+        # Statistics (properly typed)
+        self.stats: Dict[str, Any] = {
             'symbols_processed': 0,
             'symbols_failed': 0,
             'total_records_fetched': 0,
@@ -138,7 +139,9 @@ class ProductionKlinesExtractor:
                 # Get last timestamp for this symbol
                 last_timestamp = self.get_last_timestamp_for_symbol(db_adapter, symbol)
                 
-                # Calculate extraction window
+                # Calculate extraction window (handle None case)
+                if last_timestamp is None:
+                    last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
                 start_time, end_time = self.calculate_extraction_window(last_timestamp)
                 
                 self.logger.info(
@@ -162,7 +165,7 @@ class ProductionKlinesExtractor:
                 if klines_data:
                     # Write to database
                     collection_name = self.get_collection_name()
-                    records_written = db_adapter.write(klines_data, collection_name)
+                    records_written = db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
                     result['records_written'] = records_written
                     
                     # Check for gaps (optional, can be expensive for large datasets)
@@ -171,8 +174,8 @@ class ProductionKlinesExtractor:
                             collection_name,
                             start_time,
                             end_time,
-                            symbol,
-                            self.period
+                            15,  # interval_minutes for 15m candles  
+                            symbol=symbol
                         )
                         result['gaps_filled'] = len(gaps)
                         

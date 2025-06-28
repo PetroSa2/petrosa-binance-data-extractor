@@ -29,7 +29,7 @@ class KlinesFetcher:
     Handles both incremental extraction and backfill operations.
     """
 
-    def __init__(self, client: BinanceClient = None):
+    def __init__(self, client: Optional[BinanceClient] = None):
         """
         Initialize klines fetcher.
 
@@ -44,7 +44,7 @@ class KlinesFetcher:
         symbol: str,
         interval: str,
         start_time: datetime,
-        end_time: datetime = None,
+        end_time: Optional[datetime] = None,
         limit: Optional[int] = None,
     ) -> List[KlineModel]:
         """

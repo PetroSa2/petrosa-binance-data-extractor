@@ -8,7 +8,7 @@ import logging
 import sys
 import json
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 import constants
 
 # Try to import OpenTelemetry components
@@ -91,7 +91,7 @@ class JSONFormatter(logging.Formatter):
 
 
 def setup_logging(
-    level: str = None, format_type: str = None, enable_otel: bool = True
+    level: Optional[str] = None, format_type: Optional[str] = None, enable_otel: bool = True
 ) -> logging.Logger:
     """
     Set up logging configuration for the application.
@@ -121,7 +121,7 @@ def setup_logging(
 
     # Set formatter
     if format_type.lower() == "json":
-        formatter = JSONFormatter()
+        formatter: logging.Formatter = JSONFormatter()
     else:
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -246,7 +246,7 @@ def log_extraction_completion(
     total_records: int,
     duration_seconds: float,
     gaps_found: int = 0,
-    errors: list = None,
+    errors: Optional[List[str]] = None,
 ):
     """Log extraction completion with summary."""
     log.info(
