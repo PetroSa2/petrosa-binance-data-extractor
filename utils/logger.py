@@ -142,12 +142,13 @@ def setup_logging(
     logging.getLogger("pymongo").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
-    logger = logging.getLogger(__name__)
-    logger.info(
-        f"Logging configured: level={level}, format={format_type}, otel={enable_otel and OTEL_AVAILABLE}"
+    local_logger = logging.getLogger(__name__)
+    local_logger.info(
+        "Logging configured: level=%s, format=%s, otel=%s",
+        level, format_type, enable_otel and OTEL_AVAILABLE
     )
 
-    return logger
+    return local_logger
 
 
 def setup_otel_tracing():
@@ -191,7 +192,7 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def log_extraction_start(
-    logger: logging.Logger,
+    log: logging.Logger,
     extractor_type: str,
     symbols: list,
     period: str,
@@ -199,7 +200,7 @@ def log_extraction_start(
     backfill: bool = False,
 ):
     """Log extraction start with structured data."""
-    logger.info(
+    log.info(
         "Starting data extraction",
         extra={
             "extractor_type": extractor_type,
@@ -213,7 +214,7 @@ def log_extraction_start(
 
 
 def log_extraction_progress(
-    logger: logging.Logger,
+    log: logging.Logger,
     symbol: str,
     records_processed: int,
     total_records: int,
@@ -233,14 +234,14 @@ def log_extraction_progress(
     if current_timestamp:
         extra_data["current_timestamp"] = current_timestamp.isoformat()
 
-    logger.info(
+    log.info(
         f"Processing {symbol}: {records_processed}/{total_records} records",
         extra=extra_data,
     )
 
 
 def log_extraction_completion(
-    logger: logging.Logger,
+    log: logging.Logger,
     extractor_type: str,
     total_records: int,
     duration_seconds: float,
@@ -248,7 +249,7 @@ def log_extraction_completion(
     errors: list = None,
 ):
     """Log extraction completion with summary."""
-    logger.info(
+    log.info(
         "Extraction completed",
         extra={
             "extractor_type": extractor_type,
@@ -262,9 +263,9 @@ def log_extraction_completion(
     )
 
 
-def log_gap_detection(logger: logging.Logger, symbol: str, gaps: list, collection: str):
+def log_gap_detection(log: logging.Logger, symbol: str, gaps: list, collection: str):
     """Log gap detection results."""
-    logger.warning(
+    log.warning(
         f"Data gaps detected for {symbol}",
         extra={
             "symbol": symbol,
@@ -279,7 +280,7 @@ def log_gap_detection(logger: logging.Logger, symbol: str, gaps: list, collectio
 
 
 def log_database_operation(
-    logger: logging.Logger,
+    db_logger: logging.Logger,
     operation: str,
     collection: str,
     records_count: int,
@@ -289,7 +290,7 @@ def log_database_operation(
     """Log database operations."""
     log_level = logging.INFO if success else logging.ERROR
 
-    logger.log(
+    db_logger.log(
         log_level,
         f"Database {operation}: {records_count} records in {collection}",
         extra={

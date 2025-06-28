@@ -13,7 +13,7 @@ def encode_secret(value: str) -> str:
     return base64.b64encode(value.encode("utf-8")).decode("utf-8")
 
 
-def main():
+def main() -> None:
     print("🔐 Kubernetes Secret Encoder for Binance Extractor")
     print("=" * 60)
 

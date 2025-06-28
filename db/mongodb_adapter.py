@@ -13,6 +13,7 @@ try:
     from pymongo import MongoClient, ASCENDING, DESCENDING
     from pymongo.errors import ConnectionFailure, DuplicateKeyError, BulkWriteError
     from pymongo.collection import Collection
+    from pymongo.database import Database
 
     PYMONGO_AVAILABLE = True
 except ImportError:
@@ -31,7 +32,7 @@ class MongoDBAdapter(BaseAdapter):
     Provides efficient storage and querying for time-series data using MongoDB.
     """
 
-    def __init__(self, connection_string: str = None, **kwargs):
+    def __init__(self, connection_string: Optional[str] = None, **kwargs):
         """
         Initialize MongoDB adapter.
 
@@ -48,8 +49,8 @@ class MongoDBAdapter(BaseAdapter):
         super().__init__(connection_string, **kwargs)
 
         # MongoDB specific settings
-        self.client = None
-        self.database = None
+        self.client: Optional[MongoClient] = None
+        self.database: Optional[Database] = None
         self.database_name = kwargs.get("database_name", "binance")
 
         # Connection options
@@ -348,3 +349,9 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError("Not connected to database")
 
         return self.database.command("dbStats")
+
+    def _ensure_connected(self) -> Database:
+        """Ensure the database is connected and return it."""
+        if self.database is None:
+            raise DatabaseError("Database is not connected")
+        return self.database

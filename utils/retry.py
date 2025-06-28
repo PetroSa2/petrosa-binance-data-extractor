@@ -6,7 +6,7 @@ import time
 import random
 import logging
 from functools import wraps
-from typing import Callable, Any, Type, Tuple, Union
+from typing import Callable, Any, Type, Tuple, Union, Optional, List
 import constants
 
 logger = logging.getLogger(__name__)
@@ -25,10 +25,10 @@ class NonRetryableError(Exception):
 
 
 def exponential_backoff(
-    max_retries: int = None,
-    base_delay: float = None,
+    max_retries: Optional[int] = None,
+    base_delay: Optional[float] = None,
     max_delay: float = 60.0,
-    exponential_factor: float = None,
+    exponential_factor: Optional[float] = None,
     jitter: bool = True,
     retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,),
     non_retryable_exceptions: Tuple[Type[Exception], ...] = (NonRetryableError,),
@@ -149,7 +149,7 @@ class RateLimiter:
         """
         self.max_calls = max_calls
         self.time_window = time_window
-        self.calls = []
+        self.calls: List[float] = []
         self._lock = None
 
         # Try to use threading lock if available
@@ -247,7 +247,7 @@ def with_retries_and_rate_limit(func: Callable) -> Callable:
 
 
 # HTTP-specific retry decorator
-def retry_on_http_errors(max_retries: int = None, base_delay: float = None):
+def retry_on_http_errors(max_retries: Optional[int] = None, base_delay: Optional[float] = None):
     """
     Retry decorator specifically for HTTP errors.
 
@@ -256,7 +256,7 @@ def retry_on_http_errors(max_retries: int = None, base_delay: float = None):
         base_delay: Initial delay between retries
     """
     # Define HTTP-specific retryable exceptions
-    http_retryable_exceptions = (
+    http_retryable_exceptions: Tuple[Type[Exception], ...] = (
         ConnectionError,
         TimeoutError,
     )
@@ -269,7 +269,7 @@ def retry_on_http_errors(max_retries: int = None, base_delay: float = None):
             ConnectionError as RequestsConnectionError,
         )
 
-        http_retryable_exceptions += (
+        http_retryable_exceptions = http_retryable_exceptions + (
             RequestException,
             Timeout,
             RequestsConnectionError,
@@ -281,7 +281,7 @@ def retry_on_http_errors(max_retries: int = None, base_delay: float = None):
     try:
         from aiohttp import ClientError, ServerTimeoutError
 
-        http_retryable_exceptions += (ClientError, ServerTimeoutError)
+        http_retryable_exceptions = http_retryable_exceptions + (ClientError, ServerTimeoutError)
     except ImportError:
         pass
 
@@ -289,5 +289,5 @@ def retry_on_http_errors(max_retries: int = None, base_delay: float = None):
         max_retries=max_retries,
         base_delay=base_delay,
         retryable_exceptions=http_retryable_exceptions,
-        non_retryable_exceptions=(KeyboardInterrupt, SystemExit),
+        non_retryable_exceptions=(KeyboardInterrupt, SystemExit, NonRetryableError),
     )

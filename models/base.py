@@ -2,10 +2,11 @@
 Base Pydantic models and shared fields for all Binance data models.
 """
 
-from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, Field, field_validator, ConfigDict
 import uuid
+from datetime import datetime
+from typing import Any, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class BaseTimestampedModel(BaseModel):
@@ -39,7 +40,7 @@ class BaseTimestampedModel(BaseModel):
 
     @field_validator("timestamp", mode="before")
     @classmethod
-    def parse_timestamp(cls, v):
+    def parse_timestamp(cls, v: Any) -> datetime:
         """Parse timestamp from various formats."""
         if isinstance(v, int):
             # Assume milliseconds if > 1e10, otherwise seconds
@@ -66,7 +67,7 @@ class BaseSymbolModel(BaseTimestampedModel):
 
     @field_validator("symbol")
     @classmethod
-    def validate_symbol(cls, v):
+    def validate_symbol(cls, v: str) -> str:
         """Ensure symbol is uppercase."""
         return v.upper() if v else v
 
@@ -95,7 +96,7 @@ class ExtractionMetadata(BaseModel):
     extraction_duration_seconds: float = Field(
         default=0.0, description="Total extraction time in seconds"
     )
-    errors_encountered: list = Field(
+    errors_encountered: List[str] = Field(
         default_factory=list, description="List of errors encountered during extraction"
     )
 

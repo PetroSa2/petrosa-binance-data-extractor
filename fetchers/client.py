@@ -14,7 +14,7 @@ from utils.time_utils import get_current_utc_time
 try:
     import requests
     from requests.adapters import HTTPAdapter
-    from requests.packages.urllib3.util.retry import Retry
+    from urllib3.util.retry import Retry  # type: ignore[import]
 
     REQUESTS_AVAILABLE = True
 except ImportError:
@@ -27,7 +27,7 @@ class BinanceAPIError(Exception):
     """Custom exception for Binance API errors."""
 
     def __init__(
-        self, message: str, status_code: int = None, response_data: dict = None
+        self, message: str, status_code: Optional[int] = None, response_data: Optional[Dict[str, Any]] = None
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -41,10 +41,10 @@ class BinanceClient:
 
     def __init__(
         self,
-        api_key: str = None,
-        api_secret: str = None,
-        base_url: str = None,
-        rate_limiter: RateLimiter = None,
+        api_key: Optional[str] = None,
+        api_secret: Optional[str] = None,
+        base_url: Optional[str] = None,
+        rate_limiter: Optional[RateLimiter] = None,
     ):
         """
         Initialize Binance client.
@@ -98,7 +98,7 @@ class BinanceClient:
         """Build full URL for endpoint."""
         return f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
 
-    def _log_request(self, method: str, url: str, params: dict = None):
+    def _log_request(self, method: str, url: str, params: Optional[Dict[str, Any]] = None) -> None:
         """Log API request details."""
         logger.debug(
             "API Request: %s %s",
@@ -112,7 +112,7 @@ class BinanceClient:
             },
         )
 
-    def _log_response(self, response: requests.Response, duration: float):
+    def _log_response(self, response: "requests.Response", duration: float) -> None:
         """Log API response details."""
         logger.debug(
             "API Response: %s in %.3fs",
@@ -127,7 +127,7 @@ class BinanceClient:
         )
 
     @with_retries_and_rate_limit
-    def get(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Make GET request to Binance API.
 
@@ -282,7 +282,7 @@ class BinanceClient:
         return self.get("/fapi/v1/historicalTrades", params)
 
     def get_funding_rate(
-        self, symbol: str = None, limit: int = 100
+        self, symbol: Optional[str] = None, limit: int = 100
     ) -> List[Dict[str, Any]]:
         """
         Get funding rate history.
@@ -302,7 +302,7 @@ class BinanceClient:
         return self.get("/fapi/v1/fundingRate", params)
 
     def get_premium_index(
-        self, symbol: str = None
+        self, symbol: Optional[str] = None
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Get mark price and funding rate.
@@ -319,16 +319,16 @@ class BinanceClient:
 
         return self.get("/fapi/v1/premiumIndex", params)
 
-    def close(self):
+    def close(self) -> None:
         """Close the client session."""
         if self.session:
             self.session.close()
             logger.info("Binance client session closed")
 
-    def __enter__(self):
+    def __enter__(self) -> "BinanceClient":
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.close()

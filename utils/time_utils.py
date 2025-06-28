@@ -33,7 +33,12 @@ def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
             )
         except ValueError:
             # Try to parse as timestamp string
-            timestamp = float(timestamp)
+            timestamp_float = float(timestamp)
+            # Binance uses milliseconds, convert to seconds if needed
+            if timestamp_float > 1e10:  # Milliseconds
+                return datetime.fromtimestamp(timestamp_float / 1000, tz=timezone.utc)
+            else:  # Seconds
+                return datetime.fromtimestamp(timestamp_float, tz=timezone.utc)
 
     if isinstance(timestamp, (int, float)):
         # Binance uses milliseconds, convert to seconds if needed

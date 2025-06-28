@@ -86,7 +86,7 @@ class KlinesFetcher:
             end_time,
         )
 
-        all_klines = []
+        all_klines: List[KlineModel] = []
         current_start = start_time
         interval_delta = get_interval_timedelta(interval)
 
@@ -249,7 +249,7 @@ class KlinesFetcher:
         symbols: List[str],
         interval: str,
         start_time: datetime,
-        end_time: datetime = None,
+        end_time: Optional[datetime] = None,
     ) -> dict:
         """
         Fetch klines for multiple symbols.
@@ -334,7 +334,7 @@ class KlinesFetcher:
         total_records: int,
         gaps_detected: int = 0,
         duration_seconds: float = 0.0,
-        errors: list = None,
+        errors: Optional[list] = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.

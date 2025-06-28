@@ -4,7 +4,7 @@ Pydantic model for Binance Futures Kline (candlestick) data.
 
 from decimal import Decimal
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from pydantic import Field, field_validator, model_validator, ConfigDict
 from .base import BaseSymbolModel
 
@@ -71,13 +71,13 @@ class KlineModel(BaseSymbolModel):
 
     @field_validator("symbol")
     @classmethod
-    def validate_symbol(cls, v):
+    def validate_symbol(cls, v: str) -> str:
         """Validate trading symbol format."""
         return v.upper()
 
     @field_validator("interval")
     @classmethod
-    def validate_interval(cls, v):
+    def validate_interval(cls, v: str) -> str:
         """Validate interval format."""
         from constants import SUPPORTED_INTERVALS
 
@@ -86,7 +86,7 @@ class KlineModel(BaseSymbolModel):
         return v
 
     @model_validator(mode="after")
-    def calculate_derived_fields(self):
+    def calculate_derived_fields(self) -> "KlineModel":
         """Calculate derived fields after all fields are set."""
         if self.price_change is None:
             self.price_change = self.close_price - self.open_price
@@ -99,7 +99,7 @@ class KlineModel(BaseSymbolModel):
         return self
 
     @classmethod
-    def from_binance_kline(cls, kline_data: list, symbol: str, interval: str):
+    def from_binance_kline(cls, kline_data: List[Any], symbol: str, interval: str) -> "KlineModel":
         """
         Create KlineModel from Binance API kline data array.
 
@@ -121,24 +121,33 @@ class KlineModel(BaseSymbolModel):
         """
         open_time = datetime.fromtimestamp(int(kline_data[0]) / 1000, tz=timezone.utc)
         close_time = datetime.fromtimestamp(int(kline_data[6]) / 1000, tz=timezone.utc)
+        
+        # Calculate derived fields
+        open_price = Decimal(kline_data[1])
+        close_price = Decimal(kline_data[4])
+        price_change = close_price - open_price
+        price_change_percent = (price_change / open_price * 100) if open_price != 0 else Decimal(0)
+        
         return cls(
             symbol=symbol,
             interval=interval,
             timestamp=open_time,  # Use open_time as primary timestamp
             open_time=open_time,
             close_time=close_time,
-            open_price=Decimal(kline_data[1]),
+            open_price=open_price,
             high_price=Decimal(kline_data[2]),
             low_price=Decimal(kline_data[3]),
-            close_price=Decimal(kline_data[4]),
+            close_price=close_price,
             volume=Decimal(kline_data[5]),
             quote_asset_volume=Decimal(kline_data[7]),
             number_of_trades=int(kline_data[8]),
             taker_buy_base_asset_volume=Decimal(kline_data[9]),
             taker_buy_quote_asset_volume=Decimal(kline_data[10]),
+            price_change=price_change,
+            price_change_percent=price_change_percent,
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for database storage."""
         return self.model_dump(exclude={"id"})  # Exclude UUID for storage
 

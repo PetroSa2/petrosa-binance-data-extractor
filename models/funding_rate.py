@@ -4,7 +4,7 @@ Pydantic model for Binance Futures Funding Rate data.
 
 from decimal import Decimal
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from pydantic import Field, field_validator
 from .base import BaseSymbolModel
 
@@ -53,13 +53,13 @@ class FundingRateModel(BaseSymbolModel):
 
     @field_validator("timestamp", mode="before")
     @classmethod
-    def set_timestamp_from_funding_time(cls, v):
+    def set_timestamp_from_funding_time(cls, v: Any) -> Any:
         """Use funding_time as the primary timestamp if not provided."""
         # Note: Cross-field validation handled differently in Pydantic v2
         return v
 
     @classmethod
-    def from_binance_funding_rate(cls, funding_data: dict, symbol: str):
+    def from_binance_funding_rate(cls, funding_data: Dict[str, Any], symbol: str) -> "FundingRateModel":
         """
         Create FundingRateModel from Binance API funding rate data.
 
@@ -84,10 +84,12 @@ class FundingRateModel(BaseSymbolModel):
                 if funding_data.get("markPrice")
                 else None
             ),
+            index_price=None,  # Not provided in funding rate history
+            last_funding_rate=None,  # Not provided in funding rate history
         )
 
     @classmethod
-    def from_binance_premium_index(cls, premium_data: dict, symbol: str):
+    def from_binance_premium_index(cls, premium_data: Dict[str, Any], symbol: str) -> "FundingRateModel":
         """
         Create FundingRateModel from Binance premium index data.
 
@@ -119,12 +121,17 @@ class FundingRateModel(BaseSymbolModel):
                 if premium_data.get("indexPrice")
                 else None
             ),
+            last_funding_rate=(
+                Decimal(premium_data.get("lastFundingRate", "0"))
+                if premium_data.get("lastFundingRate")
+                else None
+            ),
             timestamp=datetime.fromtimestamp(
                 int(premium_data["time"]) / 1000, tz=timezone.utc
             ),
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for database storage."""
         return self.model_dump(exclude={"id"})
 

@@ -41,7 +41,7 @@ class MySQLAdapter(BaseAdapter):
     for time-series data with proper indexing.
     """
 
-    def __init__(self, connection_string: str = None, **kwargs):
+    def __init__(self, connection_string: Optional[str] = None, **kwargs):
         """
         Initialize MySQL adapter.
 
@@ -60,7 +60,7 @@ class MySQLAdapter(BaseAdapter):
         # SQLAlchemy specific settings
         self.engine: Optional[Engine] = None
         self.metadata = MetaData()
-        self.tables = {}
+        self.tables: Dict[str, Table] = {}
 
         # Engine options
         self.engine_options = {
@@ -75,8 +75,9 @@ class MySQLAdapter(BaseAdapter):
         try:
             self.engine = create_engine(self.connection_string, **self.engine_options)
             # Test connection
-            with self.engine.connect() as conn:
-                conn.execute(sa.text("SELECT 1"))
+            if self.engine is not None:
+                with self.engine.connect() as conn:
+                    conn.execute(sa.text("SELECT 1"))
             self._connected = True
             logger.info("Connected to MySQL database")
 
@@ -162,7 +163,8 @@ class MySQLAdapter(BaseAdapter):
         )
 
         # Create all tables
-        self.metadata.create_all(self.engine)
+        if self.engine is not None:
+            self.metadata.create_all(self.engine)
 
     def _create_klines_table(self, interval: str) -> Table:
         """Create a klines table for specific interval."""
@@ -201,7 +203,8 @@ class MySQLAdapter(BaseAdapter):
         )
 
         self.tables[table_name] = table
-        table.create(self.engine, checkfirst=True)
+        if self.engine is not None:
+            table.create(self.engine, checkfirst=True)
         return table
 
     def _get_table(self, collection: str) -> Table:
@@ -238,7 +241,8 @@ class MySQLAdapter(BaseAdapter):
                 records.append(record)
 
             # Insert records
-            with self.engine.connect() as conn:
+            engine = self._ensure_connected()
+            with engine.connect() as conn:
                 trans = conn.begin()
                 try:
                     # Use INSERT IGNORE to handle duplicates
@@ -298,7 +302,8 @@ class MySQLAdapter(BaseAdapter):
 
             query = query.order_by(table.c.timestamp)
 
-            with self.engine.connect() as conn:
+            engine = self._ensure_connected()
+            with engine.connect() as conn:
                 result = conn.execute(query)
                 return [dict(row) for row in result]
 
@@ -321,7 +326,8 @@ class MySQLAdapter(BaseAdapter):
 
             query = query.order_by(table.c.timestamp.desc()).limit(limit)
 
-            with self.engine.connect() as conn:
+            engine = self._ensure_connected()
+            with engine.connect() as conn:
                 result = conn.execute(query)
                 return [dict(row) for row in result.mappings()]
 
@@ -403,9 +409,11 @@ class MySQLAdapter(BaseAdapter):
             if conditions:
                 query = query.where(and_(*conditions))
 
-            with self.engine.connect() as conn:
+            engine = self._ensure_connected()
+            with engine.connect() as conn:
                 result = conn.execute(query)
-                return result.scalar()
+                count = result.scalar()
+                return count if count is not None else 0
 
         except Exception as e:
             raise DatabaseError(f"Failed to count records in {collection}: {e}") from e
@@ -436,7 +444,8 @@ class MySQLAdapter(BaseAdapter):
 
             stmt = delete(table).where(and_(*conditions))
 
-            with self.engine.connect() as conn:
+            engine = self._ensure_connected()
+            with engine.connect() as conn:
                 trans = conn.begin()
                 try:
                     result = conn.execute(stmt)
@@ -448,3 +457,11 @@ class MySQLAdapter(BaseAdapter):
 
         except Exception as e:
             raise DatabaseError(f"Failed to delete from {collection}: {e}") from e
+
+    def _ensure_connected(self) -> Engine:
+        """Ensure the database engine is connected and return it."""
+        if self.engine is None:
+            raise DatabaseError("Database engine is not initialized")
+        if not self._connected:
+            raise DatabaseError("Database is not connected")
+        return self.engine

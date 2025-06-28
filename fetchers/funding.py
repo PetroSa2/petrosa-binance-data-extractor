@@ -22,7 +22,7 @@ class FundingRatesFetcher:
     Handles funding rate history and current funding rates.
     """
 
-    def __init__(self, client: BinanceClient = None):
+    def __init__(self, client: Optional[BinanceClient] = None):
         """
         Initialize funding rates fetcher.
 
@@ -97,7 +97,7 @@ class FundingRatesFetcher:
             raise
 
     def fetch_current_funding_rates(
-        self, symbols: List[str] = None
+        self, symbols: Optional[List[str]] = None
     ) -> List[FundingRateModel]:
         """
         Fetch current funding rates for symbols.
@@ -366,7 +366,7 @@ class FundingRatesFetcher:
         end_time: datetime,
         total_records: int,
         duration_seconds: float = 0.0,
-        errors: list = None,
+        errors: Optional[list] = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.

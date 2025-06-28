@@ -4,7 +4,7 @@ Pydantic model for Binance Futures Trade data.
 
 from decimal import Decimal
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 from pydantic import Field, field_validator
 from .base import BaseSymbolModel
 
@@ -56,20 +56,20 @@ class TradeModel(BaseSymbolModel):
 
     @field_validator("timestamp", mode="before")
     @classmethod
-    def set_timestamp_from_trade_time(cls, v):
+    def set_timestamp_from_trade_time(cls, v: Any) -> Any:
         """Use trade_time as the primary timestamp if not provided."""
         # Note: Cross-field validation handled differently in Pydantic v2
         return v
 
     @field_validator("quote_quantity")
     @classmethod
-    def calculate_quote_quantity(cls, v):
+    def calculate_quote_quantity(cls, v: Any) -> Any:
         """Calculate quote quantity if not provided."""
         # Note: Cross-field calculations should be done in a model_validator
         return v
 
     @classmethod
-    def from_binance_trade(cls, trade_data: dict, symbol: str):
+    def from_binance_trade(cls, trade_data: Dict[str, Any], symbol: str) -> "TradeModel":
         """
         Create TradeModel from Binance API trade data.
 
@@ -95,9 +95,12 @@ class TradeModel(BaseSymbolModel):
             quote_quantity=Decimal(trade_data["quoteQty"]),
             is_buyer_maker=trade_data["isBuyerMaker"],
             trade_time=trade_time,
+            order_id=None,  # Not provided in public trade data
+            commission=None,  # Not provided in public trade data
+            commission_asset=None,  # Not provided in public trade data
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for database storage."""
         return self.model_dump(exclude={"id"})
 
