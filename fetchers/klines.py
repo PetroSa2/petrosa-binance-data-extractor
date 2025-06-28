@@ -11,9 +11,13 @@ from fetchers.client import BinanceAPIError, BinanceClient
 from models.base import ExtractionMetadata
 from models.kline import KlineModel
 from utils.logger import get_logger
-from utils.time_utils import (align_timestamp_to_interval, find_time_gaps,
-                              get_current_utc_time, get_interval_timedelta,
-                              validate_time_range)
+from utils.time_utils import (
+    align_timestamp_to_interval,
+    find_time_gaps,
+    get_current_utc_time,
+    get_interval_timedelta,
+    validate_time_range,
+)
 
 logger = get_logger(__name__)
 
@@ -75,7 +79,11 @@ class KlinesFetcher:
         validate_time_range(start_time, end_time)
 
         logger.info(
-            "Fetching klines for %s (%s) from %s to %s", symbol, interval, start_time, end_time
+            "Fetching klines for %s (%s) from %s to %s",
+            symbol,
+            interval,
+            start_time,
+            end_time,
         )
 
         all_klines = []
@@ -128,7 +136,10 @@ class KlinesFetcher:
                 if chunk_klines:
                     last_kline_time = chunk_klines[-1].close_time
                     logger.debug(
-                        "Fetched %d klines for %s, last: %s", len(chunk_klines), symbol, last_kline_time
+                        "Fetched %d klines for %s, last: %s",
+                        len(chunk_klines),
+                        symbol,
+                        last_kline_time,
                     )
                     current_start = last_kline_time + timedelta(seconds=1)
                 else:
@@ -137,7 +148,6 @@ class KlinesFetcher:
 
                 # Small delay to be nice to the API
                 if constants.REQUEST_DELAY_SECONDS > 0:
-                    
 
                     time.sleep(constants.REQUEST_DELAY_SECONDS)
 
@@ -145,7 +155,6 @@ class KlinesFetcher:
                 logger.error("API error fetching klines for %s: %s", symbol, e)
                 if e.status_code == 429:  # Rate limit
                     # Wait longer and retry
-                    
 
                     time.sleep(60)
                     continue
@@ -155,7 +164,7 @@ class KlinesFetcher:
                 logger.error("Unexpected error fetching klines for %s: %s", symbol, e)
                 raise
 
-        logger.info(f"Fetched {len(all_klines)} klines for {symbol} ({interval})")
+        logger.info("Fetched %d klines for %s (%s)", len(all_klines), symbol, interval)
         return all_klines
 
     def fetch_latest_klines(
@@ -184,17 +193,17 @@ class KlinesFetcher:
                 try:
                     kline = KlineModel.from_binance_kline(kline_data, symbol, interval)
                     klines.append(kline)
-                except Exception as e:
-                    logger.warning(f"Failed to parse kline data: {e}")
+                except (ValueError, TypeError) as e:
+                    logger.warning("Failed to parse kline data: %s", e)
                     continue
 
             logger.info(
-                f"Fetched {len(klines)} latest klines for {symbol} ({interval})"
+                "Fetched %d latest klines for %s (%s)", len(klines), symbol, interval
             )
             return klines
 
         except Exception as e:
-            logger.error(f"Error fetching latest klines for {symbol}: {e}")
+            logger.error("Error fetching latest klines for %s: %s", symbol, e)
             raise
 
     def fetch_incremental(
@@ -222,10 +231,10 @@ class KlinesFetcher:
         end_time = get_current_utc_time()
 
         if start_time >= end_time:
-            logger.info(f"No new data available for {symbol} ({interval})")
+            logger.info("No new data available for %s (%s)", symbol, interval)
             return []
 
-        logger.info(f"Fetching incremental klines for {symbol} from {start_time}")
+        logger.info("Fetching incremental klines for %s from %s", symbol, start_time)
 
         return self.fetch_klines(
             symbol=symbol,
@@ -258,7 +267,7 @@ class KlinesFetcher:
         total_symbols = len(symbols)
 
         for i, symbol in enumerate(symbols, 1):
-            logger.info(f"Processing symbol {i}/{total_symbols}: {symbol}")
+            logger.info("Processing symbol %d/%d: %s", i, total_symbols, symbol)
 
             try:
                 klines = self.fetch_klines(
@@ -269,9 +278,17 @@ class KlinesFetcher:
                 )
                 results[symbol] = klines
 
-            except Exception as e:
-                logger.error(f"Failed to fetch klines for {symbol}: {e}")
+            except BinanceAPIError as e:
+                logger.error("Binance API error fetching klines for %s: %s", symbol, e)
                 results[symbol] = []  # Empty list for failed symbols
+                continue
+            except ValueError as e:
+                logger.error("Value error fetching klines for %s: %s", symbol, e)
+                results[symbol] = []
+                continue
+            except TypeError as e:
+                logger.error("Type error fetching klines for %s: %s", symbol, e)
+                results[symbol] = []
                 continue
 
         total_klines = sum(len(klines) for klines in results.values())
