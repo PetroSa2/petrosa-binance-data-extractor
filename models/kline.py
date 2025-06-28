@@ -127,6 +127,8 @@ class KlineModel(BaseSymbolModel):
         close_price = Decimal(kline_data[4])
         price_change = close_price - open_price
         price_change_percent = (price_change / open_price * 100) if open_price != 0 else Decimal(0)
+        # Quantize to 4 decimal places to match field constraints
+        price_change_percent = price_change_percent.quantize(Decimal("0.0001"))
 
         return cls(
             symbol=symbol,

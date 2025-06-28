@@ -112,7 +112,8 @@ class TestKlinesFetcher:
         assert fetcher.client is not None
         assert fetcher.max_klines_per_request == 1500
 
-    def test_fetch_klines_success(self):
+    @patch("fetchers.klines.time.sleep")
+    def test_fetch_klines_success(self, mock_sleep):
         """Test successful klines fetching."""
         # Mock Binance API response
         mock_klines_data = [
@@ -146,17 +147,8 @@ class TestKlinesFetcher:
             ],
         ]
 
-        # Mock the client to return data on first call, empty on subsequent calls
-        call_count = 0
-        def mock_get_klines(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                return mock_klines_data
-            else:
-                return []  # No more data
-        
-        self.mock_client.get_klines.side_effect = mock_get_klines
+        # Mock the client to return data on first call, then empty on subsequent calls
+        self.mock_client.get_klines.side_effect = [mock_klines_data, []]
 
         start_time = datetime(2022, 1, 1, tzinfo=timezone.utc)
         end_time = datetime(2022, 1, 1, 1, tzinfo=timezone.utc)
@@ -169,7 +161,8 @@ class TestKlinesFetcher:
         assert klines[0].open_price == Decimal("50000.00")
         assert klines[1].close_price == Decimal("50100.00")
 
-        self.mock_client.get_klines.assert_called()
+        # Verify the client was called (should be called twice due to pagination)
+        assert self.mock_client.get_klines.call_count >= 1
 
     def test_fetch_latest_klines(self):
         """Test fetching latest klines."""
