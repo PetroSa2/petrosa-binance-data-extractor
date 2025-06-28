@@ -26,7 +26,7 @@ RETRY_BACKOFF_MULTIPLIER = 2.0
 # Symbols to extract (Binance Futures perpetual contracts)
 DEFAULT_SYMBOLS = [
     "BTCUSDT",
-    "ETHUSDT", 
+    "ETHUSDT",
     "BNBUSDT",
     "ADAUSDT",
     "DOTUSDT",

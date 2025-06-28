@@ -6,7 +6,7 @@ import time
 import random
 import logging
 from functools import wraps
-from typing import Callable, Any, Type, Tuple, Union, Optional, List
+from typing import Callable, Any, Type, Tuple, Optional, List
 import constants
 
 logger = logging.getLogger(__name__)

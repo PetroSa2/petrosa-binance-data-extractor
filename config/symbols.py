@@ -16,19 +16,19 @@ PRODUCTION_SYMBOLS = [
     "AVAXUSDT",   # Avalanche
     "MATICUSDT",  # Polygon
     "LINKUSDT",   # Chainlink
-    
+
     # DeFi tokens
     "UNIUSDT",    # Uniswap
     "AAVEUSDT",   # Aave
     "SUSHIUSDT",  # SushiSwap
     "COMPUSDT",   # Compound
-    
+
     # Layer 1 blockchains
     "NEARUSDT",   # Near Protocol
     "ALGOUSDT",   # Algorand
     "ATOMUSDT",   # Cosmos
     "FTMUSDT",    # Fantom
-    
+
     # Meme coins (high volume)
     "DOGEUSDT",   # Dogecoin
     "SHIBUSDT",   # Shiba Inu
@@ -37,7 +37,7 @@ PRODUCTION_SYMBOLS = [
 # Development/testing symbols (smaller list)
 DEVELOPMENT_SYMBOLS = [
     "BTCUSDT",
-    "ETHUSDT", 
+    "ETHUSDT",
     "BNBUSDT",
     "ADAUSDT",
     "SOLUSDT"
@@ -47,10 +47,10 @@ DEVELOPMENT_SYMBOLS = [
 def get_symbols_for_environment(environment: str = "production") -> List[str]:
     """
     Get symbols list based on environment.
-    
+
     Args:
         environment: "production" or "development"
-        
+
     Returns:
         List of symbol strings
     """

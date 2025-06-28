@@ -2,14 +2,12 @@
 Trades data fetcher for Binance Futures.
 """
 
-import logging
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from models.trade import TradeModel
 from models.base import ExtractionMetadata
 from fetchers.client import BinanceClient, BinanceAPIError
-from utils.time_utils import get_current_utc_time
 from utils.logger import get_logger
 import constants
 

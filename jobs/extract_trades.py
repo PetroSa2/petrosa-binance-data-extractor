@@ -4,23 +4,18 @@ CLI entry point for trades extraction job.
 """
 
 import argparse
+import os
 import sys
 import time
-from datetime import datetime, timedelta
-from typing import List
-import os
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import constants
-
-import constants
 from utils.logger import setup_logging, log_extraction_start, log_extraction_completion
 from utils.time_utils import (
     parse_datetime_string,
-    get_current_utc_time,
     format_duration,
 )
 from fetchers import TradesFetcher, BinanceClient

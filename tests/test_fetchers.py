@@ -2,10 +2,16 @@
 Unit tests for fetchers.
 """
 
+import os
+import sys
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-from datetime import datetime, timezone, timedelta
+from unittest.mock import Mock, patch
+from datetime import datetime, timezone
 from decimal import Decimal
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 from fetchers.client import BinanceClient, BinanceAPIError
 from fetchers.klines import KlinesFetcher

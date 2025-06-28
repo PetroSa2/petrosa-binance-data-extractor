@@ -7,11 +7,11 @@ klines (candlestick) data from Binance Futures API.
 """
 
 import argparse
+import os
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
-import os
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +20,6 @@ sys.path.insert(0, project_root)
 import constants
 from utils.logger import (
     setup_logging,
-    get_logger,
     log_extraction_start,
     log_extraction_completion,
 )
@@ -31,7 +30,6 @@ from utils.time_utils import (
 )
 from fetchers import KlinesFetcher, BinanceClient
 from db import get_adapter
-from models import KlineModel
 
 
 def parse_arguments():

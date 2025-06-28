@@ -34,7 +34,7 @@ from utils.time_utils import (binance_interval_to_table_suffix,
 
 class ProductionKlinesExtractor:
     """Production-ready klines extractor with automatic gap detection and parallel processing."""
-    
+
     def __init__(
         self,
         symbols: List[str],
@@ -52,11 +52,11 @@ class ProductionKlinesExtractor:
         self.max_workers = max_workers
         self.lookback_hours = lookback_hours
         self.batch_size = batch_size
-        
+
         # Thread-safe logger
         self.logger = get_logger(__name__)
         self._lock = threading.Lock()
-        
+
         # Statistics (properly typed)
         self.stats: Dict[str, Any] = {
             'symbols_processed': 0,
@@ -66,57 +66,57 @@ class ProductionKlinesExtractor:
             'total_gaps_filled': 0,
             'errors': []
         }
-        
+
     def get_collection_name(self) -> str:
         """Get the collection name using proper financial market naming."""
         table_suffix = binance_interval_to_table_suffix(self.period)
         return f"klines_{table_suffix}"
-    
+
     def get_last_timestamp_for_symbol(self, db_adapter, symbol: str) -> Optional[datetime]:
         """Get the last timestamp for a symbol from the database."""
         try:
             collection_name = self.get_collection_name()
-            
+
             # Query the latest record for this symbol
             latest_records = db_adapter.query_latest(
                 collection_name, symbol=symbol, limit=1
             )
-            
+
             if latest_records:
                 # Return the close_time of the latest record
                 return latest_records[0].close_time
             else:
                 # No data found, start from default start date
                 return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
-                
+
         except Exception as e:
             self.logger.warning("Could not get last timestamp for %s: %s", symbol, e)
             # Fallback to default start date
             return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
-    
+
     def calculate_extraction_window(self, last_timestamp: datetime) -> Tuple[datetime, datetime]:
         """Calculate the extraction window based on last timestamp."""
         current_time = get_current_utc_time()
-        
+
         # Start from the last timestamp, but ensure we have some overlap
         # to catch any missed data due to timing issues
         start_time = last_timestamp - timedelta(hours=1)  # 1 hour overlap
-        
+
         # If we're too far behind, limit the catch-up window to avoid overwhelming
         max_catchup_days = 7  # Don't try to catch up more than 7 days at once
         earliest_start = current_time - timedelta(days=max_catchup_days)
-        
+
         if start_time < earliest_start:
             start_time = earliest_start
             self.logger.warning(
                 f"Last timestamp is very old, limiting catch-up to {max_catchup_days} days"
             )
-        
+
         # End time is current time minus a small buffer to avoid incomplete candles
         end_time = current_time - timedelta(minutes=5)
-        
+
         return start_time, end_time
-    
+
     def extract_symbol_data(self, symbol: str, binance_client: BinanceClient) -> Dict:
         """Extract data for a single symbol."""
         symbol_start_time = time.time()
@@ -129,29 +129,29 @@ class ProductionKlinesExtractor:
             'error': None,
             'duration': 0
         }
-        
+
         try:
             # Get database adapter (each thread needs its own connection)
             db_adapter = get_adapter(self.db_adapter_name, self.db_uri)
             db_adapter.connect()
-            
+
             try:
                 # Get last timestamp for this symbol
                 last_timestamp = self.get_last_timestamp_for_symbol(db_adapter, symbol)
-                
+
                 # Calculate extraction window (handle None case)
                 if last_timestamp is None:
                     last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
                 start_time, end_time = self.calculate_extraction_window(last_timestamp)
-                
+
                 self.logger.info(
                     f"Extracting {symbol} ({self.period}): "
                     f"from {start_time.isoformat()} to {end_time.isoformat()}"
                 )
-                
+
                 # Create fetcher
                 fetcher = KlinesFetcher(binance_client)
-                
+
                 # Fetch data
                 klines_data = fetcher.fetch_klines(
                     symbol=symbol,
@@ -159,68 +159,68 @@ class ProductionKlinesExtractor:
                     start_time=start_time,
                     end_time=end_time,
                 )
-                
+
                 result['records_fetched'] = len(klines_data)
-                
+
                 if klines_data:
                     # Write to database
                     collection_name = self.get_collection_name()
                     records_written = db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
                     result['records_written'] = records_written
-                    
+
                     # Check for gaps (optional, can be expensive for large datasets)
                     try:
                         gaps = db_adapter.find_gaps(
                             collection_name,
                             start_time,
                             end_time,
-                            15,  # interval_minutes for 15m candles  
+                            15,  # interval_minutes for 15m candles
                             symbol=symbol
                         )
                         result['gaps_filled'] = len(gaps)
-                        
+
                         if gaps:
                             self.logger.warning(
                                 f"Found {len(gaps)} gaps for {symbol} in {collection_name}"
                             )
                     except Exception as gap_error:
                         self.logger.warning(f"Gap detection failed for {symbol}: {gap_error}")
-                
+
                 result['success'] = True
                 result['duration'] = time.time() - symbol_start_time
-                
+
                 self.logger.info(
                     f"✅ {symbol}: fetched={result['records_fetched']}, "
                     f"written={result['records_written']}, "
                     f"duration={result['duration']:.2f}s"
                 )
-                
+
             finally:
                 db_adapter.disconnect()
-                
+
         except Exception as e:
             result['error'] = str(e)
             result['duration'] = time.time() - symbol_start_time
             self.logger.error(f"❌ {symbol} failed: {e}")
-            
+
         return result
-    
+
     def run_extraction(self) -> Dict:
         """Run the production extraction with parallel processing."""
         extraction_start_time = time.time()
-        
+
         self.logger.info(f"Starting production klines extraction for {len(self.symbols)} symbols")
         self.logger.info(f"Period: {self.period}, Max workers: {self.max_workers}")
-        
+
         # Initialize Binance client
         binance_client = BinanceClient(
             api_key=constants.API_KEY,
             api_secret=constants.API_SECRET,
         )
-        
+
         # Process symbols in parallel
         results = []
-        
+
         try:
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Submit all symbol extraction tasks
@@ -228,14 +228,14 @@ class ProductionKlinesExtractor:
                     executor.submit(self.extract_symbol_data, symbol, binance_client): symbol
                     for symbol in self.symbols
                 }
-                
+
                 # Collect results as they complete
                 for future in as_completed(future_to_symbol):
                     symbol = future_to_symbol[future]
                     try:
                         result = future.result()
                         results.append(result)
-                        
+
                         # Update thread-safe statistics
                         with self._lock:
                             if result['success']:
@@ -246,19 +246,19 @@ class ProductionKlinesExtractor:
                             else:
                                 self.stats['symbols_failed'] += 1
                                 self.stats['errors'].append(f"{symbol}: {result['error']}")
-                                
+
                     except Exception as e:
                         self.logger.error(f"Failed to get result for {symbol}: {e}")
                         with self._lock:
                             self.stats['symbols_failed'] += 1
                             self.stats['errors'].append(f"{symbol}: {str(e)}")
-                            
+
         finally:
             binance_client.close()
-        
+
         # Calculate total duration
         total_duration = time.time() - extraction_start_time
-        
+
         # Log final statistics
         self.logger.info("=" * 60)
         self.logger.info("📊 EXTRACTION COMPLETED")
@@ -269,12 +269,12 @@ class ProductionKlinesExtractor:
         self.logger.info(f"💾 Total records written: {self.stats['total_records_written']}")
         self.logger.info(f"🔧 Total gaps filled: {self.stats['total_gaps_filled']}")
         self.logger.info(f"⏱️  Total duration: {format_duration(total_duration)}")
-        
+
         if self.stats['errors']:
             self.logger.warning(f"⚠️  Errors encountered: {len(self.stats['errors'])}")
             for error in self.stats['errors'][:5]:  # Show first 5 errors
                 self.logger.warning(f"   - {error}")
-        
+
         return {
             'success': self.stats['symbols_failed'] == 0,
             'total_symbols': len(self.symbols),
@@ -297,10 +297,10 @@ def parse_arguments():
 Examples:
   # Extract 15m klines for all configured symbols (production mode)
   python extract_klines_production.py --period 15m
-  
+
   # Extract 1h klines with custom symbols
   python extract_klines_production.py --period 1h --symbols BTCUSDT,ETHUSDT,BNBUSDT
-  
+
   # Extract with more parallel workers
   python extract_klines_production.py --period 15m --max-workers 10
         """,
@@ -386,7 +386,7 @@ def get_default_symbols() -> List[str]:
         # Get environment from env var, default to production
         environment = os.getenv('ENVIRONMENT', 'production')
         return get_symbols_for_environment(environment)
-        
+
     except ImportError:
         # Fallback to hardcoded list
         return [
@@ -398,11 +398,11 @@ def get_default_symbols() -> List[str]:
 def main():
     """Main entry point."""
     args = parse_arguments()
-    
+
     # Setup logging
     setup_logging(level=args.log_level)
     logger = get_logger(__name__)
-    
+
     try:
         # Determine symbols to process
         if args.symbols:
@@ -410,7 +410,7 @@ def main():
         else:
             symbols = get_default_symbols()
             logger.info(f"Using default symbols: {symbols}")
-        
+
         # Log extraction start
         log_extraction_start(
             logger=logger,
@@ -420,7 +420,7 @@ def main():
             start_date="auto-determined",  # Auto-determined
             backfill=False,
         )
-        
+
         # Create and run extractor
         extractor = ProductionKlinesExtractor(
             symbols=symbols,
@@ -431,13 +431,13 @@ def main():
             lookback_hours=args.lookback_hours,
             batch_size=args.batch_size,
         )
-        
+
         if args.dry_run:
             logger.info("🔍 DRY RUN MODE - No data will be written to database")
-        
+
         # Run extraction
         result = extractor.run_extraction()
-        
+
         # Log completion
         log_extraction_completion(
             logger=logger,
@@ -447,7 +447,7 @@ def main():
             gaps_found=result['total_gaps_filled'],
             errors=result['errors'][:10]  # Limit errors in logs
         )
-        
+
         # Exit with appropriate code
         if result['success']:
             logger.info("🎉 Production extraction completed successfully!")
@@ -455,7 +455,7 @@ def main():
         else:
             logger.error(f"❌ Production extraction completed with {result['symbols_failed']} failures")
             sys.exit(1)
-            
+
     except KeyboardInterrupt:
         logger.info("⚠️ Extraction interrupted by user")
         sys.exit(130)

@@ -2,8 +2,14 @@
 Unit tests for Pydantic models.
 """
 
+import os
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 from models.kline import KlineModel
 from models.trade import TradeModel

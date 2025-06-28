@@ -1,27 +1,18 @@
-#!/usimport argparse
-import sys
-import time
-from datetime import datetime, timedelta
-from typing import List
-import os
-
-# Add project root to path (works for both local and container environments)
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
-
-import constantspython3
+#!/usr/bin/env python3
 """
 CLI entry point for funding rates extraction job.
 """
 
 import argparse
+import os
 import sys
 import time
 from datetime import datetime
 from typing import List
 
-# Add project root to path
-sys.path.insert(0, "/app")
+# Add project root to path (works for both local and container environments)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 import constants
 from utils.logger import setup_logging, log_extraction_start, log_extraction_completion

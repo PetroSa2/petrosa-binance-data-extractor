@@ -2,10 +2,16 @@
 Unit tests for database adapters.
 """
 
+import os
+import sys
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime, timezone
 from decimal import Decimal
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 from db.base_adapter import BaseAdapter, DatabaseError
 from db.mongodb_adapter import MongoDBAdapter

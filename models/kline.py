@@ -121,13 +121,13 @@ class KlineModel(BaseSymbolModel):
         """
         open_time = datetime.fromtimestamp(int(kline_data[0]) / 1000, tz=timezone.utc)
         close_time = datetime.fromtimestamp(int(kline_data[6]) / 1000, tz=timezone.utc)
-        
+
         # Calculate derived fields
         open_price = Decimal(kline_data[1])
         close_price = Decimal(kline_data[4])
         price_change = close_price - open_price
         price_change_percent = (price_change / open_price * 100) if open_price != 0 else Decimal(0)
-        
+
         return cls(
             symbol=symbol,
             interval=interval,

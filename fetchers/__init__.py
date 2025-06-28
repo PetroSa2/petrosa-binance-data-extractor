@@ -11,6 +11,6 @@ __all__ = [
     'BinanceClient',
     'BinanceAPIError',
     'KlinesFetcher',
-    'TradesFetcher', 
+    'TradesFetcher',
     'FundingRatesFetcher'
 ]

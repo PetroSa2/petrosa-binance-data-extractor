@@ -9,7 +9,7 @@ from .funding_rate import FundingRateModel
 
 __all__ = [
     'BaseTimestampedModel',
-    'BaseSymbolModel', 
+    'BaseSymbolModel',
     'ExtractionMetadata',
     'KlineModel',
     'TradeModel',
