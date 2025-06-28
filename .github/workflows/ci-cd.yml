@@ -1,0 +1,246 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ 'main', 'develop' ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ 'main' ]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run linting
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Run type checking
+      run: |
+        mypy . --ignore-missing-imports
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=. --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'table'
+        exit-code: '1'
+
+  build-and-push:
+    needs: [lint-and-test, security-scan]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-url: ${{ steps.build.outputs.image-url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          VERSION=${{ steps.meta.outputs.version }}
+          COMMIT_SHA=${{ github.sha }}
+          BUILD_DATE=${{ steps.meta.outputs.date }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+    
+    - name: Configure kubectl
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+    
+    - name: Verify cluster connection
+      run: |
+        kubectl cluster-info
+        kubectl get nodes
+    
+    - name: Update image tags in manifests
+      run: |
+        # Update the image tag in all CronJobs to use the newly built Docker Hub image
+        sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}|g" k8s/klines-all-timeframes-cronjobs.yaml
+        sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}|g" k8s/klines-production-cronjobs.yaml
+        sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}|g" k8s/job.yaml
+    
+    - name: Deploy secrets (if not exists)
+      run: |
+        # Check if secrets exist, create them if they don't
+        if ! kubectl get secret binance-api-secret -n petrosa-apps >/dev/null 2>&1; then
+          echo "⚠️ binance-api-secret not found. Please create it manually with your credentials."
+          echo "kubectl create secret generic binance-api-secret -n petrosa-apps --from-literal=api-key=YOUR_API_KEY --from-literal=api-secret=YOUR_API_SECRET"
+        fi
+        if ! kubectl get secret database-secret -n petrosa-apps >/dev/null 2>&1; then
+          echo "⚠️ database-secret not found. Please create it manually with your database URI."
+          echo "kubectl create secret generic database-secret -n petrosa-apps --from-literal=mysql-uri=YOUR_MYSQL_URI"
+        fi
+    
+    - name: Apply Kubernetes manifests
+      run: |
+        echo "🚀 Deploying to Kubernetes..."
+        kubectl apply -f k8s/ --recursive
+        
+        echo "📊 Deployment status:"
+        kubectl get cronjobs -l app=binance-extractor -n petrosa-apps
+        kubectl get jobs -l app=binance-extractor -n petrosa-apps --sort-by=.metadata.creationTimestamp | tail -5
+    
+    - name: Verify deployment
+      run: |
+        echo "✅ Verifying CronJobs are scheduled..."
+        kubectl get cronjobs -l app=binance-extractor -n petrosa-apps -o wide
+        
+        echo "📝 Recent job logs (if any):"
+        # Get the most recent job pod and show logs (if exists)
+        LATEST_POD=$(kubectl get pods -l app=binance-extractor -n petrosa-apps --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
+        if [ ! -z "$LATEST_POD" ]; then
+          echo "Logs from pod: $LATEST_POD"
+          kubectl logs $LATEST_POD -n petrosa-apps --tail=20 || echo "No logs available yet"
+        else
+          echo "No recent job pods found (this is normal for CronJobs that haven't run yet)"
+        fi
+    
+    - name: Summary
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo ""
+        echo "📋 What was deployed:"
+        echo "  ✅ Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ github.sha }}"
+        echo "  ✅ CronJobs for automated data extraction"
+        echo "  ✅ Production-ready configuration"
+        echo ""
+        echo "📊 Monitor your deployment:"
+        echo "  kubectl get cronjobs -l app=binance-extractor -n petrosa-apps"
+        echo "  kubectl logs -l component=klines-extractor -n petrosa-apps --tail=100"
+        echo ""
+        echo "⚠️ Make sure to create the required secrets if they don't exist:"
+        echo "  kubectl create secret generic binance-api-secret -n petrosa-apps --from-literal=api-key=YOUR_API_KEY --from-literal=api-secret=YOUR_API_SECRET"
+        echo "  kubectl create secret generic database-secret -n petrosa-apps --from-literal=mysql-uri=YOUR_MYSQL_URI"
+
+  notify:
+    needs: [build-and-push, deploy]
+    runs-on: ubuntu-latest
+    if: always() && false  # Disabled by default - enable if you have Slack webhook configured
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  cleanup:
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Clean up old images
+      uses: actions/delete-package-versions@v4
+      with:
+        package-name: binance-extractor
+        package-type: container
+        min-versions-to-keep: 10
+        delete-only-untagged-versions: true

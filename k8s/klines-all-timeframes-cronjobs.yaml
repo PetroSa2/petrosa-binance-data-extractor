@@ -1,0 +1,474 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m5-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    interval: m5
+    version: production
+spec:
+  # Run every 5 minutes
+  schedule: "*/5 * * * *"
+  
+  # Keep last 3 successful and 1 failed job for debugging
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
+  # Don't run concurrent jobs to avoid conflicts
+  concurrencyPolicy: Forbid
+  
+  # Allow 5 minutes for job to complete (5m timeframe)
+  activeDeadlineSeconds: 300
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        interval: m5
+    spec:
+      # Retry failed jobs up to 2 times
+      backoffLimit: 2
+      
+      # Clean up completed jobs after 30 minutes
+      ttlSecondsAfterFinished: 1800
+      
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: klines-extractor
+            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
+            imagePullPolicy: Always
+            
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_production
+            
+            args:
+            - --period=5m
+            - --max-workers=15
+            - --db-adapter=mysql
+            
+            # Environment variables
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-key
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-secret
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: mysql-uri
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: ENVIRONMENT
+              value: "production"
+            
+            # Resource limits (higher for 5m due to frequency)
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "300m"
+              limits:
+                memory: "1Gi"
+                cpu: "800m"
+            
+            # Security context
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m15-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    interval: m15
+    version: production
+spec:
+  # Run every 15 minutes at minute 2 (to avoid conflict with 5m)
+  schedule: "2 */15 * * *"
+  
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 600  # 10 minutes for job completion
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        interval: m15
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: klines-extractor
+            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
+            imagePullPolicy: Always
+            
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_production
+            
+            args:
+            - --period=15m
+            - --max-workers=12
+            - --db-adapter=mysql
+            
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-key
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-secret
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: mysql-uri
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: ENVIRONMENT
+              value: "production"
+            
+            resources:
+              requests:
+                memory: "384Mi"
+                cpu: "250m"
+              limits:
+                memory: "768Mi"
+                cpu: "600m"
+            
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m30-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    interval: m30
+    version: production
+spec:
+  # Run every 30 minutes at minute 5 (to avoid conflicts)
+  schedule: "5 */30 * * *"
+  
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 900  # 15 minutes for job completion
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        interval: m30
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: klines-extractor
+            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
+            imagePullPolicy: Always
+            
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_production
+            
+            args:
+            - --period=30m
+            - --max-workers=10
+            - --db-adapter=mysql
+            
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-key
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-secret
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: mysql-uri
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: ENVIRONMENT
+              value: "production"
+            
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-h1-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    interval: h1
+    version: production
+spec:
+  # Run every hour at minute 10 (to avoid conflicts with other jobs)
+  schedule: "10 * * * *"
+  
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 1200  # 20 minutes for job completion
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        interval: h1
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: klines-extractor
+            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
+            imagePullPolicy: Always
+            
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_production
+            
+            args:
+            - --period=1h
+            - --max-workers=8
+            - --db-adapter=mysql
+            
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-key
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-secret
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: mysql-uri
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: ENVIRONMENT
+              value: "production"
+            
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-d1-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    interval: d1
+    version: production
+spec:
+  # Run daily at 00:15 UTC (to avoid conflicts)
+  schedule: "15 0 * * *"
+  
+  successfulJobsHistoryLimit: 5  # Keep more history for daily jobs
+  failedJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 2400  # 40 minutes for daily job completion
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        interval: d1
+    spec:
+      backoffLimit: 3  # More retries for daily jobs
+      ttlSecondsAfterFinished: 7200  # Keep for 2 hours
+      
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: klines-extractor
+            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
+            imagePullPolicy: Always
+            
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_production
+            
+            args:
+            - --period=1d
+            - --max-workers=6
+            - --db-adapter=mysql
+            
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-key
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: binance-api-secret
+                  key: api-secret
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: mysql-uri
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: ENVIRONMENT
+              value: "production"
+            
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
