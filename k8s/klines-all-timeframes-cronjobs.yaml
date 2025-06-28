@@ -45,9 +45,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            # TODO: Replace with your actual image registry
-            # For now using placeholder - you need to push petrosa-binance-extractor:local 
-            # to a registry like Docker Hub, GitHub Container Registry, etc.
+            # Production image with latest fixes
             image: yurisa2/petrosa-binance-extractor:latest
             imagePullPolicy: IfNotPresent
             
