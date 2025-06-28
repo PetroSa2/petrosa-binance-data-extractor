@@ -67,6 +67,15 @@ class ProductionKlinesExtractor:
             'errors': []
         }
 
+    def period_to_minutes(self) -> int:
+        """Convert period string to minutes for gap detection."""
+        period_map = {
+            "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30,
+            "1h": 60, "2h": 120, "4h": 240, "6h": 360, "8h": 480, "12h": 720,
+            "1d": 1440, "3d": 4320, "1w": 10080, "1M": 43200  # Approximate for 1M
+        }
+        return period_map.get(self.period, 15)  # Default to 15 if unknown
+
     def get_collection_name(self) -> str:
         """Get the collection name using proper financial market naming."""
         table_suffix = binance_interval_to_table_suffix(self.period)
@@ -170,11 +179,12 @@ class ProductionKlinesExtractor:
 
                     # Check for gaps (optional, can be expensive for large datasets)
                     try:
+                        interval_minutes = self.period_to_minutes()
                         gaps = db_adapter.find_gaps(
                             collection_name,
                             start_time,
                             end_time,
-                            15,  # interval_minutes for 15m candles
+                            interval_minutes,  # Use dynamic interval based on period
                             symbol=symbol
                         )
                         result['gaps_filled'] = len(gaps)
@@ -413,7 +423,7 @@ def main():
 
         # Log extraction start
         log_extraction_start(
-            logger=logger,
+            log=logger,
             extractor_type="klines_production",
             symbols=symbols,
             period=args.period,
@@ -421,12 +431,28 @@ def main():
             backfill=False,
         )
 
+        # Determine database URI - use command line arg or fallback to environment/constants
+        db_uri = args.db_uri
+        if db_uri is None:
+            if args.db_adapter == "mysql":
+                db_uri = constants.MYSQL_URI
+            elif args.db_adapter == "mongodb":
+                db_uri = constants.MONGODB_URI
+            elif args.db_adapter == "postgresql":
+                db_uri = constants.POSTGRESQL_URI
+            else:
+                logger.error(f"No database URI found for adapter: {args.db_adapter}")
+                sys.exit(1)
+
+        logger.info(f"Using database adapter: {args.db_adapter}")
+        logger.info(f"Database URI configured: {'Yes' if db_uri else 'No'}")
+
         # Create and run extractor
         extractor = ProductionKlinesExtractor(
             symbols=symbols,
             period=args.period,
             db_adapter_name=args.db_adapter,
-            db_uri=args.db_uri,
+            db_uri=db_uri,
             max_workers=args.max_workers,
             lookback_hours=args.lookback_hours,
             batch_size=args.batch_size,
@@ -440,7 +466,7 @@ def main():
 
         # Log completion
         log_extraction_completion(
-            logger=logger,
+            log=logger,
             extractor_type="klines_production",
             total_records=result['total_records_written'],
             duration_seconds=result['duration_seconds'],

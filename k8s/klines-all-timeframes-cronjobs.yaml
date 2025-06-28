@@ -19,9 +19,6 @@ spec:
   # Don't run concurrent jobs to avoid conflicts
   concurrencyPolicy: Forbid
   
-  # Allow 5 minutes for job to complete (5m timeframe)
-  activeDeadlineSeconds: 300
-  
   jobTemplate:
     metadata:
       labels:
@@ -31,6 +28,9 @@ spec:
     spec:
       # Retry failed jobs up to 2 times
       backoffLimit: 2
+      
+      # Allow 5 minutes for job to complete (5m timeframe)
+      activeDeadlineSeconds: 300
       
       # Clean up completed jobs after 30 minutes
       ttlSecondsAfterFinished: 1800
@@ -45,8 +45,11 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
-            imagePullPolicy: Always
+            # TODO: Replace with your actual image registry
+            # For now using placeholder - you need to push petrosa-binance-extractor:local 
+            # to a registry like Docker Hub, GitHub Container Registry, etc.
+            image: yurisa2/petrosa-binance-extractor:latest
+            imagePullPolicy: IfNotPresent
             
             command:
             - python
@@ -58,29 +61,38 @@ spec:
             - --max-workers=15
             - --db-adapter=mysql
             
-            # Environment variables
+            # Environment variables from correct secret
             env:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-key
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-secret
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: database-secret
-                  key: mysql-uri
+                  name: binance-extractor-secrets
+                  key: MYSQL_URI
             - name: LOG_LEVEL
-              value: "INFO"
-            - name: LOG_FORMAT
-              value: "json"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: "production"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: DB_ADAPTER
             
             # Resource limits (higher for 5m due to frequency)
             resources:
@@ -119,7 +131,6 @@ spec:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 600  # 10 minutes for job completion
   
   jobTemplate:
     metadata:
@@ -129,6 +140,8 @@ spec:
         interval: m15
     spec:
       backoffLimit: 2
+      # 10 minutes for job completion
+      activeDeadlineSeconds: 600
       ttlSecondsAfterFinished: 3600
       
       template:
@@ -141,8 +154,8 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
-            imagePullPolicy: Always
+            image: yurisa2/petrosa-binance-extractor:latest
+            imagePullPolicy: IfNotPresent
             
             command:
             - python
@@ -158,24 +171,33 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-key
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-secret
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: database-secret
-                  key: mysql-uri
+                  name: binance-extractor-secrets
+                  key: MYSQL_URI
             - name: LOG_LEVEL
-              value: "INFO"
-            - name: LOG_FORMAT
-              value: "json"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: "production"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: DB_ADAPTER
             
             resources:
               requests:
@@ -212,7 +234,6 @@ spec:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 900  # 15 minutes for job completion
   
   jobTemplate:
     metadata:
@@ -222,6 +243,8 @@ spec:
         interval: m30
     spec:
       backoffLimit: 2
+      # 15 minutes for job completion
+      activeDeadlineSeconds: 900
       ttlSecondsAfterFinished: 3600
       
       template:
@@ -234,8 +257,8 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
-            imagePullPolicy: Always
+            image: yurisa2/petrosa-binance-extractor:latest
+            imagePullPolicy: IfNotPresent
             
             command:
             - python
@@ -251,24 +274,33 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-key
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-secret
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: database-secret
-                  key: mysql-uri
+                  name: binance-extractor-secrets
+                  key: MYSQL_URI
             - name: LOG_LEVEL
-              value: "INFO"
-            - name: LOG_FORMAT
-              value: "json"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: "production"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: DB_ADAPTER
             
             resources:
               requests:
@@ -305,7 +337,6 @@ spec:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 1200  # 20 minutes for job completion
   
   jobTemplate:
     metadata:
@@ -315,6 +346,8 @@ spec:
         interval: h1
     spec:
       backoffLimit: 2
+      # 20 minutes for job completion
+      activeDeadlineSeconds: 1200
       ttlSecondsAfterFinished: 3600
       
       template:
@@ -327,8 +360,8 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
-            imagePullPolicy: Always
+            image: yurisa2/petrosa-binance-extractor:latest
+            imagePullPolicy: IfNotPresent
             
             command:
             - python
@@ -344,24 +377,33 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-key
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-secret
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: database-secret
-                  key: mysql-uri
+                  name: binance-extractor-secrets
+                  key: MYSQL_URI
             - name: LOG_LEVEL
-              value: "INFO"
-            - name: LOG_FORMAT
-              value: "json"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: "production"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: DB_ADAPTER
             
             resources:
               requests:
@@ -398,7 +440,6 @@ spec:
   successfulJobsHistoryLimit: 5  # Keep more history for daily jobs
   failedJobsHistoryLimit: 2
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 2400  # 40 minutes for daily job completion
   
   jobTemplate:
     metadata:
@@ -408,6 +449,8 @@ spec:
         interval: d1
     spec:
       backoffLimit: 3  # More retries for daily jobs
+      # 40 minutes for daily job completion
+      activeDeadlineSeconds: 2400
       ttlSecondsAfterFinished: 7200  # Keep for 2 hours
       
       template:
@@ -420,8 +463,8 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: DOCKERHUB_USERNAME/petrosa-binance-extractor:latest
-            imagePullPolicy: Always
+            image: yurisa2/petrosa-binance-extractor:latest
+            imagePullPolicy: IfNotPresent
             
             command:
             - python
@@ -437,24 +480,33 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-key
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-api-secret
-                  key: api-secret
+                  name: binance-extractor-secrets
+                  key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: database-secret
-                  key: mysql-uri
+                  name: binance-extractor-secrets
+                  key: MYSQL_URI
             - name: LOG_LEVEL
-              value: "INFO"
-            - name: LOG_FORMAT
-              value: "json"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: "production"
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: DB_ADAPTER
             
             resources:
               requests:
