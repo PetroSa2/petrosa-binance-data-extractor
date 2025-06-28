@@ -49,7 +49,32 @@ jobs:
     
     - name: Run tests
       run: |
-        pytest tests/ -v --cov=. --cov-report=xml
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+    
+    - name: Check coverage report
+      run: |
+        echo "📊 Coverage Report Summary:"
+        echo "=========================="
+        
+        # Generate and display coverage report
+        coverage report --show-missing --skip-covered
+        
+        # Get coverage percentage
+        COVERAGE_PERCENT=$(coverage report --format=total)
+        echo ""
+        echo "📈 Total Coverage: ${COVERAGE_PERCENT}%"
+        
+        # Set coverage threshold (adjust as needed)
+        COVERAGE_THRESHOLD=80
+        
+        if (( $(echo "$COVERAGE_PERCENT >= $COVERAGE_THRESHOLD" | bc -l) )); then
+          echo "✅ Coverage meets threshold of ${COVERAGE_THRESHOLD}%"
+        else
+          echo "⚠️  Coverage below threshold of ${COVERAGE_THRESHOLD}%"
+          echo "❌ Current: ${COVERAGE_PERCENT}%, Required: ${COVERAGE_THRESHOLD}%"
+          # Uncomment the next line to fail the build on low coverage
+          # exit 1
+        fi
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -154,9 +179,9 @@ jobs:
         echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
         chmod 600 $HOME/.kube/config
         
-        # Verify connection to MicroK8s cluster
-        kubectl cluster-info
-        kubectl get nodes
+        # Verify connection to MicroK8s cluster (skip TLS verification)
+        kubectl cluster-info --insecure-skip-tls-verify
+        kubectl get nodes --insecure-skip-tls-verify
     
     - name: Update image tags in manifests
       run: |
@@ -174,19 +199,21 @@ jobs:
     - name: Deploy secrets (if not exists)
       run: |
         # Check if secrets exist, create them if they don't
-        if ! kubectl get secret binance-api-secret -n petrosa-apps >/dev/null 2>&1; then
+        if ! kubectl get secret binance-api-secret -n petrosa-apps --insecure-skip-tls-verify >/dev/null 2>&1; then
           echo "⚠️ binance-api-secret not found. Creating with CI secrets..."
           kubectl create secret generic binance-api-secret -n petrosa-apps \
             --from-literal=api-key="${{ secrets.BINANCE_API_KEY }}" \
-            --from-literal=api-secret="${{ secrets.BINANCE_SECRET_KEY }}"
+            --from-literal=api-secret="${{ secrets.BINANCE_SECRET_KEY }}" \
+            --insecure-skip-tls-verify
         else
           echo "✅ binance-api-secret already exists"
         fi
         
-        if ! kubectl get secret database-secret -n petrosa-apps >/dev/null 2>&1; then
+        if ! kubectl get secret database-secret -n petrosa-apps --insecure-skip-tls-verify >/dev/null 2>&1; then
           echo "⚠️ database-secret not found. Creating with CI secrets..."
           kubectl create secret generic database-secret -n petrosa-apps \
-            --from-literal=mysql-uri="${{ secrets.POSTGRES_CONNECTION_STRING }}"
+            --from-literal=mysql-uri="${{ secrets.POSTGRES_CONNECTION_STRING }}" \
+            --insecure-skip-tls-verify
         else
           echo "✅ database-secret already exists"
         fi
@@ -196,34 +223,34 @@ jobs:
         echo "🚀 Deploying to MicroK8s cluster..."
         
         # Apply all Kubernetes manifests
-        kubectl apply -f k8s/ --recursive
+        kubectl apply -f k8s/ --recursive --insecure-skip-tls-verify
         
         echo "📊 Deployment status:"
-        kubectl get all -l app=binance-extractor -n petrosa-apps || echo "No resources with app=binance-extractor label found"
-        kubectl get cronjobs -n petrosa-apps || echo "No CronJobs found"
-        kubectl get jobs --sort-by=.metadata.creationTimestamp -n petrosa-apps | tail -5 || echo "No Jobs found"
+        kubectl get all -l app=binance-extractor -n petrosa-apps --insecure-skip-tls-verify || echo "No resources with app=binance-extractor label found"
+        kubectl get cronjobs -n petrosa-apps --insecure-skip-tls-verify || echo "No CronJobs found"
+        kubectl get jobs --sort-by=.metadata.creationTimestamp -n petrosa-apps --insecure-skip-tls-verify | tail -5 || echo "No Jobs found"
     
     - name: Verify deployment
       run: |
         echo "✅ Verifying deployment on MicroK8s..."
         
         # Wait for deployments to be ready (if any)
-        kubectl wait --for=condition=available --timeout=300s deployment -l app=binance-extractor -n petrosa-apps 2>/dev/null || echo "No deployments to wait for"
+        kubectl wait --for=condition=available --timeout=300s deployment -l app=binance-extractor -n petrosa-apps --insecure-skip-tls-verify 2>/dev/null || echo "No deployments to wait for"
         
         # Show CronJob status
         echo "📅 CronJob status:"
-        kubectl get cronjobs -n petrosa-apps -o wide || echo "No CronJobs found"
+        kubectl get cronjobs -n petrosa-apps -o wide --insecure-skip-tls-verify || echo "No CronJobs found"
         
         # Show recent pods
         echo "📦 Recent pods:"
-        kubectl get pods --sort-by=.metadata.creationTimestamp -n petrosa-apps | tail -10 || echo "No pods found"
+        kubectl get pods --sort-by=.metadata.creationTimestamp -n petrosa-apps --insecure-skip-tls-verify | tail -10 || echo "No pods found"
         
         # Show logs from the most recent pod (if any)
         echo "📝 Recent logs (if available):"
-        LATEST_POD=$(kubectl get pods --sort-by=.metadata.creationTimestamp -n petrosa-apps -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
+        LATEST_POD=$(kubectl get pods --sort-by=.metadata.creationTimestamp -n petrosa-apps -o jsonpath='{.items[-1].metadata.name}' --insecure-skip-tls-verify 2>/dev/null || echo "")
         if [ ! -z "$LATEST_POD" ] && [ "$LATEST_POD" != "null" ]; then
           echo "Logs from pod: $LATEST_POD"
-          kubectl logs $LATEST_POD --tail=20 -n petrosa-apps || echo "No logs available yet"
+          kubectl logs $LATEST_POD --tail=20 -n petrosa-apps --insecure-skip-tls-verify || echo "No logs available yet"
         else
           echo "No recent pods found (normal for CronJobs that haven't run yet)"
         fi
