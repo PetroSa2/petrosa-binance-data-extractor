@@ -141,7 +141,21 @@ class ProductionKlinesExtractor:
 
         try:
             # Get database adapter (each thread needs its own connection)
-            db_adapter = get_adapter(self.db_adapter_name, self.db_uri)
+            # Ensure we have a valid database URI
+            db_uri = self.db_uri
+            if not db_uri:
+                # Fallback to constants if db_uri is None or empty
+                if self.db_adapter_name == "mysql":
+                    db_uri = constants.MYSQL_URI
+                elif self.db_adapter_name == "mongodb":
+                    db_uri = constants.MONGODB_URI
+                elif self.db_adapter_name == "postgresql":
+                    db_uri = constants.POSTGRESQL_URI
+                
+                if not db_uri:
+                    raise ValueError(f"No database URI available for adapter: {self.db_adapter_name}")
+            
+            db_adapter = get_adapter(self.db_adapter_name, db_uri)
             db_adapter.connect()
 
             try:
