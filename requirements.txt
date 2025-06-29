@@ -16,13 +16,34 @@ typer>=0.9.0
 
 # Logging and monitoring
 structlog>=23.0.0
+
+# OpenTelemetry Core
 opentelemetry-api>=1.20.0
 opentelemetry-sdk>=1.20.0
+
+# OpenTelemetry Exporters
 opentelemetry-exporter-otlp-proto-grpc>=1.20.0
+opentelemetry-exporter-otlp-proto-http>=1.20.0
+
+# OpenTelemetry Auto-Instrumentation
+opentelemetry-distro>=0.41b0
+opentelemetry-instrumentation>=0.41b0
+
+# OpenTelemetry Manual Instrumentations
 opentelemetry-instrumentation-requests>=0.41b0
 opentelemetry-instrumentation-pymongo>=0.41b0
 opentelemetry-instrumentation-sqlalchemy>=0.41b0
 opentelemetry-instrumentation-logging>=0.41b0
+opentelemetry-instrumentation-system-metrics>=0.41b0
+opentelemetry-instrumentation-psutil>=0.41b0
+
+# Additional instrumentations for HTTP and async
+opentelemetry-instrumentation-aiohttp-client>=0.41b0
+opentelemetry-instrumentation-urllib3>=0.41b0
+
+# Metrics and resource detection
+opentelemetry-semantic-conventions>=0.41b0
+opentelemetry-instrumentation-runtime-metrics>=0.41b0
 
 # Security
 cryptography>=41.0.0
