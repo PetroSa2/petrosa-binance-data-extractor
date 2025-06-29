@@ -266,7 +266,6 @@ class ProductionKlinesExtractor:
                     end_time=end_time,
                 )
 
-                nonlocal result
                 result['records_fetched'] = len(klines_data)
 
                 if klines_data:
