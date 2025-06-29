@@ -43,6 +43,8 @@ DEVELOPMENT_SYMBOLS = [
 ]
 
 # Get symbols based on environment
+
+
 def get_symbols_for_environment(environment: str = "production") -> List[str]:
     """
     Get symbols list based on environment.

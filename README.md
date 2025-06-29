@@ -14,6 +14,7 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 
 ### Setup Guides
 - **[Docker Hub Integration](docs/DOCKERHUB_SETUP.md)** - Docker Hub CI/CD setup and configuration
+- **[Local Deployment](docs/LOCAL_DEPLOY.md)** - Local development and testing setup
 - **[Namespace Configuration](docs/NAMESPACE_UPDATE.md)** - Kubernetes namespace setup and migration
 
 ### Post-Deployment
@@ -29,7 +30,7 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 - **🔍 Comprehensive Monitoring**: Built-in observability with structured logging and health checks
 
 ### Database & Data Management
-- **💾 Multi-Database Support**: MongoDB, MySQL, and PostgreSQL adapters
+- **💾 Multi-Database Support**: MongoDB and MySQL adapters with robust connection handling (PostgreSQL planned)
 - **🔄 Incremental Updates**: Smart gap detection and backfill capabilities
 - **✅ Data Validation**: Pydantic v2 models ensuring data integrity
 - **📊 Optimized Storage**: Efficient indexing and partitioning strategies
@@ -71,9 +72,14 @@ petrosa-binance-data-extractor/
 ├── config/                  # 🆕 Configuration management
 │   └── symbols.py           # Symbol configuration for production
 ├── k8s/                     # 🆕 Kubernetes manifests
-│   ├── klines-production-cronjobs.yaml
+│   ├── klines-all-timeframes-cronjobs.yaml
+│   ├── namespace.yaml
 │   └── secrets-example.yaml
 ├── scripts/                 # 🆕 Utility scripts
+│   ├── deploy-production.sh # Production deployment script
+│   ├── validate-production.sh # Production validation
+│   ├── deploy-local.sh      # Local development deployment
+│   ├── build-multiarch.sh   # Multi-architecture Docker builds
 │   └── encode_secrets.py    # Secret encoding for Kubernetes
 ├── Dockerfile               # Multi-stage container build
 ├── tests/                   # Comprehensive test suite
@@ -119,10 +125,13 @@ petrosa-binance-data-extractor/
 |----------|-------------|----------|---------|
 | `BINANCE_API_KEY` | Binance API key | No | "" |
 | `BINANCE_API_SECRET` | Binance API secret | No | "" |
-| `MONGODB_URI` | MongoDB connection string | No | "mongodb://localhost:27017" |
-| `MYSQL_URI` | MySQL connection string | No | "mysql://user:pass@localhost/db" |
+| `DB_ADAPTER` | Database adapter type | No | "mysql" |
+| `MYSQL_URI` | MySQL connection string | No | "mysql+pymysql://username:password@localhost:3306/binance_data" |
+| `MONGODB_URI` | MongoDB connection string | No | "mongodb://localhost:27017/binance_data" |
+| `POSTGRESQL_URI` | PostgreSQL connection string | No | "postgresql://user:password@localhost:5432/binance_data" |
 | `LOG_LEVEL` | Logging level | No | "INFO" |
-| `OTEL_SERVICE_NAME` | Service name for OpenTelemetry | No | "binance-extractor" |
+| `DEFAULT_PERIOD` | Default extraction interval | No | "15m" |
+| `DB_BATCH_SIZE` | Database batch size | No | "1000" |
 
 ## 🚀 Usage
 
@@ -215,12 +224,14 @@ with db_adapter:
 # Build the image
 docker build -t binance-extractor .
 
-# Run klines extraction
+# Run production extractor with MySQL
 docker run --rm \
   -e BINANCE_API_KEY=$API_KEY \
-  -e MONGODB_URI=$MONGO_URI \
+  -e BINANCE_API_SECRET=$API_SECRET \
+  -e DB_ADAPTER=mysql \
+  -e MYSQL_URI=$MYSQL_URI \
   binance-extractor \
-  python jobs/extract_klines.py --symbols BTCUSDT --interval 15m
+  python jobs/extract_klines_production.py --period 15m
 ```
 
 ### Docker Compose
@@ -232,7 +243,9 @@ services:
     build: .
     environment:
       - BINANCE_API_KEY=${BINANCE_API_KEY}
-      - MONGODB_URI=mongodb://mongo:27017/crypto
+      - BINANCE_API_SECRET=${BINANCE_API_SECRET}
+      - DB_ADAPTER=mongodb
+      - MONGODB_URI=mongodb://mongo:27017/binance_data
     depends_on:
       - mongo
     
@@ -414,11 +427,12 @@ BINANCE_API_URL = "https://fapi.binance.com"
 API_RATE_LIMIT_PER_MINUTE = 1200
 
 # Database Configuration  
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-MYSQL_URI = os.getenv("MYSQL_URI", "mysql://localhost:3306")
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/binance")
+MYSQL_URI = os.getenv("MYSQL_URI", "mysql+pymysql://user:pass@localhost:3306/binance")
+POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432/binance")
 
 # Extraction Parameters
-DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "SOLUSDT", "DOTUSDT", "AVAXUSDT", "MATICUSDT", "LINKUSDT"]  # Production has 20+ symbols
 DEFAULT_PERIOD = "15m"
 MAX_RETRIES = 5
 RETRY_BACKOFF_SECONDS = 2
@@ -433,8 +447,8 @@ ENABLE_OTEL = bool(os.getenv("ENABLE_OTEL", "false"))
 The system supports multiple databases through pluggable adapters:
 
 - **MongoDB**: Full-featured adapter with aggregation support
-- **MySQL**: SQL-based adapter with SQLAlchemy integration  
-- **PostgreSQL**: (Coming soon)
+- **MySQL**: SQL-based adapter with SQLAlchemy integration and robust retry logic for connection handling
+- **PostgreSQL**: (Planned for future release - infrastructure ready, implementation pending)
 
 ## 📊 Data Models
 
@@ -481,7 +495,7 @@ The system supports multiple databases through pluggable adapters:
 
 ## 🔄 CI/CD Pipeline
 
-The project includes a comprehensive GitHub Actions workflow:
+The project includes a comprehensive GitHub Actions workflow (see `.github/workflows/ci-cd.yml` and `.github/workflows/deploy.yaml`):
 
 ### Pipeline Stages
 
@@ -572,10 +586,12 @@ curl http://localhost:8080/ready
 
 ### Code Standards
 
-- **Python**: Follow PEP 8, use type hints
+- **Python**: Follow PEP 8, use type hints (some style improvements needed)
 - **Testing**: Minimum 80% code coverage
 - **Documentation**: Docstrings for all public methods
 - **Commits**: Use conventional commit messages
+
+> **Note**: Code style improvements (line length, import organization) are planned for upcoming releases.
 
 ### Pre-commit Hooks
 
@@ -591,10 +607,18 @@ pre-commit run --all-files
 ## � Documentation
 
 ### Production Guides
-- **[Production Readiness Checklist](PRODUCTION_READINESS.md)** - Complete pre-deployment validation
-- **[Operations Guide](OPERATIONS_GUIDE.md)** - Day-to-day operations, monitoring, and troubleshooting
-- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
-- **[Production Summary](PRODUCTION_SUMMARY.md)** - Architecture overview and system design
+- **[Production Readiness Checklist](docs/PRODUCTION_READINESS.md)** - Complete pre-deployment validation
+- **[Operations Guide](docs/OPERATIONS_GUIDE.md)** - Day-to-day operations, monitoring, and troubleshooting
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
+- **[Production Summary](docs/PRODUCTION_SUMMARY.md)** - Architecture overview and system design
+
+### Setup Guides
+- **[Docker Hub Integration](docs/DOCKERHUB_SETUP.md)** - Docker Hub CI/CD setup and configuration
+- **[Local Deployment](docs/LOCAL_DEPLOY.md)** - Local development and testing setup
+- **[Namespace Configuration](docs/NAMESPACE_UPDATE.md)** - Kubernetes namespace setup and migration
+
+### Post-Deployment
+- **[Deployment Complete Guide](docs/DEPLOYMENT_COMPLETE.md)** - Post-deployment summary and next steps
 
 ### Quick References
 - **Production Deployment**: `./scripts/deploy-production.sh`
