@@ -11,12 +11,14 @@ This script automatically:
 
 import argparse
 import os
+import random
 import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, cast
+import random
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,6 +32,79 @@ from utils.logger import (get_logger, log_extraction_completion,
                           log_extraction_start, setup_logging)
 from utils.time_utils import (binance_interval_to_table_suffix,
                               format_duration, get_current_utc_time)
+
+
+def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logger=None):
+    """
+    Retry a function with exponential backoff and jitter.
+    
+    Args:
+        func: Function to retry
+        max_retries: Maximum number of retry attempts
+        base_delay: Base delay in seconds
+        max_delay: Maximum delay in seconds
+        logger: Logger instance to use for messages
+    
+    Returns:
+        The result of the function call
+    
+    Raises:
+        The last exception if all retries fail
+    """
+    last_exception = None
+    
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            last_exception = e
+            
+            # Check if it's a MySQL connection error
+            error_msg = str(e).lower()
+            # Also check for pymysql specific errors and SQLAlchemy errors
+            is_connection_error = (
+                any(keyword in error_msg for keyword in [
+                    'lost connection to mysql server',
+                    'mysql server has gone away',
+                    'connection was killed',
+                    'connection refused',
+                    'timeout',
+                    'broken pipe',
+                    'can\'t connect to mysql server',
+                    'operationalerror',
+                    '2013',  # MySQL error code for lost connection
+                    '2006',  # MySQL error code for server gone away
+                    '2003',  # MySQL error code for can't connect
+                ]) or
+                # Check for SQLAlchemy connection errors
+                'operationalerror' in str(type(e)).lower() or
+                'databaseerror' in str(type(e)).lower()
+            )
+            
+            if is_connection_error:
+                if attempt < max_retries:
+                    # Calculate delay with exponential backoff and jitter
+                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    jitter = random.uniform(0.1, 0.3) * delay
+                    total_delay = delay + jitter
+                    
+                    if logger:
+                        logger.warning(f"MySQL connection error on attempt {attempt + 1}/{max_retries + 1}: {e}")
+                        logger.info(f"Retrying in {total_delay:.2f} seconds...")
+                    time.sleep(total_delay)
+                    continue
+                else:
+                    if logger:
+                        logger.error(f"All {max_retries + 1} attempts failed. Last error: {e}")
+                    break
+            else:
+                # Not a connection error, don't retry
+                if logger:
+                    logger.error(f"Non-connection error, not retrying: {e}")
+                break
+    
+    # If we get here, all retries failed
+    raise last_exception
 
 
 class ProductionKlinesExtractor:
@@ -83,7 +158,7 @@ class ProductionKlinesExtractor:
 
     def get_last_timestamp_for_symbol(self, db_adapter, symbol: str) -> Optional[datetime]:
         """Get the last timestamp for a symbol from the database."""
-        try:
+        def _get_timestamp():
             collection_name = self.get_collection_name()
 
             # Query the latest record for this symbol
@@ -98,8 +173,10 @@ class ProductionKlinesExtractor:
                 # No data found, start from default start date
                 return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
 
+        try:
+            return retry_with_backoff(_get_timestamp, max_retries=2, base_delay=1.0, logger=self.logger)
         except Exception as e:
-            self.logger.warning("Could not get last timestamp for %s: %s", symbol, e)
+            self.logger.warning("Could not get last timestamp for %s after retries: %s", symbol, e)
             # Fallback to default start date
             return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
 
@@ -127,7 +204,7 @@ class ProductionKlinesExtractor:
         return start_time, end_time
 
     def extract_symbol_data(self, symbol: str, binance_client: BinanceClient) -> Dict:
-        """Extract data for a single symbol."""
+        """Extract data for a single symbol with retry logic for database operations."""
         symbol_start_time = time.time()
         result = {
             'symbol': symbol,
@@ -139,7 +216,8 @@ class ProductionKlinesExtractor:
             'duration': 0
         }
 
-        try:
+        def _perform_extraction():
+            """Inner function that performs the actual extraction."""
             # Get database adapter (each thread needs its own connection)
             # Ensure we have a valid database URI
             db_uri = self.db_uri
@@ -156,7 +234,12 @@ class ProductionKlinesExtractor:
                     raise ValueError(f"No database URI available for adapter: {self.db_adapter_name}")
             
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
-            db_adapter.connect()
+            
+            # Connect with retry logic
+            def _connect_db():
+                db_adapter.connect()
+            
+            retry_with_backoff(_connect_db, max_retries=2, base_delay=1.0, logger=self.logger)
 
             try:
                 # Get last timestamp for this symbol
@@ -183,32 +266,57 @@ class ProductionKlinesExtractor:
                     end_time=end_time,
                 )
 
+                nonlocal result
                 result['records_fetched'] = len(klines_data)
 
                 if klines_data:
-                    # Write to database
+                    # Write to database with retry logic
                     collection_name = self.get_collection_name()
-                    records_written = db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
+                    
+                    def _write_data():
+                        return db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
+                    
+                    records_written = retry_with_backoff(_write_data, max_retries=2, base_delay=1.0, logger=self.logger)
                     result['records_written'] = records_written
 
-                    # Check for gaps (optional, can be expensive for large datasets)
-                    try:
-                        interval_minutes = self.period_to_minutes()
-                        gaps = db_adapter.find_gaps(
-                            collection_name,
-                            start_time,
-                            end_time,
-                            interval_minutes,  # Use dynamic interval based on period
-                            symbol=symbol
-                        )
-                        result['gaps_filled'] = len(gaps)
+                    # Check for gaps with retry logic
+                    def _check_gaps():
+                        try:
+                            interval_minutes = self.period_to_minutes()
+                            gaps = db_adapter.find_gaps(
+                                collection_name,
+                                start_time,
+                                end_time,
+                                interval_minutes,
+                                symbol=symbol
+                            )
+                            return gaps
+                        except Exception as e:
+                            # Check if we need to reconnect
+                            error_msg = str(e).lower()
+                            if any(keyword in error_msg for keyword in [
+                                'lost connection to mysql server',
+                                'mysql server has gone away',
+                                'connection was killed'
+                            ]):
+                                self.logger.warning(f"MySQL connection lost during gap detection, attempting reconnect...")
+                                try:
+                                    db_adapter.disconnect()
+                                    db_adapter.connect()
+                                except Exception as reconnect_error:
+                                    self.logger.error(f"Failed to reconnect: {reconnect_error}")
+                            raise
 
+                    try:
+                        gaps = retry_with_backoff(_check_gaps, max_retries=3, base_delay=2.0, logger=self.logger)
+                        result['gaps_filled'] = len(gaps)
                         if gaps:
                             self.logger.warning(
                                 f"Found {len(gaps)} gaps for {symbol} in {collection_name}"
                             )
                     except Exception as gap_error:
-                        self.logger.warning(f"Gap detection failed for {symbol}: {gap_error}")
+                        self.logger.warning(f"Gap detection failed for {symbol} after retries: {gap_error}")
+                        result['gaps_filled'] = 0
 
                 result['success'] = True
                 result['duration'] = time.time() - symbol_start_time
@@ -219,15 +327,22 @@ class ProductionKlinesExtractor:
                     f"duration={result['duration']:.2f}s"
                 )
 
-            finally:
-                db_adapter.disconnect()
+                return result
 
+            finally:
+                try:
+                    db_adapter.disconnect()
+                except Exception as disconnect_error:
+                    self.logger.warning(f"Error disconnecting from database: {disconnect_error}")
+
+        try:
+            # Use retry logic for the entire extraction operation
+            return retry_with_backoff(_perform_extraction, max_retries=3, base_delay=1.0, logger=self.logger)
         except Exception as e:
             result['error'] = str(e)
             result['duration'] = time.time() - symbol_start_time
-            self.logger.error(f"❌ {symbol} failed: {e}")
-
-        return result
+            self.logger.error(f"❌ {symbol} failed after all retries: {e}")
+            return result
 
     def run_extraction(self) -> Dict:
         """Run the production extraction with parallel processing."""

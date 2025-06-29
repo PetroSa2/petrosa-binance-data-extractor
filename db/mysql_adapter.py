@@ -305,7 +305,7 @@ class MySQLAdapter(BaseAdapter):
             engine = self._ensure_connected()
             with engine.connect() as conn:
                 result = conn.execute(query)
-                return [dict(row) for row in result]
+                return [dict(row) for row in result.mappings()]
 
         except Exception as e:
             raise DatabaseError(f"Failed to query range from {collection}: {e}") from e

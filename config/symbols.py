@@ -31,7 +31,6 @@ PRODUCTION_SYMBOLS = [
 
     # Meme coins (high volume)
     "DOGEUSDT",   # Dogecoin
-    "SHIBUSDT",   # Shiba Inu
 ]
 
 # Development/testing symbols (smaller list)
