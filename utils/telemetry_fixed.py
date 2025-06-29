@@ -140,7 +140,7 @@ class TelemetryManager:
         """Create OpenTelemetry resource with auto-detection."""
         
         # Base attributes
-        attributes: Dict[str, Any] = {
+        attributes: Dict[str, Union[str, bool, int, float]] = {
             SERVICE_NAME: service_name or constants.OTEL_SERVICE_NAME,
             SERVICE_VERSION: service_version or constants.OTEL_SERVICE_VERSION,
             ResourceAttributes.SERVICE_INSTANCE_ID: os.getenv('HOSTNAME', 'unknown'),
@@ -217,7 +217,7 @@ class TelemetryManager:
             headers = self._parse_headers(constants.OTEL_EXPORTER_OTLP_HEADERS or "")
             
             otlp_exporter = OTLPSpanExporter(
-                endpoint=getattr(constants, 'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT', None) or constants.OTEL_EXPORTER_OTLP_ENDPOINT,
+                endpoint=constants.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or constants.OTEL_EXPORTER_OTLP_ENDPOINT,
                 headers=headers,
                 insecure=not constants.OTEL_EXPORTER_OTLP_ENDPOINT.startswith('https://') if constants.OTEL_EXPORTER_OTLP_ENDPOINT else True
             )
@@ -237,7 +237,7 @@ class TelemetryManager:
         headers = self._parse_headers(constants.OTEL_EXPORTER_OTLP_HEADERS or "")
         
         otlp_metric_exporter = OTLPMetricExporter(
-            endpoint=getattr(constants, 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', None) or constants.OTEL_EXPORTER_OTLP_ENDPOINT,
+            endpoint=constants.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT or constants.OTEL_EXPORTER_OTLP_ENDPOINT,
             headers=headers,
             insecure=not constants.OTEL_EXPORTER_OTLP_ENDPOINT.startswith('https://') if constants.OTEL_EXPORTER_OTLP_ENDPOINT else True
         )

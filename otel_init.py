@@ -1,3 +1,4 @@
+
 """
 OpenTelemetry startup initialization for Binance data extractor.
 
@@ -16,7 +17,7 @@ def init_otel_early():
     if not os.getenv('OTEL_PYTHON_DISABLED_INSTRUMENTATIONS'):
         # Disable problematic instrumentations that might not be available
         os.environ['OTEL_PYTHON_DISABLED_INSTRUMENTATIONS'] = (
-            'asyncio,threading,system-metrics,psutil'
+            'asyncio,threading,system-metrics,psutil,aiohttp-client,runtime-metrics'
         )
     
     # Set default propagators if not specified
