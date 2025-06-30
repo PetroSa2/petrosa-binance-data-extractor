@@ -1,5 +1,12 @@
 name: CI/CD Pipeline
 
+# This pipeline builds and deploys the Binance data extractor to Kubernetes
+# Includes:
+# - Regular klines extraction CronJobs (all timeframes: m5, m15, m30, h1, d1)
+# - Gap filler CronJob (daily at 2 AM UTC with enhanced retry logic)
+# - Security scanning and testing
+# - Multi-architecture Docker builds
+
 on:
   push:
     branches: [ 'main', 'develop' ]
@@ -173,6 +180,26 @@ jobs:
       with:
         version: 'v1.28.0'
     
+    - name: Validate Kubernetes manifests
+      run: |
+        echo "🔍 Validating Kubernetes manifests..."
+        
+        # Validate all manifests
+        for manifest in k8s/*.yaml; do
+          if [ -f "$manifest" ]; then
+            echo "Validating $manifest..."
+            kubectl apply --dry-run=client -f "$manifest" --insecure-skip-tls-verify
+            if [ $? -eq 0 ]; then
+              echo "✅ $manifest is valid"
+            else
+              echo "❌ $manifest has validation errors"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "✅ All manifests validated successfully"
+    
     - name: Configure kubectl for MicroK8s
       run: |
         mkdir -p $HOME/.kube
@@ -192,7 +219,7 @@ jobs:
         fi
         
         # Update the image tag in Kubernetes manifests
-        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|image: DOCKERHUB_USERNAME/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}|g"
+        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|image: .*/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}|g"
         
         echo "Updated manifests with image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}"
     
@@ -229,6 +256,21 @@ jobs:
         kubectl get all -l app=binance-extractor -n petrosa-apps --insecure-skip-tls-verify || echo "No resources with app=binance-extractor label found"
         kubectl get cronjobs -n petrosa-apps --insecure-skip-tls-verify || echo "No CronJobs found"
         kubectl get jobs --sort-by=.metadata.creationTimestamp -n petrosa-apps --insecure-skip-tls-verify | tail -5 || echo "No Jobs found"
+        
+        # Verify specific deployments
+        echo "🔍 Verifying specific deployments:"
+        echo "  - Regular klines extraction CronJobs"
+        echo "  - Gap filler CronJob"
+        
+        # Check for gap filler CronJob specifically
+        if kubectl get cronjob klines-gap-filler -n petrosa-apps --insecure-skip-tls-verify >/dev/null 2>&1; then
+          echo "✅ Gap filler CronJob deployed successfully"
+          echo "📅 Gap filler schedule:"
+          kubectl get cronjob klines-gap-filler -n petrosa-apps -o jsonpath='{.spec.schedule}' --insecure-skip-tls-verify
+          echo ""
+        else
+          echo "⚠️ Gap filler CronJob not found - check deployment"
+        fi
     
     - name: Verify deployment
       run: |
@@ -240,6 +282,15 @@ jobs:
         # Show CronJob status
         echo "📅 CronJob status:"
         kubectl get cronjobs -n petrosa-apps -o wide --insecure-skip-tls-verify || echo "No CronJobs found"
+        
+        # Show specific gap filler CronJob details
+        echo "🔧 Gap filler CronJob details:"
+        kubectl describe cronjob klines-gap-filler -n petrosa-apps --insecure-skip-tls-verify 2>/dev/null || echo "Gap filler CronJob not found"
+        
+        # Verify gap filler resource configuration
+        echo "📊 Gap filler resource configuration:"
+        kubectl get cronjob klines-gap-filler -n petrosa-apps -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].resources}' --insecure-skip-tls-verify 2>/dev/null || echo "Resource configuration not found"
+        echo ""
         
         # Show recent pods
         echo "📦 Recent pods:"
@@ -262,6 +313,8 @@ jobs:
         echo "📋 What was deployed:"
         echo "  ✅ Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}"
         echo "  ✅ Kubernetes manifests applied to MicroK8s cluster"
+        echo "  ✅ Regular klines extraction CronJobs (all timeframes)"
+        echo "  ✅ Gap filler CronJob (daily at 2 AM UTC)"
         echo "  ✅ Secrets verified/created"
         echo ""
         echo "📊 Monitor your deployment:"
@@ -269,10 +322,17 @@ jobs:
         echo "  kubectl get cronjobs -n petrosa-apps"
         echo "  kubectl logs -l app=binance-extractor --tail=100 -n petrosa-apps"
         echo ""
+        echo "🔧 Monitor gap filler specifically:"
+        echo "  kubectl get cronjob klines-gap-filler -n petrosa-apps"
+        echo "  kubectl logs -l job-name=klines-gap-filler --tail=100 -n petrosa-apps"
+        echo "  kubectl describe cronjob klines-gap-filler -n petrosa-apps"
+        echo ""
         echo "⚠️ Next steps:"
         echo "  1. Verify secrets are properly set in your MicroK8s cluster"
         echo "  2. Monitor CronJob executions and logs"
         echo "  3. Check that the image can pull successfully"
+        echo "  4. Verify gap filler CronJob schedule (daily at 2 AM UTC)"
+        echo "  5. Monitor gap filler job logs for retry behavior and success rates"
 
   notify:
     needs: [build-and-push, deploy]

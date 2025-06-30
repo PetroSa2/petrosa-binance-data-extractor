@@ -1,0 +1,176 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-gap-filler
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-gap-filler
+    version: production
+spec:
+  # Run daily at 2 AM UTC (when market activity is low)
+  schedule: "0 2 * * *"
+  
+  # Keep last 2 successful and 1 failed job for debugging
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 1
+  
+  # Don't run concurrent jobs to avoid conflicts
+  concurrencyPolicy: Forbid
+  
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-gap-filler
+    spec:
+      # Retry failed jobs up to 1 time (since this is a long-running job)
+      backoffLimit: 1
+      
+      # Allow 6 hours for job to complete (long runtime for gap filling)
+      activeDeadlineSeconds: 21600
+      
+      # Clean up completed jobs after 24 hours
+      ttlSecondsAfterFinished: 86400
+      
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-gap-filler
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: klines-gap-filler
+            # Production image with telemetry fixes
+            image: yurisa2/petrosa-binance-extractor:latest
+            imagePullPolicy: Always
+            
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_gap_filler
+            
+            args:
+            - --period=15m
+            - --max-workers=3
+            - --db-adapter=mysql
+            - --weekly-chunk-days=7
+            - --max-gap-size-days=30
+            
+            # Environment variables from secrets and configmaps
+            env:
+            # Binance API credentials
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MYSQL_URI
+            # Database configuration from ConfigMap
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: EXTRACTOR_DB_ADAPTER
+            
+            # Application configuration
+            - name: LOG_LEVEL
+              value: INFO
+            - name: ENVIRONMENT
+              value: production
+                  
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_NAME
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+                  
+            # Kubernetes environment detection
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-gap-filler"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            
+            # Resource limits (higher for gap filler due to long runtime)
+            resources:
+              requests:
+                memory: "1Gi"
+                cpu: "500m"
+              limits:
+                memory: "2Gi"
+                cpu: "1000m"
+            
+            # Security context
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL 

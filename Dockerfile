@@ -79,11 +79,15 @@ COPY --chown=appuser:appuser . .
 RUN mkdir -p logs tmp && \
     chown -R appuser:appuser /app
 
-# Install OpenTelemetry auto-instrumentation (optional)
+# Install OpenTelemetry auto-instrumentation
+# This enables automatic instrumentation of Python applications
+# The opentelemetry-instrument command will be available for use
 RUN pip install opentelemetry-distro opentelemetry-exporter-otlp-proto-grpc \
     opentelemetry-instrumentation-requests \
     opentelemetry-instrumentation-pymongo \
     opentelemetry-instrumentation-sqlalchemy \
+    opentelemetry-instrumentation-logging \
+    opentelemetry-instrumentation-urllib3 \
     && opentelemetry-bootstrap --action=install
 
 # Switch to non-root user

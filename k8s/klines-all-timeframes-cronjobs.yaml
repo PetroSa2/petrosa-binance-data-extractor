@@ -50,6 +50,7 @@ spec:
             imagePullPolicy: Always
             
             command:
+            - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
@@ -219,6 +220,7 @@ spec:
             imagePullPolicy: IfNotPresent
             
             command:
+            - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
@@ -322,6 +324,7 @@ spec:
             imagePullPolicy: IfNotPresent
             
             command:
+            - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
@@ -425,6 +428,7 @@ spec:
             imagePullPolicy: Always
             
             command:
+            - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
@@ -593,6 +597,7 @@ spec:
             imagePullPolicy: IfNotPresent
             
             command:
+            - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
