@@ -21,8 +21,12 @@ try:
     from otel_init import setup_telemetry
     import constants
     setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+    
+    # Import tracing after setup
+    from utils.telemetry import get_tracer
+    tracer = get_tracer(__name__)
 except ImportError:
-    pass
+    tracer = None
 
 import argparse
 import random
@@ -213,6 +217,17 @@ class ProductionKlinesExtractor:
 
     def extract_symbol_data(self, symbol: str, binance_client: BinanceClient) -> Dict:
         """Extract data for a single symbol with retry logic for database operations."""
+        # Create a span for each symbol extraction
+        if tracer:
+            with tracer.start_as_current_span("klines_extract_symbol") as span:
+                span.set_attribute("extraction.symbol", symbol)
+                span.set_attribute("extraction.period", self.period)
+                return self._extract_symbol_data_impl(symbol, binance_client, span)
+        else:
+            return self._extract_symbol_data_impl(symbol, binance_client)
+            
+    def _extract_symbol_data_impl(self, symbol: str, binance_client: BinanceClient, span=None) -> Dict:
+        """Implementation of extract_symbol_data method."""
         symbol_start_time = time.time()
         result = {
             'symbol': symbol,
@@ -353,6 +368,18 @@ class ProductionKlinesExtractor:
 
     def run_extraction(self) -> Dict:
         """Run the production extraction with parallel processing."""
+        # Create a span for the main extraction process
+        if tracer:
+            with tracer.start_as_current_span("klines_extraction_run") as span:
+                span.set_attribute("extraction.period", self.period)
+                span.set_attribute("extraction.symbols_count", len(self.symbols))
+                span.set_attribute("extraction.max_workers", self.max_workers)
+                return self._run_extraction_impl()
+        else:
+            return self._run_extraction_impl()
+            
+    def _run_extraction_impl(self) -> Dict:
+        """Implementation of run_extraction method."""
         extraction_start_time = time.time()
 
         self.logger.info(f"Starting production klines extraction for {len(self.symbols)} symbols")
@@ -543,6 +570,24 @@ def get_default_symbols() -> List[str]:
 
 def main():
     """Main entry point."""
+    # Create a main span if tracing is available
+    if tracer:
+        with tracer.start_as_current_span("klines_extraction_main") as span:
+            span.set_attribute("extraction.type", "klines_production")
+            span.set_attribute("service.name", "binance-klines-extractor")
+            # Force span context to be active for logging
+            from opentelemetry import trace
+            span_context = span.get_span_context()
+            if span_context.trace_id != 0:
+                print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")
+            _main_impl()
+    else:
+        print("Tracer not available, running without tracing")
+        _main_impl()
+
+
+def _main_impl():
+    """Implementation of main function."""
     args = parse_arguments()
 
     # Setup logging
