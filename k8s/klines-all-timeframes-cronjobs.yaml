@@ -65,91 +65,75 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
             
-            # Database configuration
-            - name: MYSQL_URI
-              valueFrom:
-                secretKeyRef:
-                  name: binance-extractor-secrets
-                  key: MYSQL_URI
+            # Database configuration from ConfigMap
             - name: DB_ADAPTER
               valueFrom:
-                secretKeyRef:
-                  name: binance-extractor-secrets
-                  key: DB_ADAPTER
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: EXTRACTOR_DB_ADAPTER
             
             # Application configuration
             - name: LOG_LEVEL
-              valueFrom:
-                secretKeyRef:
-                  name: binance-extractor-secrets
-                  key: LOG_LEVEL
+              value: INFO
             - name: ENVIRONMENT
-              valueFrom:
-                secretKeyRef:
-                  name: binance-extractor-secrets
-                  key: ENVIRONMENT
+              value: production
                   
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: ENABLE_OTEL
             - name: OTEL_SERVICE_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_SERVICE_NAME
             - name: OTEL_SERVICE_VERSION
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_SERVICE_VERSION
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_EXPORTER_OTLP_ENDPOINT
-            - name: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_RESOURCE_ATTRIBUTES
               valueFrom:
-                secretKeyRef:
-                  name: otel-secrets
-                  key: otel-headers
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_RESOURCE_ATTRIBUTES
             - name: OTEL_METRICS_EXPORTER
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_METRICS_EXPORTER
             - name: OTEL_TRACES_EXPORTER
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_TRACES_EXPORTER
             - name: OTEL_LOGS_EXPORTER
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_LOGS_EXPORTER
             - name: OTEL_PROPAGATORS
               valueFrom:
                 configMapKeyRef:
-                  name: otel-config
+                  name: petrosa-common-config
                   key: OTEL_PROPAGATORS
                   
             # Kubernetes environment detection
-            - name: K8S_CLUSTER_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: otel-config
-                  key: K8S_CLUSTER_NAME
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
