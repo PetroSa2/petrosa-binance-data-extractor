@@ -14,6 +14,14 @@ from typing import List
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Initialize OpenTelemetry as early as possible
+try:
+    from otel_init import setup_telemetry
+    import constants
+    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_FUNDING)
+except ImportError:
+    pass
+
 import constants
 from utils.logger import setup_logging, log_extraction_start, log_extraction_completion
 from utils.time_utils import (

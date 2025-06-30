@@ -6,9 +6,21 @@ This script serves as the main entry point for Kubernetes jobs that extract
 klines (candlestick) data from Binance Futures API.
 """
 
+# Initialize OpenTelemetry as early as possible
+try:
+    # Add project root to path first
+    import os
+    import sys
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, project_root)
+    
+    from otel_init import setup_telemetry
+    import constants
+    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+except ImportError:
+    pass
+
 import argparse
-import os
-import sys
 import time
 from datetime import datetime
 from typing import List

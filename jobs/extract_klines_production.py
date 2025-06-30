@@ -9,20 +9,28 @@ This script automatically:
 - Runs incremental updates without manual date configuration
 """
 
-import argparse
-import os
-import random
+# Initialize OpenTelemetry as early as possible
 import sys
+import os
+
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+try:
+    from otel_init import setup_telemetry
+    import constants
+    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+except ImportError:
+    pass
+
+import argparse
+import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, cast
-import random
-
-# Add project root to path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
 
 import constants
 from db import get_adapter

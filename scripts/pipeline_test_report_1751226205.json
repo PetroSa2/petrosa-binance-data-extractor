@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-06-29T16:43:25.162406",
+  "tests_run": 20,
+  "tests_passed": 20,
+  "tests_failed": 0,
+  "errors": [],
+  "performance_metrics": {
+    "Default Service Names": "0.029s",
+    "Custom Environment Variables": "0.004s",
+    "Basic Telemetry Init": "0.465s",
+    "TelemetryManager Init": "0.000s",
+    "Requests Instrumentation": "0.000s",
+    "Pymongo Instrumentation": "0.000s",
+    "Klines Production Import": "0.078s",
+    "Klines Manual Import": "0.003s",
+    "Funding Rates Import": "0.002s",
+    "Trades Import": "0.001s",
+    "K8s OpenTelemetry ConfigMap/Secret": "0.000s",
+    "K8s CronJobs Configuration": "0.000s",
+    "K8s Deployment Script": "0.000s",
+    "Graceful Error Handling": "0.000s",
+    "Invalid Service Names": "0.000s",
+    "Import Performance": "0.000s",
+    "Telemetry Setup Performance": "0.000s"
+  },
+  "service_configs": {
+    "default": {
+      "klines": "petrosa-binance-extractor",
+      "funding": "petrosa-binance-extractor",
+      "trades": "petrosa-binance-extractor"
+    },
+    "custom": {
+      "klines": "test-klines-service",
+      "funding": "test-funding-service",
+      "trades": "test-trades-service"
+    }
+  }
+}

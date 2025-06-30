@@ -59,8 +59,9 @@ spec:
             - --max-workers=15
             - --db-adapter=mysql
             
-            # Environment variables from correct secret
+            # Environment variables from secrets and configmaps
             env:
+            # Binance API credentials
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -71,11 +72,20 @@ spec:
                 secretKeyRef:
                   name: binance-extractor-secrets
                   key: BINANCE_API_SECRET
+            
+            # Database configuration
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
                   name: binance-extractor-secrets
                   key: MYSQL_URI
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: binance-extractor-secrets
+                  key: DB_ADAPTER
+            
+            # Application configuration
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -86,11 +96,74 @@ spec:
                 secretKeyRef:
                   name: binance-extractor-secrets
                   key: ENVIRONMENT
-            - name: DB_ADAPTER
+                  
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_SERVICE_NAME
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_EXPORTER_OTLP_HEADERS
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
-                  key: DB_ADAPTER
+                  name: otel-secrets
+                  key: otel-headers
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: OTEL_PROPAGATORS
+                  
+            # Kubernetes environment detection
+            - name: K8S_CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: otel-config
+                  key: K8S_CLUSTER_NAME
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-m5-production"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             
             # Resource limits (higher for 5m due to frequency)
             resources:

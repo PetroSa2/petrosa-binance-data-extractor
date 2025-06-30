@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-config
+  namespace: petrosa-apps
+data:
+  # OpenTelemetry Configuration
+  ENABLE_OTEL: "true"
+  OTEL_SERVICE_NAME: "binance-extractor"
+  OTEL_SERVICE_VERSION: "2.0.0"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp.nr-data.net:4317"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_PROPAGATORS: "tracecontext,baggage"
+  
+  # Service-specific OpenTelemetry names
+  OTEL_SERVICE_NAME_KLINES: "binance-klines-extractor"
+  OTEL_SERVICE_NAME_FUNDING: "binance-funding-extractor"
+  OTEL_SERVICE_NAME_TRADES: "binance-trades-extractor"
+  
+  # Kubernetes Environment
+  ENVIRONMENT: "production"
+  K8S_CLUSTER_NAME: "your-cluster-name"
+  K8S_NAMESPACE: "petrosa-apps"
+  K8S_DEPLOYMENT_NAME: "binance-extractor"
+  
+  # Application Configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  
+  # Database Settings
+  DB_ADAPTER: "mysql"
+  DB_BATCH_SIZE: "1000"
+  
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otel-secrets
+  namespace: petrosa-apps
+type: Opaque
+data:
+  # Base64 encoded New Relic License Key
+  # Replace with: echo -n "your-new-relic-license-key" | base64
+  new-relic-license-key: "eW91ci1uZXctcmVsaWMtbGljZW5zZS1rZXk="
+  
+  # OTLP Headers for New Relic
+  # Base64 encoded: api-key=your-new-relic-license-key
+  otel-headers: "YXBpLWtleT15b3VyLW5ldy1yZWxpYy1saWNlbnNlLWtleQ=="
