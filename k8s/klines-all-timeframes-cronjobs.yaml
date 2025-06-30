@@ -45,9 +45,9 @@ spec:
           
           containers:
           - name: klines-extractor
-            # Production image with latest fixes
+            # Production image with telemetry fixes
             image: yurisa2/petrosa-binance-extractor:latest
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: Always
             
             command:
             - python
@@ -72,7 +72,11 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
-            
+            - name: MYSQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MYSQL_URI
             # Database configuration from ConfigMap
             - name: DB_ADAPTER
               valueFrom:
@@ -108,10 +112,7 @@ spec:
                   name: petrosa-common-config
                   key: OTEL_EXPORTER_OTLP_ENDPOINT
             - name: OTEL_RESOURCE_ATTRIBUTES
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
             - name: OTEL_METRICS_EXPORTER
               valueFrom:
                 configMapKeyRef:
@@ -132,6 +133,11 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
                   
             # Kubernetes environment detection
             - name: K8S_NAMESPACE
@@ -226,32 +232,32 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
             resources:
@@ -329,32 +335,32 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
             resources:
@@ -416,7 +422,7 @@ spec:
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:latest
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: Always
             
             command:
             - python
@@ -432,33 +438,98 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
+                  
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_NAME
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+                  
+            # Kubernetes environment detection
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-h1-production"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             
             resources:
               requests:
@@ -535,32 +606,32 @@ spec:
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_KEY
             - name: BINANCE_API_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
                 secretKeyRef:
-                  name: binance-extractor-secrets
+                  name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
             resources:
