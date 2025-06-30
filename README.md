@@ -67,12 +67,14 @@ petrosa-binance-data-extractor/
 ├── jobs/                    # CLI entry points
 │   ├── extract_klines.py    # Manual klines extraction job
 │   ├── extract_klines_production.py # 🆕 Production auto-extractor
+│   ├── extract_klines_gap_filler.py # 🔧 Gap detection and filling job
 │   ├── extract_trades.py    # Trades extraction job
 │   └── extract_funding.py   # Funding rates extraction job
 ├── config/                  # 🆕 Configuration management
 │   └── symbols.py           # Symbol configuration for production
 ├── k8s/                     # 🆕 Kubernetes manifests
 │   ├── klines-all-timeframes-cronjobs.yaml
+│   ├── klines-gap-filler-cronjob.yaml # 🔧 Daily gap filling job
 │   ├── namespace.yaml
 │   └── secrets-example.yaml
 ├── scripts/                 # 🆕 Utility scripts
@@ -162,6 +164,70 @@ python -m jobs.extract_klines_production \
 - ✅ **Parallel Processing**: Configurable worker pools for multiple symbols
 - ✅ **Financial Naming**: Creates tables with proper naming (klines_m15, klines_h1, etc.)
 - ✅ **Production Ready**: Designed for Kubernetes CronJobs
+
+### 🔧 Gap Detection and Filling
+
+The gap filler job detects missing klines data and fills gaps with weekly request splitting to avoid Binance rate limiting.
+
+**Daily Gap Filling (Recommended for Production)**
+```bash
+# Fill gaps for all configured symbols (15m period)
+python -m jobs.extract_klines_gap_filler --period 15m
+
+# Fill gaps with custom symbols and more workers
+python -m jobs.extract_klines_gap_filler \
+  --period 1h \
+  --symbols BTCUSDT,ETHUSDT \
+  --max-workers 5
+
+# Fill gaps with custom weekly chunk size
+python -m jobs.extract_klines_gap_filler \
+  --period 15m \
+  --weekly-chunk-days 5 \
+  --max-gap-size-days 30
+```
+
+**Key Features:**
+- ✅ **Weekly Request Splitting**: Splits large requests into weekly chunks to avoid rate limiting
+- ✅ **Gap Detection**: Automatically finds missing data from start date in constants
+- ✅ **Enhanced Retry Logic**: Exponential backoff with jitter for all operations
+- ✅ **Comprehensive Error Handling**: Retries on connection, API, and network errors
+- ✅ **Rate Limit Aware**: Built-in delays and limited parallel workers
+- ✅ **Long Runtime Support**: Designed to run daily with 6+ hour runtime
+- ✅ **Large Gap Filtering**: Skips gaps larger than configurable threshold
+- ✅ **OpenTelemetry Instrumentation**: Automatic instrumentation using `opentelemetry-instrument`
+
+**Retry Strategy:**
+- **Data Fetching**: 7 retries with 3-300 second delays
+- **Database Operations**: 5 retries with 2-180 second delays  
+- **Gap Detection**: 5 retries with 2-120 second delays
+- **Symbol Processing**: 5 retries with 3-240 second delays
+- **API Rate Limits**: Additional 30-60 second delays
+- **Connection Errors**: Exponential backoff with jitter
+
+### 🔍 OpenTelemetry Instrumentation
+
+The application uses automatic OpenTelemetry instrumentation for comprehensive observability:
+
+**Automatic Instrumentation:**
+- **HTTP Requests**: All API calls to Binance are automatically traced
+- **Database Operations**: MySQL/MongoDB queries are instrumented
+- **Log Correlation**: Logs are automatically correlated with traces
+- **Metrics Collection**: Built-in metrics for monitoring
+
+**Deployment Command:**
+```bash
+opentelemetry-instrument python -m jobs.extract_klines_gap_filler --period=15m
+```
+
+**Environment Variables:**
+```bash
+OTEL_SERVICE_NAME=binance-extractor
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+OTEL_TRACES_EXPORTER=otlp
+OTEL_METRICS_EXPORTER=otlp
+OTEL_LOGS_EXPORTER=otlp
+```
 
 ### 🛠️ Manual Extractor
 
@@ -259,6 +325,31 @@ services:
 volumes:
   mongo_data:
 ```
+
+## ☸️ Kubernetes Deployment
+
+### Production CronJobs
+
+The project includes Kubernetes CronJob configurations for automated data extraction:
+
+**Regular Klines Extraction (Every 5/15/30 minutes)**
+```bash
+# Deploy regular extraction jobs
+kubectl apply -f k8s/klines-all-timeframes-cronjobs.yaml
+```
+
+**Daily Gap Filling (Every day at 2 AM UTC)**
+```bash
+# Deploy gap filling job
+kubectl apply -f k8s/klines-gap-filler-cronjob.yaml
+```
+
+**Key Features:**
+- ✅ **Automated Scheduling**: CronJobs run at optimal times
+- ✅ **Resource Management**: Configurable CPU/memory limits
+- ✅ **Long Runtime Support**: Gap filler has 6-hour timeout
+- ✅ **Concurrency Control**: Prevents overlapping jobs
+- ✅ **Telemetry Integration**: Full OpenTelemetry support
 
 ## ☸️ Kubernetes Production Deployment
 
