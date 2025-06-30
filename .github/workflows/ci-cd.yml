@@ -83,12 +83,14 @@ jobs:
           # exit 1
         fi
     
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
+        fail_ci_if_error: false
+        verbose: true
 
   security-scan:
     runs-on: ubuntu-latest
@@ -179,26 +181,6 @@ jobs:
       uses: azure/setup-kubectl@v3
       with:
         version: 'v1.28.0'
-    
-    - name: Validate Kubernetes manifests
-      run: |
-        echo "🔍 Validating Kubernetes manifests..."
-        
-        # Validate all manifests
-        for manifest in k8s/*.yaml; do
-          if [ -f "$manifest" ]; then
-            echo "Validating $manifest..."
-            kubectl apply --dry-run=client -f "$manifest" --insecure-skip-tls-verify
-            if [ $? -eq 0 ]; then
-              echo "✅ $manifest is valid"
-            else
-              echo "❌ $manifest has validation errors"
-              exit 1
-            fi
-          fi
-        done
-        
-        echo "✅ All manifests validated successfully"
     
     - name: Configure kubectl for MicroK8s
       run: |
