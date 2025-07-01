@@ -4,19 +4,20 @@ Unit tests for fetchers.
 
 import os
 import sys
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from decimal import Decimal
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from fetchers.client import BinanceClient, BinanceAPIError
+from fetchers.client import BinanceAPIError, BinanceClient
+from fetchers.funding import FundingRatesFetcher
 from fetchers.klines import KlinesFetcher
 from fetchers.trades import TradesFetcher
-from fetchers.funding import FundingRatesFetcher
 
 
 class TestBinanceClient:
@@ -227,7 +228,7 @@ class TestKlinesFetcher:
                 return mock_klines_data
             else:
                 return []  # No more data
-        
+
         self.mock_client.get_klines.side_effect = mock_get_klines_incremental
 
         klines = self.fetcher.fetch_incremental("BTCUSDT", "15m", last_timestamp)
@@ -265,7 +266,7 @@ class TestKlinesFetcher:
                 return mock_klines_data
             else:
                 return []  # No more data
-        
+
         self.mock_client.get_klines.side_effect = mock_get_klines_multiple
 
         symbols = ["BTCUSDT", "ETHUSDT"]

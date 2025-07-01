@@ -14,8 +14,8 @@ __author__ = "Petrosa Team"
 
 # Import main job classes for easier access
 try:
-    from .extract_klines_production import ProductionKlinesExtractor
     from .extract_klines_gap_filler import GapFillerExtractor
+    from .extract_klines_production import ProductionKlinesExtractor
 except ImportError:
     # Allow partial imports for testing
     pass
@@ -23,4 +23,4 @@ except ImportError:
 __all__ = [
     "ProductionKlinesExtractor",
     "GapFillerExtractor",
-] 
+]

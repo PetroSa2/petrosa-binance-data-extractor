@@ -11,10 +11,10 @@ from decimal import Decimal
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+from models.base import BaseSymbolModel, BaseTimestampedModel, ExtractionMetadata
+from models.funding_rate import FundingRateModel
 from models.kline import KlineModel
 from models.trade import TradeModel
-from models.funding_rate import FundingRateModel
-from models.base import BaseTimestampedModel, BaseSymbolModel, ExtractionMetadata
 
 
 class TestBaseModels:

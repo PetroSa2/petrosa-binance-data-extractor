@@ -3,8 +3,8 @@
 Test script to verify OpenTelemetry setup is working correctly.
 """
 
-import sys
 import os
+import sys
 
 # Add project root to path
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -13,7 +13,7 @@ sys.path.insert(0, project_root)
 def test_imports():
     """Test that all required modules can be imported."""
     print("🔍 Testing imports...")
-    
+
     try:
         import constants
         print(f"✅ Constants imported successfully")
@@ -23,37 +23,35 @@ def test_imports():
     except ImportError as e:
         print(f"❌ Failed to import constants: {e}")
         return False
-    
+
     try:
-        from otel_init import setup_telemetry
         print("✅ otel_init imported successfully")
     except ImportError as e:
         print(f"❌ Failed to import otel_init: {e}")
         return False
-    
+
     try:
-        from utils.telemetry import TelemetryManager
         print("✅ TelemetryManager imported successfully")
     except ImportError as e:
         print(f"⚠️  TelemetryManager not available: {e}")
         # This is not critical
-    
+
     return True
 
 def test_otel_setup():
     """Test OpenTelemetry setup."""
     print("\n🔧 Testing OpenTelemetry setup...")
-    
+
     try:
         from otel_init import setup_telemetry
-        
+
         # Test with custom service name
         result = setup_telemetry(service_name="test-service")
         print(f"✅ setup_telemetry completed with result: {result}")
-        
+
         if not result:
             print("ℹ️  Telemetry setup returned False (expected without OTLP endpoint)")
-        
+
         return True
     except Exception as e:
         print(f"❌ OpenTelemetry setup failed: {e}")
@@ -62,7 +60,7 @@ def test_otel_setup():
 def test_instrumentation_packages():
     """Test that required instrumentation packages are available."""
     print("\n📦 Testing instrumentation packages...")
-    
+
     packages_to_test = [
         "opentelemetry",
         "opentelemetry.sdk",
@@ -73,7 +71,7 @@ def test_instrumentation_packages():
         "opentelemetry.instrumentation.logging",
         "opentelemetry.instrumentation.urllib3",
     ]
-    
+
     success_count = 0
     for package in packages_to_test:
         try:
@@ -82,7 +80,7 @@ def test_instrumentation_packages():
             success_count += 1
         except ImportError as e:
             print(f"❌ {package}: {e}")
-    
+
     print(f"\n📊 Successfully imported {success_count}/{len(packages_to_test)} packages")
     return success_count == len(packages_to_test)
 
@@ -90,21 +88,21 @@ def main():
     """Main test function."""
     print("🚀 OpenTelemetry Setup Test")
     print("=" * 50)
-    
+
     all_tests_passed = True
-    
+
     # Test imports
     if not test_imports():
         all_tests_passed = False
-    
+
     # Test OpenTelemetry setup
     if not test_otel_setup():
         all_tests_passed = False
-    
+
     # Test instrumentation packages
     if not test_instrumentation_packages():
         all_tests_passed = False
-    
+
     # Final result
     print("\n" + "=" * 50)
     if all_tests_passed:

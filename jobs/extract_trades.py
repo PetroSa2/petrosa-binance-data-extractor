@@ -14,20 +14,19 @@ sys.path.insert(0, project_root)
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
     import constants
+    from otel_init import setup_telemetry
     setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_TRADES)
 except ImportError:
     pass
 
 import constants
-from utils.logger import setup_logging, log_extraction_start, log_extraction_completion
+from db import get_adapter
+from fetchers import BinanceClient, TradesFetcher
+from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
 from utils.time_utils import (
-    parse_datetime_string,
     format_duration,
 )
-from fetchers import TradesFetcher, BinanceClient
-from db import get_adapter
 
 
 def parse_arguments():

@@ -13,9 +13,9 @@ try:
     import sys
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, project_root)
-    
-    from otel_init import setup_telemetry
+
     import constants
+    from otel_init import setup_telemetry
     setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
 except ImportError:
     pass
@@ -30,18 +30,18 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import constants
+from db import get_adapter
+from fetchers import BinanceClient, KlinesFetcher
 from utils.logger import (
-    setup_logging,
-    log_extraction_start,
     log_extraction_completion,
+    log_extraction_start,
+    setup_logging,
 )
 from utils.time_utils import (
-    parse_datetime_string,
-    get_current_utc_time,
     format_duration,
+    get_current_utc_time,
+    parse_datetime_string,
 )
-from fetchers import KlinesFetcher, BinanceClient
-from db import get_adapter
 
 
 def parse_arguments():

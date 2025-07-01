@@ -9,19 +9,20 @@ This script automatically:
 - Runs incremental updates without manual date configuration
 """
 
+import os
+
 # Initialize OpenTelemetry as early as possible
 import sys
-import os
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 try:
-    from otel_init import setup_telemetry
     import constants
+    from otel_init import setup_telemetry
     setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
-    
+
     # Import tracing after setup
     from utils.telemetry import get_tracer
     tracer = get_tracer(__name__)
@@ -40,10 +41,17 @@ import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from utils.logger import (get_logger, log_extraction_completion,
-                          log_extraction_start, setup_logging)
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              format_duration, get_current_utc_time)
+from utils.logger import (
+    get_logger,
+    log_extraction_completion,
+    log_extraction_start,
+    setup_logging,
+)
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    format_duration,
+    get_current_utc_time,
+)
 
 
 def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logger=None):
@@ -64,13 +72,13 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
         The last exception if all retries fail
     """
     last_exception = None
-    
+
     for attempt in range(max_retries + 1):
         try:
             return func()
         except Exception as e:
             last_exception = e
-            
+
             # Check if it's a MySQL connection error
             error_msg = str(e).lower()
             # Also check for pymysql specific errors and SQLAlchemy errors
@@ -92,14 +100,14 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
                 'operationalerror' in str(type(e)).lower() or
                 'databaseerror' in str(type(e)).lower()
             )
-            
+
             if is_connection_error:
                 if attempt < max_retries:
                     # Calculate delay with exponential backoff and jitter
                     delay = min(base_delay * (2 ** attempt), max_delay)
                     jitter = random.uniform(0.1, 0.3) * delay
                     total_delay = delay + jitter
-                    
+
                     if logger:
                         logger.warning(f"MySQL connection error on attempt {attempt + 1}/{max_retries + 1}: {e}")
                         logger.info(f"Retrying in {total_delay:.2f} seconds...")
@@ -114,7 +122,7 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
                 if logger:
                     logger.error(f"Non-connection error, not retrying: {e}")
                 break
-    
+
     # If we get here, all retries failed
     raise last_exception
 
@@ -190,12 +198,12 @@ class ProductionKlinesExtractor:
                 else:
                     self.logger.warning(f"No timestamp found in latest record for {symbol}: {latest_record}")
                     timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
-                
+
                 # Ensure timestamp is timezone-aware
                 if timestamp and timestamp.tzinfo is None:
                     timestamp = timestamp.replace(tzinfo=timezone.utc)
                     self.logger.debug(f"Made timestamp timezone-aware for {symbol}: {timestamp}")
-                
+
                 return timestamp
             else:
                 # No data found, start from default start date
@@ -252,7 +260,7 @@ class ProductionKlinesExtractor:
                 return self._extract_symbol_data_impl(symbol, binance_client, span)
         else:
             return self._extract_symbol_data_impl(symbol, binance_client)
-            
+
     def _extract_symbol_data_impl(self, symbol: str, binance_client: BinanceClient, span=None) -> Dict:
         """Implementation of extract_symbol_data method."""
         symbol_start_time = time.time()
@@ -279,16 +287,16 @@ class ProductionKlinesExtractor:
                     db_uri = constants.MONGODB_URI
                 elif self.db_adapter_name == "postgresql":
                     db_uri = constants.POSTGRESQL_URI
-                
+
                 if not db_uri:
                     raise ValueError(f"No database URI available for adapter: {self.db_adapter_name}")
-            
+
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
-            
+
             # Connect with retry logic
             def _connect_db():
                 db_adapter.connect()
-            
+
             retry_with_backoff(_connect_db, max_retries=2, base_delay=1.0, logger=self.logger)
 
             try:
@@ -321,10 +329,10 @@ class ProductionKlinesExtractor:
                 if klines_data:
                     # Write to database with retry logic
                     collection_name = self.get_collection_name()
-                    
+
                     def _write_data():
                         return db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
-                    
+
                     records_written = retry_with_backoff(_write_data, max_retries=2, base_delay=1.0, logger=self.logger)
                     result['records_written'] = records_written
 
@@ -404,7 +412,7 @@ class ProductionKlinesExtractor:
                 return self._run_extraction_impl()
         else:
             return self._run_extraction_impl()
-            
+
     def _run_extraction_impl(self) -> Dict:
         """Implementation of run_extraction method."""
         extraction_start_time = time.time()
@@ -603,7 +611,6 @@ def main():
             span.set_attribute("extraction.type", "klines_production")
             span.set_attribute("service.name", "binance-klines-extractor")
             # Force span context to be active for logging
-            from opentelemetry import trace
             span_context = span.get_span_context()
             if span_context.trace_id != 0:
                 print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")

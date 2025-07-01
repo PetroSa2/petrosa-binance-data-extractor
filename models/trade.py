@@ -2,10 +2,12 @@
 Pydantic model for Binance Futures Trade data.
 """
 
-from decimal import Decimal
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Dict, Optional
-from pydantic import Field, field_validator
+
+from pydantic import ConfigDict, Field, field_validator
+
 from .base import BaseSymbolModel
 
 
@@ -39,8 +41,8 @@ class TradeModel(BaseSymbolModel):
     # Timing
     trade_time: datetime = Field(..., description="Trade execution time")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "symbol": "BTCUSDT",
                 "timestamp": "2023-01-01T12:30:45.123Z",
@@ -53,6 +55,7 @@ class TradeModel(BaseSymbolModel):
                 "trade_time": "2023-01-01T12:30:45.123Z",
             }
         }
+    )
 
     @field_validator("timestamp", mode="before")
     @classmethod

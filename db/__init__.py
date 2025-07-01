@@ -3,6 +3,7 @@ Database adapters package.
 """
 
 from typing import Dict, Optional, Type
+
 from .base_adapter import BaseAdapter, DatabaseError
 from .mongodb_adapter import MongoDBAdapter
 from .mysql_adapter import MySQLAdapter
@@ -36,7 +37,7 @@ def get_adapter(
         raise ValueError(
             f"Unsupported adapter type: {adapter_type}. Available: {list(ADAPTERS.keys())}"
         )
-        
+
     if connection_string is None:
         raise ValueError("connection_string is required")
 

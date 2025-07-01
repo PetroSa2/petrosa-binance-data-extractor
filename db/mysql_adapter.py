@@ -10,14 +10,26 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              table_suffix_to_binance_interval)
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    table_suffix_to_binance_interval,
+)
 
 try:
     import sqlalchemy as sa
-    from sqlalchemy import (Boolean, Column, DateTime, Index, Integer,
-                            MetaData, Numeric, String, Table, create_engine,
-                            literal_column)
+    from sqlalchemy import (
+        Boolean,
+        Column,
+        DateTime,
+        Index,
+        Integer,
+        MetaData,
+        Numeric,
+        String,
+        Table,
+        create_engine,
+        literal_column,
+    )
     from sqlalchemy.engine import Engine
     from sqlalchemy.exc import IntegrityError, SQLAlchemyError
     from sqlalchemy.sql import and_, delete, func, select

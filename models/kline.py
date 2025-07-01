@@ -2,10 +2,12 @@
 Pydantic model for Binance Futures Kline (candlestick) data.
 """
 
-from decimal import Decimal
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
-from pydantic import Field, field_validator, model_validator, ConfigDict
+
+from pydantic import ConfigDict, Field, field_validator, model_validator
+
 from .base import BaseSymbolModel
 
 

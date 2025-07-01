@@ -2,10 +2,10 @@
 Fetchers package for Binance API clients.
 """
 
-from .client import BinanceClient, BinanceAPIError
+from .client import BinanceAPIError, BinanceClient
+from .funding import FundingRatesFetcher
 from .klines import KlinesFetcher
 from .trades import TradesFetcher
-from .funding import FundingRatesFetcher
 
 __all__ = [
     'BinanceClient',

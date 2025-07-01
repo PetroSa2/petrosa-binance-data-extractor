@@ -4,10 +4,11 @@ HTTP client wrapper for Binance API with retry and rate limiting.
 
 import json
 import logging
-from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
+
 import constants
-from utils.retry import with_retries_and_rate_limit, RateLimiter
+from utils.retry import RateLimiter, with_retries_and_rate_limit
 from utils.time_utils import get_current_utc_time
 
 # Try to import requests

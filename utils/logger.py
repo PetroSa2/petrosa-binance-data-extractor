@@ -4,21 +4,22 @@ Logging utilities for the Binance data extractor.
 Provides structured logging with JSON format and OpenTelemetry integration.
 """
 
+import json
 import logging
 import sys
-import json
 from datetime import datetime
 from typing import List, Optional
+
 import constants
 
 # Try to import OpenTelemetry components
 try:
     from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.instrumentation.logging import LoggingInstrumentor
+    from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from opentelemetry.sdk.resources import Resource
-    from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
     OTEL_AVAILABLE = True
 except ImportError:

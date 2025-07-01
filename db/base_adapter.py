@@ -5,8 +5,9 @@ This module defines the abstract base class that all database adapters must impl
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 from pydantic import BaseModel
 
 from models.base import ExtractionMetadata
@@ -40,12 +41,10 @@ class BaseAdapter(ABC):
         Raises:
             ConnectionError: If connection cannot be established
         """
-        pass
 
     @abstractmethod
     def disconnect(self) -> None:
         """Close the database connection."""
-        pass
 
     @abstractmethod
     def write(self, model_instances: List[BaseModel], collection: str) -> int:
@@ -62,7 +61,6 @@ class BaseAdapter(ABC):
         Raises:
             DatabaseError: If write operation fails
         """
-        pass
 
     @abstractmethod
     def write_batch(
@@ -79,7 +77,6 @@ class BaseAdapter(ABC):
         Returns:
             Total number of records successfully written
         """
-        pass
 
     @abstractmethod
     def query_range(
@@ -101,7 +98,6 @@ class BaseAdapter(ABC):
         Returns:
             List of records as dictionaries
         """
-        pass
 
     @abstractmethod
     def query_latest(
@@ -118,7 +114,6 @@ class BaseAdapter(ABC):
         Returns:
             List of records as dictionaries, ordered by timestamp desc
         """
-        pass
 
     @abstractmethod
     def find_gaps(
@@ -142,7 +137,6 @@ class BaseAdapter(ABC):
         Returns:
             List of tuples representing gap start and end times
         """
-        pass
 
     @abstractmethod
     def get_record_count(
@@ -164,7 +158,6 @@ class BaseAdapter(ABC):
         Returns:
             Number of matching records
         """
-        pass
 
     @abstractmethod
     def ensure_indexes(self, collection: str) -> None:
@@ -174,7 +167,6 @@ class BaseAdapter(ABC):
         Args:
             collection: Name of the collection/table
         """
-        pass
 
     @abstractmethod
     def delete_range(
@@ -196,7 +188,6 @@ class BaseAdapter(ABC):
         Returns:
             Number of records deleted
         """
-        pass
 
     def write_extraction_metadata(self, metadata: ExtractionMetadata) -> None:
         """
@@ -224,4 +215,3 @@ class BaseAdapter(ABC):
 class DatabaseError(Exception):
     """Custom exception for database operations."""
 
-    pass

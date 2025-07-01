@@ -4,8 +4,8 @@ Quick test script to verify job imports and telemetry setup work correctly.
 This bypasses the logging signature issues to focus on OpenTelemetry functionality.
 """
 
-import sys
 import os
+import sys
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,58 +14,58 @@ sys.path.insert(0, project_root)
 def test_job_telemetry_setup():
     """Test that each job properly sets up telemetry."""
     print("🧪 Testing Job Telemetry Setup...")
-    
+
     jobs = [
         "jobs.extract_klines_production",
-        "jobs.extract_klines", 
+        "jobs.extract_klines",
         "jobs.extract_funding",
         "jobs.extract_trades"
     ]
-    
+
     for job_module in jobs:
         try:
             # Import the job module
             __import__(job_module)
             print(f"✅ {job_module}: Import successful")
-            
+
             # Check if constants are accessible (means telemetry setup worked)
             import constants
             klines_service = constants.OTEL_SERVICE_NAME_KLINES
             funding_service = constants.OTEL_SERVICE_NAME_FUNDING
             trades_service = constants.OTEL_SERVICE_NAME_TRADES
-            
+
             print(f"   - Service names accessible: klines={klines_service}")
-            
+
         except Exception as e:
             print(f"❌ {job_module}: Failed - {e}")
             return False
-    
+
     return True
 
 def test_telemetry_functions():
     """Test telemetry-related functions."""
     print("\n🔧 Testing Telemetry Functions...")
-    
+
     try:
         # Test otel_init functions
-        from otel_init import setup_telemetry, init_otel_early
-        
+        from otel_init import init_otel_early, setup_telemetry
+
         # Test init_otel_early
         init_otel_early()  # Should not raise errors
         print("✅ init_otel_early(): Success")
-        
+
         # Test setup_telemetry
         result = setup_telemetry(service_name="test-service")
         print(f"✅ setup_telemetry(): Returns {result}")
-        
+
         # Test TelemetryManager
         from utils.telemetry import TelemetryManager
         manager = TelemetryManager()
         result = manager.initialize_telemetry(service_name="test-manager")
         print(f"✅ TelemetryManager.initialize_telemetry(): Returns {result}")
-        
+
         return True
-        
+
     except Exception as e:
         print(f"❌ Telemetry functions failed: {e}")
         return False
@@ -73,10 +73,10 @@ def test_telemetry_functions():
 def test_environment_variables():
     """Test environment variable handling."""
     print("\n🌍 Testing Environment Variables...")
-    
+
     try:
         import constants
-        
+
         # Test default values
         defaults = {
             'OTEL_SERVICE_NAME_KLINES': constants.OTEL_SERVICE_NAME_KLINES,
@@ -85,13 +85,13 @@ def test_environment_variables():
             'ENABLE_OTEL': constants.ENABLE_OTEL,
             'OTEL_SERVICE_VERSION': constants.OTEL_SERVICE_VERSION
         }
-        
+
         for var_name, value in defaults.items():
             print(f"   - {var_name}: {value}")
-        
+
         print("✅ Environment variables accessible")
         return True
-        
+
     except Exception as e:
         print(f"❌ Environment variables failed: {e}")
         return False
@@ -99,13 +99,13 @@ def test_environment_variables():
 def test_kubernetes_readiness():
     """Test Kubernetes deployment readiness."""
     print("\n☸️  Testing Kubernetes Readiness...")
-    
+
     k8s_files = [
         'k8s/otel-config.yaml',
         'k8s/klines-all-timeframes-cronjobs.yaml',
         'scripts/deploy-otel.sh'
     ]
-    
+
     all_ready = True
     for file_path in k8s_files:
         full_path = os.path.join(project_root, file_path)
@@ -114,29 +114,29 @@ def test_kubernetes_readiness():
         else:
             print(f"❌ {file_path}: Missing")
             all_ready = False
-    
+
     return all_ready
 
 def main():
     """Run all tests."""
     print("🚀 OpenTelemetry Integration Test")
     print("=" * 50)
-    
+
     all_tests_passed = True
-    
+
     # Run tests
     if not test_job_telemetry_setup():
         all_tests_passed = False
-    
+
     if not test_telemetry_functions():
         all_tests_passed = False
-    
+
     if not test_environment_variables():
         all_tests_passed = False
-    
+
     if not test_kubernetes_readiness():
         all_tests_passed = False
-    
+
     # Final result
     print("\n" + "=" * 50)
     if all_tests_passed:

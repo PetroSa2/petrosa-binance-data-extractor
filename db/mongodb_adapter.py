@@ -5,22 +5,23 @@ This module provides a MongoDB implementation of the BaseAdapter interface.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
 from pydantic import BaseModel
 
 try:
-    from pymongo import MongoClient, ASCENDING, DESCENDING
-    from pymongo.errors import ConnectionFailure, DuplicateKeyError, BulkWriteError
+    from pymongo import ASCENDING, DESCENDING, MongoClient
     from pymongo.collection import Collection
     from pymongo.database import Database
+    from pymongo.errors import BulkWriteError, ConnectionFailure, DuplicateKeyError
 
     PYMONGO_AVAILABLE = True
 except ImportError:
     PYMONGO_AVAILABLE = False
 
-from db.base_adapter import BaseAdapter, DatabaseError
 import constants
+from db.base_adapter import BaseAdapter, DatabaseError
 
 logger = logging.getLogger(__name__)
 

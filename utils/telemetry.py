@@ -17,16 +17,16 @@ import constants
 # OpenTelemetry Core
 try:
     from opentelemetry import metrics, trace
+
     # Exporters
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
-        OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.instrumentation.logging import LoggingInstrumentor
     from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
+
     # Auto-instrumentation
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
     from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-    from opentelemetry.sdk.resources import (SERVICE_NAME, SERVICE_VERSION,
-                                             Resource)
+    from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.semconv.resource import ResourceAttributes
@@ -41,8 +41,7 @@ try:
 
     # Resource detection
     try:
-        from opentelemetry.resourcedetector.gcp import \
-            GoogleCloudResourceDetector
+        from opentelemetry.resourcedetector.gcp import GoogleCloudResourceDetector
 
         GCP_AVAILABLE = True
     except ImportError:
@@ -50,8 +49,11 @@ try:
 
     try:
         from opentelemetry.resourcedetector.aws import (
-            AwsEc2ResourceDetector, AwsEcsResourceDetector,
-            AwsEksResourceDetector, AwsLambdaResourceDetector)
+            AwsEc2ResourceDetector,
+            AwsEcsResourceDetector,
+            AwsEksResourceDetector,
+            AwsLambdaResourceDetector,
+        )
 
         AWS_AVAILABLE = True
     except ImportError:
