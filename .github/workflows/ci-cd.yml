@@ -166,9 +166,8 @@ jobs:
       with:
         images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor
         tags: |
-          type=raw,value=${{ steps.version.outputs.version }},enable={{is_default_branch}}
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=semver,pattern={{version}},enable={{starts_with "refs/tags/v"}}
+          type=raw,value=${{ steps.version.outputs.version }}
+          type=raw,value=latest
     
     - name: Build and push Docker image
       id: build
