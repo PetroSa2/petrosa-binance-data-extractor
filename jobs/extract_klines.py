@@ -14,9 +14,11 @@ try:
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, project_root)
 
-    import constants
-    from otel_init import setup_telemetry
-    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        import constants
+        from otel_init import setup_telemetry
+        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
 except ImportError:
     pass
 

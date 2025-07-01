@@ -45,7 +45,7 @@ test_mypy:
 
 run_unit_tests:
 	@echo "🧪 Running unit tests..."
-	pytest tests/ -v --tb=short
+	OTEL_NO_AUTO_INIT=1 pytest tests/ -v --tb=short
 
 run_lint:
 	@echo "✨ Running code linting..."
@@ -91,7 +91,7 @@ format:
 # Coverage targets
 coverage: install-dev
 	@echo "📊 Running tests with coverage..."
-	pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+	OTEL_NO_AUTO_INIT=1 pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
 
 coverage-html: coverage
 	@echo "📈 Generating HTML coverage report..."

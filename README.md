@@ -695,7 +695,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-## � Documentation
+## 📝 Documentation
 
 ### Production Guides
 - **[Production Readiness Checklist](docs/PRODUCTION_READINESS.md)** - Complete pre-deployment validation
@@ -745,7 +745,7 @@ pre-commit run --all-files
 - **Symbol Management**: Environment-based configuration (20+ production symbols)
 - **CI/CD Pipeline**: Automated testing, building, and deployment
 
-## �📝 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -796,3 +796,39 @@ When reporting issues, please include:
 ---
 
 **🚀 Production-ready crypto data extraction at enterprise scale**
+
+## OpenTelemetry Configuration
+
+### Initialization Strategy
+
+The application supports two OpenTelemetry initialization modes to prevent double initialization conflicts:
+
+1. **Manual Initialization** (for local development/testing):
+   - OpenTelemetry is initialized in-code via `setup_telemetry()`
+   - Used when running jobs directly with `python -m jobs.extract_klines`
+
+2. **Automatic Initialization** (for production/Kubernetes):
+   - Uses `opentelemetry-instrument` wrapper
+   - In-code initialization is disabled via `OTEL_NO_AUTO_INIT=1`
+   - Prevents "I/O operation on closed file" errors
+
+### Environment Variables
+
+- `OTEL_NO_AUTO_INIT`: Set to "1" to disable in-code OpenTelemetry initialization
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP endpoint for remote tracing
+- `OTEL_SERVICE_NAME`: Service name for traces
+- `OTEL_RESOURCE_ATTRIBUTES`: Additional resource attributes
+
+### Usage
+
+**Local Development:**
+```bash
+python -m jobs.extract_klines --symbols BTCUSDT --period 1m
+```
+
+**Production/Kubernetes:**
+```bash
+opentelemetry-instrument python -m jobs.extract_klines --symbols BTCUSDT --period 1m
+```
+
+## Gap Filler Job
