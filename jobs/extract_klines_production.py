@@ -33,7 +33,7 @@ import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 import constants
@@ -181,14 +181,22 @@ class ProductionKlinesExtractor:
             if latest_records:
                 # Return the close_time of the latest record (access as dictionary key)
                 latest_record = latest_records[0]
+                timestamp = None
                 if 'close_time' in latest_record:
-                    return latest_record['close_time']
+                    timestamp = latest_record['close_time']
                 elif 'timestamp' in latest_record:
                     # Fallback to timestamp if close_time not available
-                    return latest_record['timestamp']
+                    timestamp = latest_record['timestamp']
                 else:
                     self.logger.warning(f"No timestamp found in latest record for {symbol}: {latest_record}")
-                    return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+                    timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+                
+                # Ensure timestamp is timezone-aware
+                if timestamp and timestamp.tzinfo is None:
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+                    self.logger.debug(f"Made timestamp timezone-aware for {symbol}: {timestamp}")
+                
+                return timestamp
             else:
                 # No data found, start from default start date
                 return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
@@ -203,6 +211,11 @@ class ProductionKlinesExtractor:
     def calculate_extraction_window(self, last_timestamp: datetime) -> Tuple[datetime, datetime]:
         """Calculate the extraction window based on last timestamp."""
         current_time = get_current_utc_time()
+
+        # Ensure last_timestamp is timezone-aware for comparison
+        if last_timestamp.tzinfo is None:
+            last_timestamp = last_timestamp.replace(tzinfo=timezone.utc)
+            self.logger.debug(f"Made last_timestamp timezone-aware: {last_timestamp}")
 
         # Start from the last timestamp, but ensure we have some overlap
         # to catch any missed data due to timing issues
