@@ -107,6 +107,7 @@ jobs:
   build-and-push:
     needs: [lint-and-test, security-scan]
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
       packages: write
@@ -114,10 +115,38 @@ jobs:
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-url: ${{ steps.build.outputs.image-url }}
+      version: ${{ steps.version.outputs.version }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Generate version
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          # For tags, use the tag name (e.g., v1.0.0)
+          VERSION="${{ github.ref_name }}"
+        else
+          # For main branch, increment version automatically
+          # Get the latest version from git tags
+          LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
+          
+          if [ -z "$LATEST_VERSION" ]; then
+            # No version tags found, start with v1
+            VERSION="v1"
+          else
+            # Extract the number and increment
+            VERSION_NUM=$(echo "$LATEST_VERSION" | sed 's/^v//')
+            NEW_VERSION_NUM=$((VERSION_NUM + 1))
+            VERSION="v${NEW_VERSION_NUM}"
+          fi
+        fi
+        
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Generated version: ${VERSION}"
     
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -137,13 +166,9 @@ jobs:
       with:
         images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=sha
+          type=raw,value=${{ steps.version.outputs.version }},enable={{is_default_branch}}
           type=raw,value=latest,enable={{is_default_branch}}
+          type=semver,pattern={{version}},enable={{starts_with "refs/tags/v"}}
     
     - name: Build and push Docker image
       id: build
@@ -157,7 +182,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
-          VERSION=${{ steps.meta.outputs.version }}
+          VERSION=${{ steps.version.outputs.version }}
           COMMIT_SHA=${{ github.sha }}
           BUILD_DATE=${{ steps.meta.outputs.date }}
 
@@ -166,9 +191,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     environment: production
-    
-    env:
-      IMAGE_TAG: ${{ github.ref_name == 'main' && 'latest' || github.sha }}
     
     steps:
     - name: Checkout code
@@ -191,11 +213,10 @@ jobs:
     
     - name: Update image tags in manifests
       run: |
-        # Get the image tag from the build step
-        IMAGE_TAG="${{ github.sha }}"
-        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          IMAGE_TAG="${{ github.ref_name }}"
-        fi
+        # Use the version generated in the build step
+        IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
+        
+        echo "Using image tag: ${IMAGE_TAG}"
         
         # Update the image tag in Kubernetes manifests
         find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|image: .*/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}|g"
