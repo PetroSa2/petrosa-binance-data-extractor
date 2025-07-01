@@ -179,8 +179,16 @@ class ProductionKlinesExtractor:
             )
 
             if latest_records:
-                # Return the close_time of the latest record
-                return latest_records[0].close_time
+                # Return the close_time of the latest record (access as dictionary key)
+                latest_record = latest_records[0]
+                if 'close_time' in latest_record:
+                    return latest_record['close_time']
+                elif 'timestamp' in latest_record:
+                    # Fallback to timestamp if close_time not available
+                    return latest_record['timestamp']
+                else:
+                    self.logger.warning(f"No timestamp found in latest record for {symbol}: {latest_record}")
+                    return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
             else:
                 # No data found, start from default start date
                 return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
@@ -198,20 +206,26 @@ class ProductionKlinesExtractor:
 
         # Start from the last timestamp, but ensure we have some overlap
         # to catch any missed data due to timing issues
-        start_time = last_timestamp - timedelta(hours=1)  # 1 hour overlap
+        start_time = last_timestamp - timedelta(minutes=30)  # 30 minutes overlap instead of 1 hour
 
         # If we're too far behind, limit the catch-up window to avoid overwhelming
-        max_catchup_days = 7  # Don't try to catch up more than 7 days at once
+        max_catchup_days = 1  # Don't try to catch up more than 1 day at once (reduced from 7)
         earliest_start = current_time - timedelta(days=max_catchup_days)
 
         if start_time < earliest_start:
             start_time = earliest_start
             self.logger.warning(
-                f"Last timestamp is very old, limiting catch-up to {max_catchup_days} days"
+                f"Last timestamp is very old, limiting catch-up to {max_catchup_days} day"
             )
 
         # End time is current time minus a small buffer to avoid incomplete candles
         end_time = current_time - timedelta(minutes=5)
+
+        # Log the extraction window for debugging
+        self.logger.info(
+            f"Extraction window: {start_time.isoformat()} to {end_time.isoformat()} "
+            f"(duration: {(end_time - start_time).total_seconds() / 3600:.2f} hours)"
+        )
 
         return start_time, end_time
 
