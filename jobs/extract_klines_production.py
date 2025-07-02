@@ -28,11 +28,14 @@ import constants
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
+    from utils.telemetry import initialize_telemetry
 
-    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+        initialize_telemetry(
+            service_name=constants.OTEL_SERVICE_NAME_KLINES,
+            environment="production"
+        )
 except ImportError:
     pass
 
@@ -561,9 +564,10 @@ Examples:
 
 def main():
     """Main entry point."""
-    # Ensure telemetry is initialized
+    # Use simple tracer approach
     try:
-        current_tracer = get_tracer(__name__)
+        # Use the module name instead of __name__ to get the correct tracer
+        current_tracer = get_tracer("jobs.extract_klines_production")
         
         if current_tracer:
             with current_tracer.start_as_current_span("klines_extraction_main") as span:

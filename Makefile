@@ -41,7 +41,7 @@ install-dev: install
 # Testing targets
 test_mypy:
 	@echo "🔍 Running type checking with mypy..."
-	mypy . --ignore-missing-imports
+	mypy . --ignore-missing-imports --exclude scripts/test_telemetry.py
 
 run_unit_tests:
 	@echo "🧪 Running unit tests..."

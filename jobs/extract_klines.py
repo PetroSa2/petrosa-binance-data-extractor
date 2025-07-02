@@ -290,7 +290,7 @@ def main():
 
     # Log extraction start
     log_extraction_start(
-        logger=logger,
+        log=logger,
         extractor_type="klines",
         symbols=symbols,
         period=args.period,
@@ -362,7 +362,7 @@ def main():
     extraction_duration = time.time() - extraction_start_time
 
     log_extraction_completion(
-        logger=logger,
+        log=logger,
         extractor_type="klines",
         total_records=total_records_written,
         duration_seconds=extraction_duration,
