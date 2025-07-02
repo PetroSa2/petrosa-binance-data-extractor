@@ -178,14 +178,22 @@ main() {
         fi
     elif [ $# -eq 2 ]; then
         # Two arguments: increment type and specific version
-        if [[ "$1" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # First argument is version, second is ignored
-            new_version="$1"
-        else
-            print_error "Invalid version format: $1"
-            show_usage
-            exit 1
-        fi
+        case $1 in
+            major|minor|patch)
+                if validate_version "$2"; then
+                    new_version="$2"
+                else
+                    print_error "Invalid version format: $2"
+                    show_usage
+                    exit 1
+                fi
+                ;;
+            *)
+                print_error "Invalid increment type: $1"
+                show_usage
+                exit 1
+                ;;
+        esac
     else
         print_error "Too many arguments"
         show_usage
