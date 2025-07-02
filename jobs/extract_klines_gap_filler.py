@@ -17,9 +17,11 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Import constants first
+import constants
+
 # Initialize OpenTelemetry as early as possible
 try:
-    import constants
     from otel_init import setup_telemetry
 
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
@@ -32,8 +34,6 @@ try:
     tracer = get_tracer(__name__)
 except ImportError:
     tracer = None
-
-import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
