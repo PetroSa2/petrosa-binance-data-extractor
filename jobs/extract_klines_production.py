@@ -134,6 +134,11 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
 
 class ProductionKlinesExtractor:
     """Production-ready klines extractor with automatic gap detection and parallel processing."""
+    
+    # Configuration constants
+    OVERLAP_MINUTES = 30  # Minutes of overlap to catch missed data
+    END_TIME_BUFFER_MINUTES = 5  # Buffer before current time to avoid incomplete candles
+    MAX_CATCHUP_DAYS = 1  # Maximum days to catch up at once
 
     def __init__(
         self,
@@ -231,20 +236,19 @@ class ProductionKlinesExtractor:
 
         # Start from the last timestamp, but ensure we have some overlap
         # to catch any missed data due to timing issues
-        start_time = last_timestamp - timedelta(minutes=30)  # 30 minutes overlap instead of 1 hour
+        start_time = last_timestamp - timedelta(minutes=self.OVERLAP_MINUTES)
 
         # If we're too far behind, limit the catch-up window to avoid overwhelming
-        max_catchup_days = 1  # Don't try to catch up more than 1 day at once (reduced from 7)
-        earliest_start = current_time - timedelta(days=max_catchup_days)
+        earliest_start = current_time - timedelta(days=self.MAX_CATCHUP_DAYS)
 
         if start_time < earliest_start:
             start_time = earliest_start
             self.logger.warning(
-                f"Last timestamp is very old, limiting catch-up to {max_catchup_days} day"
+                f"Last timestamp is very old, limiting catch-up to {self.MAX_CATCHUP_DAYS} day"
             )
 
         # End time is current time minus a small buffer to avoid incomplete candles
-        end_time = current_time - timedelta(minutes=5)
+        end_time = current_time - timedelta(minutes=self.END_TIME_BUFFER_MINUTES)
 
         # Log the extraction window for debugging
         self.logger.info(
