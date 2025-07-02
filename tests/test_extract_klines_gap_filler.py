@@ -338,8 +338,14 @@ class TestMainFunction:
     @patch("jobs.extract_klines_gap_filler.parse_arguments")
     @patch("jobs.extract_klines_gap_filler.setup_logging")
     @patch("jobs.extract_klines_gap_filler.get_logger")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_start")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_completion")
+    @patch("jobs.extract_klines_gap_filler.GapFillerExtractor")
     def test_main_keyboard_interrupt(
         self,
+        mock_gap_filler_cls,
+        mock_log_completion,
+        mock_log_start,
         mock_get_logger,
         mock_setup_logging,
         mock_parse_args,
@@ -347,18 +353,39 @@ class TestMainFunction:
         mock_logger = Mock()
         mock_get_logger.return_value = mock_logger
         mock_args = Mock()
+        mock_args.symbols = None
+        mock_args.period = "15m"
+        mock_args.max_workers = 3
+        mock_args.batch_size = 1000
+        mock_args.weekly_chunk_days = 7
+        mock_args.max_gap_size_days = 30
+        mock_args.db_adapter = "mongodb"
+        mock_args.db_uri = None
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        mock_parse_args.side_effect = KeyboardInterrupt()
+
+        mock_gap_filler = Mock()
+        # Make the run_gap_filling method raise KeyboardInterrupt
+        mock_gap_filler.run_gap_filling.side_effect = KeyboardInterrupt()
+        mock_gap_filler_cls.return_value = mock_gap_filler
 
         with patch("sys.exit") as mock_exit:
             gap_filler._main_impl()
             mock_exit.assert_called_with(130)
+            mock_logger.info.assert_called_with("⚠️ Gap filling interrupted by user")
 
     @patch("jobs.extract_klines_gap_filler.parse_arguments")
     @patch("jobs.extract_klines_gap_filler.setup_logging")
     @patch("jobs.extract_klines_gap_filler.get_logger")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_start")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_completion")
+    @patch("jobs.extract_klines_gap_filler.GapFillerExtractor")
     def test_main_general_exception(
         self,
+        mock_gap_filler_cls,
+        mock_log_completion,
+        mock_log_start,
         mock_get_logger,
         mock_setup_logging,
         mock_parse_args,
@@ -366,10 +393,25 @@ class TestMainFunction:
         mock_logger = Mock()
         mock_get_logger.return_value = mock_logger
         mock_args = Mock()
+        mock_args.symbols = None
+        mock_args.period = "15m"
+        mock_args.max_workers = 3
+        mock_args.batch_size = 1000
+        mock_args.weekly_chunk_days = 7
+        mock_args.max_gap_size_days = 30
+        mock_args.db_adapter = "mongodb"
+        mock_args.db_uri = None
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        mock_parse_args.side_effect = Exception("test error")
+
+        mock_gap_filler = Mock()
+        # Make the run_gap_filling method raise an exception
+        mock_gap_filler.run_gap_filling.side_effect = Exception("test error")
+        mock_gap_filler_cls.return_value = mock_gap_filler
 
         with patch("sys.exit") as mock_exit:
             with patch("traceback.print_exc"):
                 gap_filler._main_impl()
                 mock_exit.assert_called_with(1)
+                mock_logger.error.assert_called_with("💥 Fatal error during gap filling: test error")
