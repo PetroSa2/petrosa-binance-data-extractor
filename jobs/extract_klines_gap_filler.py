@@ -36,7 +36,7 @@ from config.symbols import get_default_symbols
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from models.kline import Kline
+from models.kline import Kline, KlineModel
 from utils.logger import get_logger, log_extraction_completion, log_extraction_start, setup_logging
 from utils.retry import exponential_backoff
 from utils.time_utils import (
@@ -740,7 +740,7 @@ def _main_impl():
         if args.symbols:
             symbols = [s.strip().upper() for s in args.symbols.split(",")]
         else:
-            symbols = get_default_symbols()
+            symbols = constants.DEFAULT_SYMBOLS
             logger.info(f"Using default symbols: {symbols}")
 
         log_extraction_start(
