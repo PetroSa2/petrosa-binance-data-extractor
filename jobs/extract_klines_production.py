@@ -23,23 +23,20 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Import constants first
+import constants
+
 # Initialize OpenTelemetry as early as possible
 try:
-    import constants
     from otel_init import setup_telemetry
 
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
     if not os.getenv("OTEL_NO_AUTO_INIT"):
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
-
-    # Import tracing after setup
-    from utils.telemetry import get_tracer
-
-    tracer = get_tracer(__name__)
 except ImportError:
-    tracer = None
+    pass
 
-import constants
+from utils.telemetry import get_tracer
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
@@ -266,13 +263,11 @@ class ProductionKlinesExtractor:
         return start_time, end_time
 
     def extract_symbol_data(self, symbol: str, binance_client: BinanceClient) -> Dict:
-        """Extract data for a single symbol with retry logic for database operations."""
-        # Create a span for each symbol extraction
+        """Extract data for a single symbol with tracing if available."""
+        tracer = get_tracer(__name__)
         if tracer:
-            with tracer.start_as_current_span("klines_extract_symbol") as span:
-                span.set_attribute("extraction.symbol", symbol)
-                span.set_attribute("extraction.period", self.period)
-                return self._extract_symbol_data_impl(symbol, binance_client, span)
+            with tracer.start_as_current_span(f"extract_symbol_data_{symbol}") as span:
+                return self._extract_symbol_data_impl(symbol, binance_client, span=span)
         else:
             return self._extract_symbol_data_impl(symbol, binance_client)
 
@@ -411,10 +406,9 @@ class ProductionKlinesExtractor:
             return result
 
     def run_extraction(self) -> Dict:
-        """Run the production extraction with parallel processing."""
-        # Create a span for the main extraction process
+        tracer = get_tracer(__name__)
         if tracer:
-            with tracer.start_as_current_span("klines_extraction_run") as span:
+            with tracer.start_as_current_span("run_extraction") as span:
                 span.set_attribute("extraction.period", self.period)
                 span.set_attribute("extraction.symbols_count", len(self.symbols))
                 span.set_attribute("extraction.max_workers", self.max_workers)
@@ -567,18 +561,24 @@ Examples:
 
 def main():
     """Main entry point."""
-    # Create a main span if tracing is available
-    if tracer:
-        with tracer.start_as_current_span("klines_extraction_main") as span:
-            span.set_attribute("extraction.type", "klines_production")
-            span.set_attribute("service.name", "binance-klines-extractor")
-            # Force span context to be active for logging
-            span_context = span.get_span_context()
-            if span_context.trace_id != 0:
-                print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")
+    # Ensure telemetry is initialized
+    try:
+        current_tracer = get_tracer(__name__)
+        
+        if current_tracer:
+            with current_tracer.start_as_current_span("klines_extraction_main") as span:
+                span.set_attribute("extraction.type", "klines_production")
+                span.set_attribute("service.name", "binance-klines-extractor")
+                # Force span context to be active for logging
+                span_context = span.get_span_context()
+                if span_context.trace_id != 0:
+                    print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")
+                _main_impl()
+        else:
+            print("Tracer not available, running without tracing")
             _main_impl()
-    else:
-        print("Tracer not available, running without tracing")
+    except Exception as e:
+        print(f"Tracing setup failed: {e}, running without tracing")
         _main_impl()
 
 

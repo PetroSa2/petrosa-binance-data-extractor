@@ -17,9 +17,11 @@ from typing import List
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Import constants first
+import constants
+
 # Initialize OpenTelemetry as early as possible
 try:
-    import constants
     from otel_init import setup_telemetry
 
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
@@ -27,8 +29,6 @@ try:
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
 except ImportError:
     pass
-
-import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from utils.logger import (log_extraction_completion, log_extraction_start,

@@ -687,24 +687,31 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production._main_impl")
     def test_main_with_tracer(self, mock_main_impl):
         """Test main function with tracer available."""
-        with patch("jobs.extract_klines_production.tracer") as mock_tracer:
+        with patch("jobs.extract_klines_production.get_tracer") as mock_get_tracer:
+            mock_tracer = Mock()
             mock_span = Mock()
             mock_span_context = Mock()
             mock_span_context.trace_id = 1234567890  # Must be int for format()
             mock_span.get_span_context.return_value = mock_span_context
-            mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+            
+            # Create a proper context manager mock
+            mock_context_manager = Mock()
+            mock_context_manager.__enter__ = Mock(return_value=mock_span)
+            mock_context_manager.__exit__ = Mock(return_value=None)
+            mock_tracer.start_as_current_span.return_value = mock_context_manager
+            mock_get_tracer.return_value = mock_tracer
 
             main()
 
             mock_main_impl.assert_called_once()
+            mock_get_tracer.assert_called_once_with("jobs.extract_klines_production")
             mock_tracer.start_as_current_span.assert_called_once_with("klines_extraction_main")
 
     @patch("jobs.extract_klines_production._main_impl")
     def test_main_without_tracer(self, mock_main_impl):
         """Test main function without tracer."""
-        with patch("jobs.extract_klines_production.tracer", None):
+        with patch("jobs.extract_klines_production.get_tracer", return_value=None):
             main()
-
             mock_main_impl.assert_called_once()
 
 

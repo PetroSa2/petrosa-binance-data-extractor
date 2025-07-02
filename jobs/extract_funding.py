@@ -12,9 +12,11 @@ import time
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Import constants first
+import constants
+
 # Initialize OpenTelemetry as early as possible
 try:
-    import constants
     from otel_init import setup_telemetry
 
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
@@ -22,8 +24,6 @@ try:
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_FUNDING)
 except ImportError:
     pass
-
-import constants
 from db import get_adapter
 from fetchers import BinanceClient, FundingRatesFetcher
 from models.funding_rate import FundingRateModel
