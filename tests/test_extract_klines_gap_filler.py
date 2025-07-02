@@ -131,7 +131,18 @@ class TestGapFillerExtractor:
 
     @patch("jobs.extract_klines_gap_filler.KlinesFetcher")
     @patch("jobs.extract_klines_gap_filler.KlineModel")
-    def test_process_symbol_gaps(self, mock_kline_model_cls, mock_klines_fetcher_cls):
+    @patch("time.sleep")  # Ensure sleep is mocked
+    @patch("random.uniform")  # Mock random delays
+    @patch("jobs.extract_klines_gap_filler.retry_with_backoff")  # Mock retry logic
+    def test_process_symbol_gaps(self, mock_retry, mock_random, mock_sleep, mock_kline_model_cls, mock_klines_fetcher_cls):
+        # Mock random.uniform to return a small value
+        mock_random.return_value = 0.1
+        
+        # Mock retry_with_backoff to just call the function directly
+        def mock_retry_wrapper(func, *args, **kwargs):
+            return func()
+        mock_retry.side_effect = mock_retry_wrapper
+        
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         mock_binance_client = Mock()
         mock_db_adapter = Mock()
@@ -148,7 +159,7 @@ class TestGapFillerExtractor:
 
         with patch.object(extractor, "get_start_date", return_value=gap_start), \
              patch.object(extractor, "get_end_date", return_value=gap_end), \
-             patch("time.sleep"):
+             patch("jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter):
             result = extractor.process_symbol_gaps("BTCUSDT", mock_binance_client)
         assert result["success"] is True
         assert result["gaps_found"] == 1

@@ -55,8 +55,11 @@ jobs:
         mypy . --ignore-missing-imports
     
     - name: Run tests
+      timeout-minutes: 10
+      env:
+        OTEL_NO_AUTO_INIT: 1
       run: |
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --tb=short --timeout=300
     
     - name: Check coverage report
       run: |
