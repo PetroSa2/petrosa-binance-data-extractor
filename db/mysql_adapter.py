@@ -96,6 +96,10 @@ class MySQLAdapter(BaseAdapter):
             # Create tables if they don't exist
             self._create_tables()
 
+            # Create indexes for better query performance
+            # Indexes are created during table creation in MySQL adapter
+            # self._create_indexes()  # Removed, not needed
+
         except SQLAlchemyError as e:
             raise DatabaseError(f"Failed to connect to MySQL: {e}") from e
 
@@ -279,7 +283,7 @@ class MySQLAdapter(BaseAdapter):
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i : i + batch_size]
+            batch = model_instances[i:i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 

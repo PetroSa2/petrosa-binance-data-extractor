@@ -6,23 +6,9 @@ This script serves as the main entry point for Kubernetes jobs that extract
 klines (candlestick) data from Binance Futures API.
 """
 
-# Initialize OpenTelemetry as early as possible
-try:
-    # Add project root to path first
-    import os
-    import sys
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, project_root)
-
-    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
-        import constants
-        from otel_init import setup_telemetry
-        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
-except ImportError:
-    pass
-
 import argparse
+import os
+import sys
 import time
 from datetime import datetime
 from typing import List
@@ -30,6 +16,16 @@ from typing import List
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+
+# Initialize OpenTelemetry as early as possible
+try:
+    import constants
+    from otel_init import setup_telemetry
+    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+except ImportError:
+    pass
 
 import constants
 from db import get_adapter
@@ -55,10 +51,10 @@ def parse_arguments():
 Examples:
   # Extract 15m klines for BTCUSDT from 2023-01-01
   python extract_klines.py --symbol BTCUSDT --period 15m --start-date 2023-01-01T00:00:00Z
-  
+
   # Extract multiple symbols with backfill
   python extract_klines.py --symbols BTCUSDT,ETHUSDT --period 1h --backfill
-  
+
   # Incremental extraction (from last timestamp)
   python extract_klines.py --symbols BTCUSDT --period 15m --incremental
         """,
@@ -398,7 +394,7 @@ def main():
     )
 
     # Summary
-    logger.info(f"Extraction completed successfully:")
+    logger.info("Extraction completed successfully:")
     logger.info(f"  Symbols processed: {len(symbols)}")
     logger.info(f"  Records fetched: {total_records_fetched}")
     logger.info(f"  Records written: {total_records_written}")

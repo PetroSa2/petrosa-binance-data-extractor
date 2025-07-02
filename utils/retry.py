@@ -17,10 +17,8 @@ class RetryableError(Exception):
     """Base class for errors that should trigger retries."""
 
 
-
 class NonRetryableError(Exception):
     """Base class for errors that should not trigger retries."""
-
 
 
 def exponential_backoff(

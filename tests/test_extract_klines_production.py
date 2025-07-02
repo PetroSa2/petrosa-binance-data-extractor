@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 """
-Unit tests for extract_klines_production.py
+Tests for production klines extraction.
 """
 
 import os
@@ -44,7 +45,11 @@ class TestRetryWithBackoff:
     @patch("jobs.extract_klines_production.time.sleep")
     def test_retry_success_after_failures(self, mock_sleep):
         """Test successful execution after some failures."""
-        mock_func = Mock(side_effect=[Exception("Lost connection to MySQL server"), Exception("MySQL server has gone away"), "success"])
+        mock_func = Mock(side_effect=[
+            Exception("Lost connection to MySQL server"), 
+            Exception("MySQL server has gone away"), 
+            "success"
+        ])
         mock_logger = Mock()
 
         result = retry_with_backoff(mock_func, max_retries=2, logger=mock_logger)
@@ -82,7 +87,11 @@ class TestRetryWithBackoff:
     @patch("jobs.extract_klines_production.time.sleep")
     def test_retry_exponential_backoff(self, mock_sleep):
         """Test exponential backoff timing."""
-        mock_func = Mock(side_effect=[Exception("Lost connection to MySQL server"), Exception("MySQL server has gone away"), "success"])
+        mock_func = Mock(side_effect=[
+            Exception("Lost connection to MySQL server"), 
+            Exception("MySQL server has gone away"), 
+            "success"
+        ])
         mock_logger = Mock()
 
         retry_with_backoff(mock_func, max_retries=2, base_delay=1.0, logger=mock_logger)
@@ -175,7 +184,9 @@ class TestProductionKlinesExtractor:
         timestamp = self.extractor.get_last_timestamp_for_symbol(mock_adapter, "BTCUSDT")
 
         assert timestamp == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        mock_adapter.query_latest.assert_called_once_with("klines_m15", symbol="BTCUSDT", limit=1)
+        mock_adapter.query_latest.assert_called_once_with(
+            "klines_m15", symbol="BTCUSDT", limit=1
+        )
 
     @patch("jobs.extract_klines_production.get_adapter")
     def test_get_last_timestamp_for_symbol_no_data(self, mock_get_adapter):
@@ -633,41 +644,63 @@ class TestMainFunction:
 
     @patch("jobs.extract_klines_production.setup_logging")
     @patch("jobs.extract_klines_production.get_logger")
-    @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_keyboard_interrupt(self, mock_parse_args, mock_get_logger, mock_setup_logging):
+    @patch("jobs.extract_klines_production.get_default_symbols")
+    def test_main_impl_keyboard_interrupt(self, mock_get_symbols, mock_get_logger, mock_setup_logging):
         """Test main implementation with keyboard interrupt."""
         # Mock arguments
         mock_args = Mock()
-        mock_parse_args.return_value = mock_args
+        mock_args.period = "15m"
+        mock_args.symbols = None
+        mock_args.max_workers = 5
+        mock_args.lookback_hours = 24
+        mock_args.batch_size = 1000
+        mock_args.db_adapter = "mysql"
+        mock_args.db_uri = None
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
 
-        # Mock logger
-        mock_logger = Mock()
-        mock_get_logger.return_value = mock_logger
+        # Mock parse_arguments to return our mock args
+        with patch("jobs.extract_klines_production.parse_arguments", return_value=mock_args):
+            # Mock logger
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
 
-        # Mock keyboard interrupt
-        mock_parse_args.side_effect = KeyboardInterrupt()
+            # Mock get_default_symbols to raise KeyboardInterrupt
+            mock_get_symbols.side_effect = KeyboardInterrupt()
 
-        with patch("sys.exit") as mock_exit:
-            _main_impl()
-
-            # Verify interrupt exit code
-            mock_exit.assert_called_once_with(130)
+            # Mock sys.exit to prevent actual exit
+            with patch("sys.exit") as mock_exit:
+                # The KeyboardInterrupt should be caught and sys.exit(130) should be called
+                _main_impl()
+                
+                # Verify that sys.exit was called with the correct code
+                mock_exit.assert_called_once_with(130)
 
     @patch("jobs.extract_klines_production.setup_logging")
     @patch("jobs.extract_klines_production.get_logger")
+    @patch("jobs.extract_klines_production.get_default_symbols")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_general_exception(self, mock_parse_args, mock_get_logger, mock_setup_logging):
+    def test_main_impl_general_exception(self, mock_parse_args, mock_get_default_symbols, mock_get_logger, mock_setup_logging):
         """Test main implementation with general exception."""
         # Mock arguments
         mock_args = Mock()
+        mock_args.symbols = None
+        mock_args.period = "15m"
+        mock_args.max_workers = 5
+        mock_args.lookback_hours = 24
+        mock_args.batch_size = 1000
+        mock_args.db_adapter = "mysql"
+        mock_args.db_uri = None
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
 
         # Mock logger
         mock_logger = Mock()
         mock_get_logger.return_value = mock_logger
 
-        # Mock general exception
-        mock_parse_args.side_effect = Exception("Unexpected error")
+        # Mock get_default_symbols to raise Exception
+        mock_get_default_symbols.side_effect = Exception("Unexpected error")
 
         with patch("sys.exit") as mock_exit:
             _main_impl()
@@ -680,6 +713,9 @@ class TestMainFunction:
         """Test main function with tracer available."""
         with patch("jobs.extract_klines_production.tracer") as mock_tracer:
             mock_span = Mock()
+            mock_span_context = Mock()
+            mock_span_context.trace_id = 1234567890  # Must be int for format()
+            mock_span.get_span_context.return_value = mock_span_context
             mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
             main()

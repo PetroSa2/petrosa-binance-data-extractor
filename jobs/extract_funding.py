@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CLI entry point for funding rates extraction job.
+Extract funding rates from Binance Futures API.
 """
 
 import argparse
@@ -25,9 +25,12 @@ except ImportError:
 import constants
 from db import get_adapter
 from fetchers import BinanceClient, FundingRatesFetcher
-from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
+from models.funding_rate import FundingRate
+from utils.logger import get_logger, setup_logging, log_extraction_completion, log_extraction_start
+from utils.retry import exponential_backoff
 from utils.time_utils import (
     format_duration,
+    get_current_utc_time,
     parse_datetime_string,
 )
 

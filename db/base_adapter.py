@@ -211,7 +211,10 @@ class BaseAdapter(ABC):
         """Context manager exit."""
         self.disconnect()
 
+    def get_collection_name(self, model_class):
+        """Get the collection name for this model type."""
+        return f"{self.database_name}_{model_class.__name__.lower()}s"
+
 
 class DatabaseError(Exception):
     """Custom exception for database operations."""
-

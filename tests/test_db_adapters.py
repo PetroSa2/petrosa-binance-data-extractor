@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 """
-Unit tests for database adapters.
+Tests for database adapters.
 """
 
 import os
@@ -17,7 +18,9 @@ sys.path.insert(0, project_root)
 from db.base_adapter import BaseAdapter, DatabaseError
 from db.mongodb_adapter import MongoDBAdapter
 from db.mysql_adapter import MySQLAdapter
-from models.kline import KlineModel
+from models.funding_rate import FundingRate
+from models.kline import Kline
+from models.trade import Trade
 
 
 class TestBaseAdapter:
@@ -121,7 +124,7 @@ class TestMongoDBAdapter:
         # Create test data
         now = datetime.now(timezone.utc)
         klines = [
-            KlineModel(
+            Kline(
                 symbol="BTCUSDT",
                 timestamp=now,
                 open_time=now,
@@ -137,7 +140,7 @@ class TestMongoDBAdapter:
                 taker_buy_base_asset_volume=Decimal("0"),
                 taker_buy_quote_asset_volume=Decimal("0"),
             ),
-            KlineModel(
+            Kline(
                 symbol="ETHUSDT",
                 timestamp=now,
                 open_time=now,
@@ -246,7 +249,7 @@ class TestMySQLAdapter:
         # Create test data
         now = datetime.now(timezone.utc)
         klines = [
-            KlineModel(
+            Kline(
                 symbol="BTCUSDT",
                 timestamp=now,
                 open_time=now,
@@ -371,7 +374,7 @@ class TestMockAdapter:
         # Test write operation
         now = datetime.now(timezone.utc)
         klines = [
-            KlineModel(
+            Kline(
                 symbol="BTCUSDT",
                 timestamp=now,
                 open_time=now,

@@ -128,7 +128,7 @@ class MongoDBAdapter(BaseAdapter):
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i : i + batch_size]
+            batch = model_instances[i:i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 
@@ -301,6 +301,11 @@ class MongoDBAdapter(BaseAdapter):
             # For trades, add index on trade_id
             if collection == "trades":
                 coll.create_index([("trade_id", ASCENDING)], unique=True, sparse=True)
+
+            # Create indexes for better query performance
+            coll.create_index([("symbol", 1), ("timestamp", -1)])
+            coll.create_index([("timestamp", -1)])
+            coll.create_index([("symbol", 1), ("interval", 1), ("timestamp", -1)])
 
             logger.info("Ensured indexes for collection: %s", collection)
 

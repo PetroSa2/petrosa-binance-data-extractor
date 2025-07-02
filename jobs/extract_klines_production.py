@@ -9,15 +9,21 @@ This script automatically:
 - Runs incremental updates without manual date configuration
 """
 
+import argparse
 import os
-
-# Initialize OpenTelemetry as early as possible
+import random
 import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple, cast
 
-# Add project root to path
+# Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Initialize OpenTelemetry as early as possible
 try:
     import constants
     from otel_init import setup_telemetry
@@ -31,28 +37,25 @@ try:
 except ImportError:
     tracer = None
 
-import argparse
-import random
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple, cast
-
 import constants
+from config.symbols import get_default_symbols
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
+from models.kline import Kline
 from utils.logger import (
     get_logger,
     log_extraction_completion,
     log_extraction_start,
     setup_logging,
 )
+from utils.retry import exponential_backoff
 from utils.time_utils import (
     binance_interval_to_table_suffix,
     format_duration,
     get_current_utc_time,
+    get_interval_minutes,
+    parse_datetime_string,
 )
 
 
@@ -358,7 +361,7 @@ class ProductionKlinesExtractor:
                                 'mysql server has gone away',
                                 'connection was killed'
                             ]):
-                                self.logger.warning(f"MySQL connection lost during gap detection, attempting reconnect...")
+                                self.logger.warning("MySQL connection lost during gap detection, attempting reconnect...")
                                 try:
                                     db_adapter.disconnect()
                                     db_adapter.connect()
@@ -584,25 +587,6 @@ Examples:
     )
 
     return parser.parse_args()
-
-
-def get_default_symbols() -> List[str]:
-    """Get default symbols from configuration."""
-    try:
-        # Try to import from config
-        sys.path.append(os.path.join(project_root, 'config'))
-        from symbols import get_symbols_for_environment
-
-        # Get environment from env var, default to production
-        environment = os.getenv('ENVIRONMENT', 'production')
-        return get_symbols_for_environment(environment)
-
-    except ImportError:
-        # Fallback to hardcoded list
-        return [
-            "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT",
-            "XRPUSDT", "DOTUSDT", "AVAXUSDT", "MATICUSDT", "LINKUSDT"
-        ]
 
 
 def main():

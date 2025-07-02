@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 """
-Unit tests for fetchers.
+Tests for data fetchers.
 """
 
 import os
@@ -24,8 +25,12 @@ class TestBinanceClient:
     """Test BinanceClient functionality."""
 
     @patch("fetchers.client.requests.Session")
-    def test_client_initialization(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_initialization(self, mock_retry_decorator, mock_session_class):
         """Test client initialization."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -37,8 +42,12 @@ class TestBinanceClient:
         mock_session_class.assert_called_once()
 
     @patch("fetchers.client.requests.Session")
-    def test_client_get_request_success(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_get_request_success(self, mock_retry_decorator, mock_session_class):
         """Test successful GET request."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -56,8 +65,12 @@ class TestBinanceClient:
         mock_session.get.assert_called_once()
 
     @patch("fetchers.client.requests.Session")
-    def test_client_get_request_error(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_get_request_error(self, mock_retry_decorator, mock_session_class):
         """Test GET request with API error."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -77,8 +90,12 @@ class TestBinanceClient:
         assert exc_info.value.status_code == 400
 
     @patch("fetchers.client.requests.Session")
-    def test_client_rate_limit_error(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_rate_limit_error(self, mock_retry_decorator, mock_session_class):
         """Test rate limit error handling."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
