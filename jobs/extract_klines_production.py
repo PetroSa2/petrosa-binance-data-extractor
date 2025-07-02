@@ -51,6 +51,7 @@ from utils.logger import (
 from utils.retry import exponential_backoff
 from utils.time_utils import (
     binance_interval_to_table_suffix,
+    ensure_timezone_aware,
     format_duration,
     get_current_utc_time,
     get_interval_minutes,
@@ -204,8 +205,8 @@ class ProductionKlinesExtractor:
                     timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
 
                 # Ensure timestamp is timezone-aware
-                if timestamp and timestamp.tzinfo is None:
-                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+                if timestamp:
+                    timestamp = ensure_timezone_aware(timestamp)
                     self.logger.debug(f"Made timestamp timezone-aware for {symbol}: {timestamp}")
 
                 return timestamp
@@ -225,9 +226,8 @@ class ProductionKlinesExtractor:
         current_time = get_current_utc_time()
 
         # Ensure last_timestamp is timezone-aware for comparison
-        if last_timestamp.tzinfo is None:
-            last_timestamp = last_timestamp.replace(tzinfo=timezone.utc)
-            self.logger.debug(f"Made last_timestamp timezone-aware: {last_timestamp}")
+        last_timestamp = ensure_timezone_aware(last_timestamp)
+        self.logger.debug(f"Made last_timestamp timezone-aware: {last_timestamp}")
 
         # Start from the last timestamp, but ensure we have some overlap
         # to catch any missed data due to timing issues

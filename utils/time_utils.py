@@ -11,7 +11,7 @@ import constants
 
 def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
     """
-    Parse Binance timestamp to datetime object.
+    Parse Binance timestamp to UTC datetime.
 
     Args:
         timestamp: Timestamp in various formats (int, str, datetime)
@@ -51,6 +51,25 @@ def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
     raise ValueError(f"Unable to parse timestamp: {timestamp}")
 
 
+def ensure_timezone_aware(dt: datetime) -> datetime:
+    """
+    Ensure a datetime object is timezone-aware and in UTC.
+    
+    If the datetime is timezone-naive, it's assumed to be in UTC.
+    If it's timezone-aware, it's converted to UTC.
+    
+    Args:
+        dt: Datetime object (naive or aware)
+        
+    Returns:
+        Timezone-aware datetime in UTC
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    else:
+        return dt.astimezone(timezone.utc)
+
+
 def parse_datetime_string(date_string: str) -> datetime:
     """
     Parse datetime string in various formats.
@@ -82,10 +101,8 @@ def parse_datetime_string(date_string: str) -> datetime:
     for fmt in formats:
         try:
             dt = datetime.strptime(date_string, fmt)
-            # Assume UTC if no timezone info
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt.astimezone(timezone.utc)
+            # Ensure timezone awareness
+            return ensure_timezone_aware(dt)
         except ValueError:
             continue
 

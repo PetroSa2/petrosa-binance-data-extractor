@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from utils.time_utils import (
     binance_interval_to_table_suffix,
+    ensure_timezone_aware,
     table_suffix_to_binance_interval,
 )
 
@@ -370,8 +371,7 @@ class MySQLAdapter(BaseAdapter):
         for record in records:
             ts = record["timestamp"]
             # Ensure timezone awareness for comparison
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
+            ts = ensure_timezone_aware(ts)
             timestamps.append(ts)
 
         timestamps.sort()
