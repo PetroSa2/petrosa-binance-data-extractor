@@ -409,6 +409,9 @@ class ProductionKlinesExtractor:
         tracer = get_tracer(__name__)
         if tracer:
             with tracer.start_as_current_span("run_extraction") as span:
+                span.set_attribute("extraction.period", self.period)
+                span.set_attribute("extraction.symbols_count", len(self.symbols))
+                span.set_attribute("extraction.max_workers", self.max_workers)
                 return self._run_extraction_impl()
         else:
             return self._run_extraction_impl()
