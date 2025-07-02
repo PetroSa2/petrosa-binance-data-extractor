@@ -469,7 +469,7 @@ class TestParseArguments:
             assert args.max_workers == 5
             assert args.lookback_hours == 24
             assert args.batch_size == 1000
-            assert args.db_adapter == "mysql"
+            assert args.db_adapter == "mysql"  # From environment variable DB_ADAPTER
             assert args.db_uri is None
             assert args.log_level == "INFO"
             assert args.dry_run is False
