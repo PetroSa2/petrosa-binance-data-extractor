@@ -4,8 +4,9 @@ Unit tests for jobs/extract_klines.py
 """
 import os
 import sys
-from unittest.mock import patch, Mock, MagicMock
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 
 # Add project root to path
@@ -13,6 +14,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import jobs.extract_klines as extract_klines
+
 
 class TestParseArguments:
     def test_default_arguments(self):
@@ -70,6 +72,7 @@ class TestParseArguments:
             assert args.dry_run is True
             assert args.check_gaps is True
 
+
 class TestHelpers:
     def test_get_symbols_list(self):
         args = Mock(symbol="BTCUSDT", symbols=None)
@@ -90,6 +93,7 @@ class TestHelpers:
         assert extract_klines.get_database_connection_string(args) == extract_klines.constants.POSTGRESQL_URI
         args = Mock(db_uri=None, db_adapter="unknown")
         assert extract_klines.get_database_connection_string(args) == extract_klines.constants.MONGODB_URI
+
 
 class TestExtractKlinesForSymbol:
     @patch("utils.time_utils.binance_interval_to_table_suffix", return_value="1h")
@@ -207,6 +211,7 @@ class TestExtractKlinesForSymbol:
         assert result["success"] is False
         assert result["errors"]
 
+
 class TestMain:
     def _run_main_and_catch_exit(self, *args, **kwargs):
         try:
@@ -270,15 +275,18 @@ class TestMain:
         mock_klines_fetcher.fetch_klines.return_value = [Mock(), Mock()]
         mock_klines_fetcher_cls.return_value = mock_klines_fetcher
         # Patch extract_klines_for_symbol to avoid deep logic
-        with patch("jobs.extract_klines.extract_klines_for_symbol", return_value={
-            "symbol": "BTCUSDT",
-            "success": True,
-            "records_fetched": 2,
-            "records_written": 2,
-            "gaps_found": 0,
-            "duration_seconds": 1.0,
-            "errors": [],
-        }):
+        with patch(
+            "jobs.extract_klines.extract_klines_for_symbol",
+            return_value={
+                "symbol": "BTCUSDT",
+                "success": True,
+                "records_fetched": 2,
+                "records_written": 2,
+                "gaps_found": 0,
+                "duration_seconds": 1.0,
+                "errors": [],
+            },
+        ):
             exit_code = self._run_main_and_catch_exit()
             assert exit_code == 0
         mock_log_completion.assert_called()
@@ -425,4 +433,4 @@ class TestMain:
         mock_get_adapter.side_effect = Exception("db fail")
         with patch("sys.exit") as mock_exit:
             extract_klines.main()
-            mock_exit.assert_called_with(1) 
+            mock_exit.assert_called_with(1)

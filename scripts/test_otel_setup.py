@@ -10,12 +10,14 @@ import sys
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
+
 def test_imports():
     """Test that all required modules can be imported."""
     print("🔍 Testing imports...")
 
     try:
         import constants
+
         print(f"✅ Constants imported successfully")
         print(f"   - OTEL_SERVICE_NAME_KLINES: {constants.OTEL_SERVICE_NAME_KLINES}")
         print(f"   - OTEL_SERVICE_NAME_FUNDING: {constants.OTEL_SERVICE_NAME_FUNDING}")
@@ -38,6 +40,7 @@ def test_imports():
 
     return True
 
+
 def test_otel_setup():
     """Test OpenTelemetry setup."""
     print("\n🔧 Testing OpenTelemetry setup...")
@@ -56,6 +59,7 @@ def test_otel_setup():
     except Exception as e:
         print(f"❌ OpenTelemetry setup failed: {e}")
         return False
+
 
 def test_instrumentation_packages():
     """Test that required instrumentation packages are available."""
@@ -84,6 +88,7 @@ def test_instrumentation_packages():
     print(f"\n📊 Successfully imported {success_count}/{len(packages_to_test)} packages")
     return success_count == len(packages_to_test)
 
+
 def main():
     """Main test function."""
     print("🚀 OpenTelemetry Setup Test")
@@ -111,6 +116,7 @@ def main():
     else:
         print("⚠️  Some tests failed. Please check the errors above.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

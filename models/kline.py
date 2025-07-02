@@ -31,24 +31,14 @@ class KlineModel(BaseSymbolModel):
     volume: Decimal = Field(..., description="Volume", decimal_places=8)
 
     # Additional Binance-specific fields
-    quote_asset_volume: Decimal = Field(
-        ..., description="Quote asset volume", decimal_places=8
-    )
+    quote_asset_volume: Decimal = Field(..., description="Quote asset volume", decimal_places=8)
     number_of_trades: int = Field(..., description="Number of trades in this kline")
-    taker_buy_base_asset_volume: Decimal = Field(
-        ..., description="Taker buy base asset volume", decimal_places=8
-    )
-    taker_buy_quote_asset_volume: Decimal = Field(
-        ..., description="Taker buy quote asset volume", decimal_places=8
-    )
+    taker_buy_base_asset_volume: Decimal = Field(..., description="Taker buy base asset volume", decimal_places=8)
+    taker_buy_quote_asset_volume: Decimal = Field(..., description="Taker buy quote asset volume", decimal_places=8)
 
     # Derived fields
-    price_change: Optional[Decimal] = Field(
-        None, description="Price change (close - open)", decimal_places=8
-    )
-    price_change_percent: Optional[Decimal] = Field(
-        None, description="Price change percentage", decimal_places=4
-    )
+    price_change: Optional[Decimal] = Field(None, description="Price change (close - open)", decimal_places=8)
+    price_change_percent: Optional[Decimal] = Field(None, description="Price change percentage", decimal_places=4)
 
     model_config = ConfigDict(
         json_schema_extra={

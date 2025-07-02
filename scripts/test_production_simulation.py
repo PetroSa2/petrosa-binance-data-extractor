@@ -19,36 +19,37 @@ from datetime import datetime
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
+
 class ProductionEnvironmentSimulator:
     """Simulates a complete production environment."""
 
     def __init__(self):
         self.original_env = {}
         self.test_results = {
-            'simulation_start': datetime.now().isoformat(),
-            'tests_completed': [],
-            'environment_configured': False,
-            'telemetry_initialized': False,
-            'jobs_ready': False,
-            'kubernetes_ready': False,
-            'production_ready': False
+            "simulation_start": datetime.now().isoformat(),
+            "tests_completed": [],
+            "environment_configured": False,
+            "telemetry_initialized": False,
+            "jobs_ready": False,
+            "kubernetes_ready": False,
+            "production_ready": False,
         }
 
     def backup_environment(self):
         """Backup current environment variables."""
         env_vars_to_test = [
-            'ENABLE_OTEL',
-            'OTEL_SERVICE_NAME',
-            'OTEL_SERVICE_VERSION',
-            'OTEL_SERVICE_NAME_KLINES',
-            'OTEL_SERVICE_NAME_FUNDING',
-            'OTEL_SERVICE_NAME_TRADES',
-            'OTEL_EXPORTER_OTLP_ENDPOINT',
-            'OTEL_EXPORTER_OTLP_HEADERS',
-            'ENVIRONMENT',
-            'K8S_NAMESPACE',
-            'K8S_CLUSTER_NAME',
-            'NEW_RELIC_LICENSE_KEY'
+            "ENABLE_OTEL",
+            "OTEL_SERVICE_NAME",
+            "OTEL_SERVICE_VERSION",
+            "OTEL_SERVICE_NAME_KLINES",
+            "OTEL_SERVICE_NAME_FUNDING",
+            "OTEL_SERVICE_NAME_TRADES",
+            "OTEL_EXPORTER_OTLP_ENDPOINT",
+            "OTEL_EXPORTER_OTLP_HEADERS",
+            "ENVIRONMENT",
+            "K8S_NAMESPACE",
+            "K8S_CLUSTER_NAME",
+            "NEW_RELIC_LICENSE_KEY",
         ]
 
         for var in env_vars_to_test:
@@ -68,21 +69,21 @@ class ProductionEnvironmentSimulator:
 
         # Production environment variables
         production_env = {
-            'ENABLE_OTEL': 'true',
-            'OTEL_SERVICE_NAME': 'petrosa-binance-extractor',
-            'OTEL_SERVICE_VERSION': '2.0.0',
-            'OTEL_SERVICE_NAME_KLINES': 'petrosa-klines-extractor',
-            'OTEL_SERVICE_NAME_FUNDING': 'petrosa-funding-extractor',
-            'OTEL_SERVICE_NAME_TRADES': 'petrosa-trades-extractor',
-            'OTEL_EXPORTER_OTLP_ENDPOINT': 'https://otlp.nr-data.net:4317',
-            'OTEL_EXPORTER_OTLP_HEADERS': 'api-key=test-license-key-12345',
-            'ENVIRONMENT': 'production',
-            'K8S_NAMESPACE': 'petrosa-apps',
-            'K8S_CLUSTER_NAME': 'production-cluster',
-            'K8S_POD_NAME': 'klines-extractor-12345',
-            'K8S_DEPLOYMENT_NAME': 'binance-extractor',
-            'KUBERNETES_SERVICE_HOST': '10.0.0.1',  # Simulate K8s
-            'NEW_RELIC_LICENSE_KEY': 'test-license-key-12345'
+            "ENABLE_OTEL": "true",
+            "OTEL_SERVICE_NAME": "petrosa-binance-extractor",
+            "OTEL_SERVICE_VERSION": "2.0.0",
+            "OTEL_SERVICE_NAME_KLINES": "petrosa-klines-extractor",
+            "OTEL_SERVICE_NAME_FUNDING": "petrosa-funding-extractor",
+            "OTEL_SERVICE_NAME_TRADES": "petrosa-trades-extractor",
+            "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otlp.nr-data.net:4317",
+            "OTEL_EXPORTER_OTLP_HEADERS": "api-key=test-license-key-12345",
+            "ENVIRONMENT": "production",
+            "K8S_NAMESPACE": "petrosa-apps",
+            "K8S_CLUSTER_NAME": "production-cluster",
+            "K8S_POD_NAME": "klines-extractor-12345",
+            "K8S_DEPLOYMENT_NAME": "binance-extractor",
+            "KUBERNETES_SERVICE_HOST": "10.0.0.1",  # Simulate K8s
+            "NEW_RELIC_LICENSE_KEY": "test-license-key-12345",
         }
 
         # Apply environment variables
@@ -91,12 +92,12 @@ class ProductionEnvironmentSimulator:
 
         print("✅ Production environment variables set:")
         for key, value in production_env.items():
-            if 'key' in key.lower() or 'license' in key.lower():
+            if "key" in key.lower() or "license" in key.lower():
                 print(f"   - {key}: ***masked***")
             else:
                 print(f"   - {key}: {value}")
 
-        self.test_results['environment_configured'] = True
+        self.test_results["environment_configured"] = True
         return True
 
     def test_telemetry_initialization(self):
@@ -108,6 +109,7 @@ class ProductionEnvironmentSimulator:
             import importlib
 
             import constants
+
             importlib.reload(constants)
 
             # Test service name configuration
@@ -121,9 +123,9 @@ class ProductionEnvironmentSimulator:
 
             # Test each service type
             services = [
-                ('klines', constants.OTEL_SERVICE_NAME_KLINES),
-                ('funding', constants.OTEL_SERVICE_NAME_FUNDING),
-                ('trades', constants.OTEL_SERVICE_NAME_TRADES)
+                ("klines", constants.OTEL_SERVICE_NAME_KLINES),
+                ("funding", constants.OTEL_SERVICE_NAME_FUNDING),
+                ("trades", constants.OTEL_SERVICE_NAME_TRADES),
             ]
 
             for service_type, service_name in services:
@@ -132,14 +134,12 @@ class ProductionEnvironmentSimulator:
 
             # Test TelemetryManager
             from utils.telemetry import TelemetryManager
+
             manager = TelemetryManager()
-            result = manager.initialize_telemetry(
-                service_name="production-test",
-                environment="production"
-            )
+            result = manager.initialize_telemetry(service_name="production-test", environment="production")
             print(f"✅ TelemetryManager production init: {result}")
 
-            self.test_results['telemetry_initialized'] = True
+            self.test_results["telemetry_initialized"] = True
             return True
 
         except Exception as e:
@@ -151,10 +151,10 @@ class ProductionEnvironmentSimulator:
         print("\n🏃‍♂️ Testing job readiness...")
 
         jobs = [
-            ('Klines Production', 'jobs.extract_klines_production'),
-            ('Klines Manual', 'jobs.extract_klines'),
-            ('Funding Rates', 'jobs.extract_funding'),
-            ('Trades', 'jobs.extract_trades')
+            ("Klines Production", "jobs.extract_klines_production"),
+            ("Klines Manual", "jobs.extract_klines"),
+            ("Funding Rates", "jobs.extract_funding"),
+            ("Trades", "jobs.extract_trades"),
         ]
 
         all_ready = True
@@ -166,13 +166,14 @@ class ProductionEnvironmentSimulator:
 
                 # Verify constants are accessible
                 import constants
+
                 print(f"   - Service name: {getattr(constants, 'OTEL_SERVICE_NAME_KLINES', 'N/A')}")
 
             except Exception as e:
                 print(f"❌ {job_name}: Failed - {e}")
                 all_ready = False
 
-        self.test_results['jobs_ready'] = all_ready
+        self.test_results["jobs_ready"] = all_ready
         return all_ready
 
     def test_kubernetes_configuration(self):
@@ -181,19 +182,19 @@ class ProductionEnvironmentSimulator:
 
         # Test ConfigMap/Secret file
         try:
-            config_file = os.path.join(project_root, 'k8s/otel-config.yaml')
-            with open(config_file, 'r', encoding='utf-8') as f:
+            config_file = os.path.join(project_root, "k8s/otel-config.yaml")
+            with open(config_file, "r", encoding="utf-8") as f:
                 config_content = f.read()
 
             # Check for required variables
             required_vars = [
-                'ENABLE_OTEL',
-                'OTEL_SERVICE_NAME',
-                'OTEL_SERVICE_NAME_KLINES',
-                'OTEL_SERVICE_NAME_FUNDING',
-                'OTEL_SERVICE_NAME_TRADES',
-                'new-relic-license-key',
-                'otel-headers'
+                "ENABLE_OTEL",
+                "OTEL_SERVICE_NAME",
+                "OTEL_SERVICE_NAME_KLINES",
+                "OTEL_SERVICE_NAME_FUNDING",
+                "OTEL_SERVICE_NAME_TRADES",
+                "new-relic-license-key",
+                "otel-headers",
             ]
 
             missing_vars = []
@@ -208,26 +209,26 @@ class ProductionEnvironmentSimulator:
                 print("✅ ConfigMap/Secret configuration complete")
 
             # Test CronJob file
-            cronjob_file = os.path.join(project_root, 'k8s/klines-all-timeframes-cronjobs.yaml')
-            with open(cronjob_file, 'r', encoding='utf-8') as f:
+            cronjob_file = os.path.join(project_root, "k8s/klines-all-timeframes-cronjobs.yaml")
+            with open(cronjob_file, "r", encoding="utf-8") as f:
                 cronjob_content = f.read()
 
             # Check for environment variable injection
-            if 'configMapKeyRef' in cronjob_content and 'secretKeyRef' in cronjob_content:
+            if "configMapKeyRef" in cronjob_content and "secretKeyRef" in cronjob_content:
                 print("✅ CronJob environment variable injection configured")
             else:
                 print("❌ CronJob missing environment variable injection")
                 return False
 
             # Test deployment script
-            deploy_script = os.path.join(project_root, 'scripts/deploy-otel.sh')
+            deploy_script = os.path.join(project_root, "scripts/deploy-otel.sh")
             if os.path.exists(deploy_script):
                 print("✅ Deployment script available")
             else:
                 print("❌ Deployment script missing")
                 return False
 
-            self.test_results['kubernetes_ready'] = True
+            self.test_results["kubernetes_ready"] = True
             return True
 
         except Exception as e:
@@ -240,9 +241,9 @@ class ProductionEnvironmentSimulator:
 
         try:
             # Check environment variables
-            license_key = os.getenv('NEW_RELIC_LICENSE_KEY')
-            otlp_endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT')
-            otlp_headers = os.getenv('OTEL_EXPORTER_OTLP_HEADERS')
+            license_key = os.getenv("NEW_RELIC_LICENSE_KEY")
+            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+            otlp_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
 
             if not license_key:
                 print("❌ NEW_RELIC_LICENSE_KEY not set")
@@ -260,12 +261,12 @@ class ProductionEnvironmentSimulator:
             print("✅ OTLP headers configured")
 
             # Test that configuration is valid for New Relic
-            if 'nr-data.net' in otlp_endpoint:
+            if "nr-data.net" in otlp_endpoint:
                 print("✅ New Relic OTLP endpoint detected")
             else:
                 print("⚠️  Non-standard OTLP endpoint (may not be New Relic)")
 
-            if 'api-key' in otlp_headers.lower():
+            if "api-key" in otlp_headers.lower():
                 print("✅ API key header format detected")
             else:
                 print("⚠️  Non-standard header format for New Relic")
@@ -282,9 +283,9 @@ class ProductionEnvironmentSimulator:
 
         # Simulate pod environment variables that Kubernetes would inject
         k8s_pod_env = {
-            'HOSTNAME': 'klines-extractor-abc123',
-            'K8S_POD_NAME': 'klines-extractor-abc123',
-            'K8S_CONTAINER_NAME': 'klines-extractor'
+            "HOSTNAME": "klines-extractor-abc123",
+            "K8S_POD_NAME": "klines-extractor-abc123",
+            "K8S_CONTAINER_NAME": "klines-extractor",
         }
 
         for key, value in k8s_pod_env.items():
@@ -297,6 +298,7 @@ class ProductionEnvironmentSimulator:
         # Test that otel_init picks up Kubernetes environment
         try:
             from otel_init import init_otel_early
+
             init_otel_early()
             print("✅ OpenTelemetry Kubernetes detection successful")
             return True
@@ -324,7 +326,7 @@ class ProductionEnvironmentSimulator:
             success &= self.simulate_kubernetes_deployment()
 
             # Generate final report
-            self.test_results['production_ready'] = success
+            self.test_results["production_ready"] = success
             self.generate_production_report()
 
             return success
@@ -341,11 +343,11 @@ class ProductionEnvironmentSimulator:
 
         # Status summary
         status_items = [
-            ('Environment Configuration', self.test_results['environment_configured']),
-            ('Telemetry Initialization', self.test_results['telemetry_initialized']),
-            ('Job Readiness', self.test_results['jobs_ready']),
-            ('Kubernetes Configuration', self.test_results['kubernetes_ready']),
-            ('Overall Production Ready', self.test_results['production_ready'])
+            ("Environment Configuration", self.test_results["environment_configured"]),
+            ("Telemetry Initialization", self.test_results["telemetry_initialized"]),
+            ("Job Readiness", self.test_results["jobs_ready"]),
+            ("Kubernetes Configuration", self.test_results["kubernetes_ready"]),
+            ("Overall Production Ready", self.test_results["production_ready"]),
         ]
 
         for item, status in status_items:
@@ -355,7 +357,7 @@ class ProductionEnvironmentSimulator:
         # Save detailed report
         report_file = f"production_readiness_report_{int(time.time())}.json"
         try:
-            with open(report_file, 'w', encoding='utf-8') as f:
+            with open(report_file, "w", encoding="utf-8") as f:
                 json.dump(self.test_results, f, indent=2)
             print(f"\n💾 Detailed report saved: {report_file}")
         except Exception as e:
@@ -363,7 +365,7 @@ class ProductionEnvironmentSimulator:
 
         # Final verdict
         print("\n" + "=" * 60)
-        if self.test_results['production_ready']:
+        if self.test_results["production_ready"]:
             print("🎉 PRODUCTION READY!")
             print("🚀 Your OpenTelemetry pipeline is ready for deployment!")
             print("\n📋 Deployment checklist:")
@@ -376,13 +378,15 @@ class ProductionEnvironmentSimulator:
             print("⚠️  NOT READY FOR PRODUCTION")
             print("Please fix the issues identified above.")
 
-        return self.test_results['production_ready']
+        return self.test_results["production_ready"]
+
 
 def main():
     """Main function."""
     simulator = ProductionEnvironmentSimulator()
     success = simulator.run_production_simulation()
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

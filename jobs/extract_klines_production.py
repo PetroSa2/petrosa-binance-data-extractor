@@ -27,12 +27,14 @@ sys.path.insert(0, project_root)
 try:
     import constants
     from otel_init import setup_telemetry
+
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
     if not os.getenv("OTEL_NO_AUTO_INIT"):
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
 
     # Import tracing after setup
     from utils.telemetry import get_tracer
+
     tracer = get_tracer(__name__)
 except ImportError:
     tracer = None
@@ -42,37 +44,29 @@ from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
 from models.kline import KlineModel
-from utils.logger import (
-    get_logger,
-    log_extraction_completion,
-    log_extraction_start,
-    setup_logging,
-)
+from utils.logger import (get_logger, log_extraction_completion,
+                          log_extraction_start, setup_logging)
 from utils.retry import exponential_backoff
-from utils.time_utils import (
-    binance_interval_to_table_suffix,
-    ensure_timezone_aware,
-    format_duration,
-    get_current_utc_time,
-    get_interval_minutes,
-    parse_datetime_string,
-)
+from utils.time_utils import (binance_interval_to_table_suffix,
+                              ensure_timezone_aware, format_duration,
+                              get_current_utc_time, get_interval_minutes,
+                              parse_datetime_string)
 
 
 def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logger=None):
     """
     Retry a function with exponential backoff and jitter.
-    
+
     Args:
         func: Function to retry
         max_retries: Maximum number of retry attempts
         base_delay: Base delay in seconds
         max_delay: Maximum delay in seconds
         logger: Logger instance to use for messages
-    
+
     Returns:
         The result of the function call
-    
+
     Raises:
         The last exception if all retries fail
     """
@@ -88,28 +82,32 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
             error_msg = str(e).lower()
             # Also check for pymysql specific errors and SQLAlchemy errors
             is_connection_error = (
-                any(keyword in error_msg for keyword in [
-                    'lost connection to mysql server',
-                    'mysql server has gone away',
-                    'connection was killed',
-                    'connection refused',
-                    'timeout',
-                    'broken pipe',
-                    'can\'t connect to mysql server',
-                    'operationalerror',
-                    '2013',  # MySQL error code for lost connection
-                    '2006',  # MySQL error code for server gone away
-                    '2003',  # MySQL error code for can't connect
-                ]) or
+                any(
+                    keyword in error_msg
+                    for keyword in [
+                        "lost connection to mysql server",
+                        "mysql server has gone away",
+                        "connection was killed",
+                        "connection refused",
+                        "timeout",
+                        "broken pipe",
+                        "can't connect to mysql server",
+                        "operationalerror",
+                        "2013",  # MySQL error code for lost connection
+                        "2006",  # MySQL error code for server gone away
+                        "2003",  # MySQL error code for can't connect
+                    ]
+                )
+                or
                 # Check for SQLAlchemy connection errors
-                'operationalerror' in str(type(e)).lower() or
-                'databaseerror' in str(type(e)).lower()
+                "operationalerror" in str(type(e)).lower()
+                or "databaseerror" in str(type(e)).lower()
             )
 
             if is_connection_error:
                 if attempt < max_retries:
                     # Calculate delay with exponential backoff and jitter
-                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    delay = min(base_delay * (2**attempt), max_delay)
                     jitter = random.uniform(0.1, 0.3) * delay
                     total_delay = delay + jitter
 
@@ -134,7 +132,7 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
 
 class ProductionKlinesExtractor:
     """Production-ready klines extractor with automatic gap detection and parallel processing."""
-    
+
     # Configuration constants
     OVERLAP_MINUTES = 30  # Minutes of overlap to catch missed data
     END_TIME_BUFFER_MINUTES = 5  # Buffer before current time to avoid incomplete candles
@@ -164,20 +162,32 @@ class ProductionKlinesExtractor:
 
         # Statistics (properly typed)
         self.stats: Dict[str, Any] = {
-            'symbols_processed': 0,
-            'symbols_failed': 0,
-            'total_records_fetched': 0,
-            'total_records_written': 0,
-            'total_gaps_filled': 0,
-            'errors': []
+            "symbols_processed": 0,
+            "symbols_failed": 0,
+            "total_records_fetched": 0,
+            "total_records_written": 0,
+            "total_gaps_filled": 0,
+            "errors": [],
         }
 
     def period_to_minutes(self) -> int:
         """Convert period string to minutes for gap detection."""
         period_map = {
-            "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30,
-            "1h": 60, "2h": 120, "4h": 240, "6h": 360, "8h": 480, "12h": 720,
-            "1d": 1440, "3d": 4320, "1w": 10080, "1M": 43200  # Approximate for 1M
+            "1m": 1,
+            "3m": 3,
+            "5m": 5,
+            "15m": 15,
+            "30m": 30,
+            "1h": 60,
+            "2h": 120,
+            "4h": 240,
+            "6h": 360,
+            "8h": 480,
+            "12h": 720,
+            "1d": 1440,
+            "3d": 4320,
+            "1w": 10080,
+            "1M": 43200,  # Approximate for 1M
         }
         return period_map.get(self.period, 15)  # Default to 15 if unknown
 
@@ -188,26 +198,25 @@ class ProductionKlinesExtractor:
 
     def get_last_timestamp_for_symbol(self, db_adapter, symbol: str) -> Optional[datetime]:
         """Get the last timestamp for a symbol from the database."""
+
         def _get_timestamp():
             collection_name = self.get_collection_name()
 
             # Query the latest record for this symbol
-            latest_records = db_adapter.query_latest(
-                collection_name, symbol=symbol, limit=1
-            )
+            latest_records = db_adapter.query_latest(collection_name, symbol=symbol, limit=1)
 
             if latest_records:
                 # Return the close_time of the latest record (access as dictionary key)
                 latest_record = latest_records[0]
                 timestamp = None
-                if 'close_time' in latest_record:
-                    timestamp = latest_record['close_time']
-                elif 'timestamp' in latest_record:
+                if "close_time" in latest_record:
+                    timestamp = latest_record["close_time"]
+                elif "timestamp" in latest_record:
                     # Fallback to timestamp if close_time not available
-                    timestamp = latest_record['timestamp']
+                    timestamp = latest_record["timestamp"]
                 else:
                     self.logger.warning(f"No timestamp found in latest record for {symbol}: {latest_record}")
-                    timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+                    timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace("Z", "+00:00"))
 
                 # Ensure timestamp is timezone-aware
                 if timestamp:
@@ -217,14 +226,14 @@ class ProductionKlinesExtractor:
                 return timestamp
             else:
                 # No data found, start from default start date
-                return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+                return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace("Z", "+00:00"))
 
         try:
             return retry_with_backoff(_get_timestamp, max_retries=2, base_delay=1.0, logger=self.logger)
         except Exception as e:
             self.logger.warning("Could not get last timestamp for %s after retries: %s", symbol, e)
             # Fallback to default start date
-            return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+            return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace("Z", "+00:00"))
 
     def calculate_extraction_window(self, last_timestamp: datetime) -> Tuple[datetime, datetime]:
         """Calculate the extraction window based on last timestamp."""
@@ -243,9 +252,7 @@ class ProductionKlinesExtractor:
 
         if start_time < earliest_start:
             start_time = earliest_start
-            self.logger.warning(
-                f"Last timestamp is very old, limiting catch-up to {self.MAX_CATCHUP_DAYS} day"
-            )
+            self.logger.warning(f"Last timestamp is very old, limiting catch-up to {self.MAX_CATCHUP_DAYS} day")
 
         # End time is current time minus a small buffer to avoid incomplete candles
         end_time = current_time - timedelta(minutes=self.END_TIME_BUFFER_MINUTES)
@@ -273,13 +280,13 @@ class ProductionKlinesExtractor:
         """Implementation of extract_symbol_data method."""
         symbol_start_time = time.time()
         result = {
-            'symbol': symbol,
-            'success': False,
-            'records_fetched': 0,
-            'records_written': 0,
-            'gaps_filled': 0,
-            'error': None,
-            'duration': 0
+            "symbol": symbol,
+            "success": False,
+            "records_fetched": 0,
+            "records_written": 0,
+            "gaps_filled": 0,
+            "error": None,
+            "duration": 0,
         }
 
         def _perform_extraction():
@@ -313,12 +320,11 @@ class ProductionKlinesExtractor:
 
                 # Calculate extraction window (handle None case)
                 if last_timestamp is None:
-                    last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+                    last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace("Z", "+00:00"))
                 start_time, end_time = self.calculate_extraction_window(last_timestamp)
 
                 self.logger.info(
-                    f"Extracting {symbol} ({self.period}): "
-                    f"from {start_time.isoformat()} to {end_time.isoformat()}"
+                    f"Extracting {symbol} ({self.period}): " f"from {start_time.isoformat()} to {end_time.isoformat()}"
                 )
 
                 # Create fetcher
@@ -332,7 +338,7 @@ class ProductionKlinesExtractor:
                     end_time=end_time,
                 )
 
-                result['records_fetched'] = len(klines_data)
+                result["records_fetched"] = len(klines_data)
 
                 if klines_data:
                     # Write to database with retry logic
@@ -342,28 +348,25 @@ class ProductionKlinesExtractor:
                         return db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
 
                     records_written = retry_with_backoff(_write_data, max_retries=2, base_delay=1.0, logger=self.logger)
-                    result['records_written'] = records_written
+                    result["records_written"] = records_written
 
                     # Check for gaps with retry logic
                     def _check_gaps():
                         try:
                             interval_minutes = self.period_to_minutes()
-                            gaps = db_adapter.find_gaps(
-                                collection_name,
-                                start_time,
-                                end_time,
-                                interval_minutes,
-                                symbol=symbol
-                            )
+                            gaps = db_adapter.find_gaps(collection_name, start_time, end_time, interval_minutes, symbol=symbol)
                             return gaps
                         except Exception as e:
                             # Check if we need to reconnect
                             error_msg = str(e).lower()
-                            if any(keyword in error_msg for keyword in [
-                                'lost connection to mysql server',
-                                'mysql server has gone away',
-                                'connection was killed'
-                            ]):
+                            if any(
+                                keyword in error_msg
+                                for keyword in [
+                                    "lost connection to mysql server",
+                                    "mysql server has gone away",
+                                    "connection was killed",
+                                ]
+                            ):
                                 self.logger.warning("MySQL connection lost during gap detection, attempting reconnect...")
                                 try:
                                     db_adapter.disconnect()
@@ -374,17 +377,15 @@ class ProductionKlinesExtractor:
 
                     try:
                         gaps = retry_with_backoff(_check_gaps, max_retries=3, base_delay=2.0, logger=self.logger)
-                        result['gaps_filled'] = len(gaps)
+                        result["gaps_filled"] = len(gaps)
                         if gaps:
-                            self.logger.warning(
-                                f"Found {len(gaps)} gaps for {symbol} in {collection_name}"
-                            )
+                            self.logger.warning(f"Found {len(gaps)} gaps for {symbol} in {collection_name}")
                     except Exception as gap_error:
                         self.logger.warning(f"Gap detection failed for {symbol} after retries: {gap_error}")
-                        result['gaps_filled'] = 0
+                        result["gaps_filled"] = 0
 
-                result['success'] = True
-                result['duration'] = time.time() - symbol_start_time
+                result["success"] = True
+                result["duration"] = time.time() - symbol_start_time
 
                 self.logger.info(
                     f"✅ {symbol}: fetched={result['records_fetched']}, "
@@ -404,8 +405,8 @@ class ProductionKlinesExtractor:
             # Use retry logic for the entire extraction operation
             return retry_with_backoff(_perform_extraction, max_retries=3, base_delay=1.0, logger=self.logger)
         except Exception as e:
-            result['error'] = str(e)
-            result['duration'] = time.time() - symbol_start_time
+            result["error"] = str(e)
+            result["duration"] = time.time() - symbol_start_time
             self.logger.error(f"❌ {symbol} failed after all retries: {e}")
             return result
 
@@ -441,8 +442,7 @@ class ProductionKlinesExtractor:
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Submit all symbol extraction tasks
                 future_to_symbol = {
-                    executor.submit(self.extract_symbol_data, symbol, binance_client): symbol
-                    for symbol in self.symbols
+                    executor.submit(self.extract_symbol_data, symbol, binance_client): symbol for symbol in self.symbols
                 }
 
                 # Collect results as they complete
@@ -454,20 +454,20 @@ class ProductionKlinesExtractor:
 
                         # Update thread-safe statistics
                         with self._lock:
-                            if result['success']:
-                                self.stats['symbols_processed'] += 1
-                                self.stats['total_records_fetched'] += result['records_fetched']
-                                self.stats['total_records_written'] += result['records_written']
-                                self.stats['total_gaps_filled'] += result['gaps_filled']
+                            if result["success"]:
+                                self.stats["symbols_processed"] += 1
+                                self.stats["total_records_fetched"] += result["records_fetched"]
+                                self.stats["total_records_written"] += result["records_written"]
+                                self.stats["total_gaps_filled"] += result["gaps_filled"]
                             else:
-                                self.stats['symbols_failed'] += 1
-                                self.stats['errors'].append(f"{symbol}: {result['error']}")
+                                self.stats["symbols_failed"] += 1
+                                self.stats["errors"].append(f"{symbol}: {result['error']}")
 
                     except Exception as e:
                         self.logger.error(f"Failed to get result for {symbol}: {e}")
                         with self._lock:
-                            self.stats['symbols_failed'] += 1
-                            self.stats['errors'].append(f"{symbol}: {str(e)}")
+                            self.stats["symbols_failed"] += 1
+                            self.stats["errors"].append(f"{symbol}: {str(e)}")
 
         finally:
             binance_client.close()
@@ -486,21 +486,21 @@ class ProductionKlinesExtractor:
         self.logger.info(f"🔧 Total gaps filled: {self.stats['total_gaps_filled']}")
         self.logger.info(f"⏱️  Total duration: {format_duration(total_duration)}")
 
-        if self.stats['errors']:
+        if self.stats["errors"]:
             self.logger.warning(f"⚠️  Errors encountered: {len(self.stats['errors'])}")
-            for error in self.stats['errors'][:5]:  # Show first 5 errors
+            for error in self.stats["errors"][:5]:  # Show first 5 errors
                 self.logger.warning(f"   - {error}")
 
         return {
-            'success': self.stats['symbols_failed'] == 0,
-            'total_symbols': len(self.symbols),
-            'symbols_processed': self.stats['symbols_processed'],
-            'symbols_failed': self.stats['symbols_failed'],
-            'total_records_fetched': self.stats['total_records_fetched'],
-            'total_records_written': self.stats['total_records_written'],
-            'total_gaps_filled': self.stats['total_gaps_filled'],
-            'duration_seconds': total_duration,
-            'errors': self.stats['errors']
+            "success": self.stats["symbols_failed"] == 0,
+            "total_symbols": len(self.symbols),
+            "symbols_processed": self.stats["symbols_processed"],
+            "symbols_failed": self.stats["symbols_failed"],
+            "total_records_fetched": self.stats["total_records_fetched"],
+            "total_records_written": self.stats["total_records_written"],
+            "total_gaps_filled": self.stats["total_gaps_filled"],
+            "duration_seconds": total_duration,
+            "errors": self.stats["errors"],
         }
 
 
@@ -528,36 +528,17 @@ Examples:
         type=str,
         choices=["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"],
         default=constants.DEFAULT_PERIOD,
-        help="Kline interval (default: 15m)"
+        help="Kline interval (default: 15m)",
     )
 
-    parser.add_argument(
-        "--symbols",
-        type=str,
-        help="Comma-separated list of trading symbols (default: from config)"
-    )
+    parser.add_argument("--symbols", type=str, help="Comma-separated list of trading symbols (default: from config)")
 
     # Performance parameters
-    parser.add_argument(
-        "--max-workers",
-        type=int,
-        default=5,
-        help="Maximum number of parallel workers (default: 5)"
-    )
+    parser.add_argument("--max-workers", type=int, default=5, help="Maximum number of parallel workers (default: 5)")
 
-    parser.add_argument(
-        "--lookback-hours",
-        type=int,
-        default=24,
-        help="Hours to look back for gap detection (default: 24)"
-    )
+    parser.add_argument("--lookback-hours", type=int, default=24, help="Hours to look back for gap detection (default: 24)")
 
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=constants.DB_BATCH_SIZE,
-        help="Database batch size (default: 1000)"
-    )
+    parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE, help="Database batch size (default: 1000)")
 
     # Database parameters
     parser.add_argument(
@@ -565,14 +546,10 @@ Examples:
         type=str,
         choices=["mongodb", "mysql", "postgresql"],
         default=constants.DB_ADAPTER,
-        help="Database adapter to use"
+        help="Database adapter to use",
     )
 
-    parser.add_argument(
-        "--db-uri",
-        type=str,
-        help="Database connection URI (overrides default)"
-    )
+    parser.add_argument("--db-uri", type=str, help="Database connection URI (overrides default)")
 
     # Logging parameters
     parser.add_argument(
@@ -580,14 +557,10 @@ Examples:
         type=str,
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         default=constants.LOG_LEVEL,
-        help="Logging level"
+        help="Logging level",
     )
 
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Perform dry run without writing to database"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Perform dry run without writing to database")
 
     return parser.parse_args()
 
@@ -672,14 +645,14 @@ def _main_impl():
         log_extraction_completion(
             log=logger,
             extractor_type="klines_production",
-            total_records=result['total_records_written'],
-            duration_seconds=result['duration_seconds'],
-            gaps_found=result['total_gaps_filled'],
-            errors=result['errors'][:10]  # Limit errors in logs
+            total_records=result["total_records_written"],
+            duration_seconds=result["duration_seconds"],
+            gaps_found=result["total_gaps_filled"],
+            errors=result["errors"][:10],  # Limit errors in logs
         )
 
         # Exit with appropriate code
-        if result['success']:
+        if result["success"]:
             logger.info("🎉 Production extraction completed successfully!")
             sys.exit(0)
         else:
@@ -692,6 +665,7 @@ def _main_impl():
     except Exception as e:
         logger.error(f"💥 Fatal error during extraction: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

@@ -13,11 +13,9 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import pytest
-from config.symbols import (
-    PRODUCTION_SYMBOLS,
-    DEVELOPMENT_SYMBOLS,
-    get_symbols_for_environment,
-)
+
+from config.symbols import (DEVELOPMENT_SYMBOLS, PRODUCTION_SYMBOLS,
+                            get_symbols_for_environment)
 
 
 class TestSymbolsConfig:
@@ -28,7 +26,7 @@ class TestSymbolsConfig:
         assert isinstance(PRODUCTION_SYMBOLS, list)
         assert len(PRODUCTION_SYMBOLS) > 0
         assert all(isinstance(symbol, str) for symbol in PRODUCTION_SYMBOLS)
-        
+
         # Check for specific expected symbols
         assert "BTCUSDT" in PRODUCTION_SYMBOLS
         assert "ETHUSDT" in PRODUCTION_SYMBOLS
@@ -39,7 +37,7 @@ class TestSymbolsConfig:
         assert isinstance(DEVELOPMENT_SYMBOLS, list)
         assert len(DEVELOPMENT_SYMBOLS) > 0
         assert all(isinstance(symbol, str) for symbol in DEVELOPMENT_SYMBOLS)
-        
+
         # Check for specific expected symbols
         assert "BTCUSDT" in DEVELOPMENT_SYMBOLS
         assert "ETHUSDT" in DEVELOPMENT_SYMBOLS
@@ -110,9 +108,9 @@ class TestSymbolsConfig:
         """Test specific content of symbol lists."""
         # Production should have more symbols than development
         assert len(PRODUCTION_SYMBOLS) > len(DEVELOPMENT_SYMBOLS)
-        
+
         # Development should have at least 5 symbols
         assert len(DEVELOPMENT_SYMBOLS) >= 5
-        
+
         # Production should have at least 19 symbols
-        assert len(PRODUCTION_SYMBOLS) >= 19 
+        assert len(PRODUCTION_SYMBOLS) >= 19

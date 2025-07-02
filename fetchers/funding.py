@@ -66,9 +66,7 @@ class FundingRatesFetcher:
             funding_rates = []
             for rate_data in funding_data:
                 try:
-                    funding_rate = FundingRateModel.from_binance_funding_rate(
-                        rate_data, symbol
-                    )
+                    funding_rate = FundingRateModel.from_binance_funding_rate(rate_data, symbol)
 
                     # Apply time filters if specified
                     if start_time and funding_rate.funding_time < start_time:
@@ -79,14 +77,10 @@ class FundingRatesFetcher:
                     funding_rates.append(funding_rate)
 
                 except (KeyError, ValueError, TypeError) as e:
-                    logger.warning(
-                        "Failed to parse funding rate data: %s, data: %s", e, rate_data
-                    )
+                    logger.warning("Failed to parse funding rate data: %s, data: %s", e, rate_data)
                     continue
 
-            logger.info(
-                "Fetched %d funding rate records for %s", len(funding_rates), symbol
-            )
+            logger.info("Fetched %d funding rate records for %s", len(funding_rates), symbol)
             return funding_rates
 
         except BinanceAPIError as e:
@@ -96,9 +90,7 @@ class FundingRatesFetcher:
             logger.error("Unexpected error fetching funding rates for %s: %s", symbol, e)
             raise
 
-    def fetch_current_funding_rates(
-        self, symbols: Optional[List[str]] = None
-    ) -> List[FundingRateModel]:
+    def fetch_current_funding_rates(self, symbols: Optional[List[str]] = None) -> List[FundingRateModel]:
         """
         Fetch current funding rates for symbols.
 
@@ -121,24 +113,18 @@ class FundingRatesFetcher:
                 for symbol in symbols:
                     try:
                         # Get premium index which includes current funding info
-                        premium_data = self.client.get_premium_index(
-                            symbol=symbol.upper()
-                        )
+                        premium_data = self.client.get_premium_index(symbol=symbol.upper())
 
                         # Handle both single symbol and list responses
                         if isinstance(premium_data, list):
                             premium_data = premium_data[0] if premium_data else {}
 
                         if premium_data:
-                            funding_rate = FundingRateModel.from_binance_premium_index(
-                                premium_data, symbol
-                            )
+                            funding_rate = FundingRateModel.from_binance_premium_index(premium_data, symbol)
                             funding_rates.append(funding_rate)
 
                     except BinanceAPIError as e:
-                        logger.warning(
-                            "Failed to fetch current funding rate for %s: %s", symbol, e
-                        )
+                        logger.warning("Failed to fetch current funding rate for %s: %s", symbol, e)
                         continue
             else:
                 # Fetch for all symbols
@@ -149,16 +135,10 @@ class FundingRatesFetcher:
                         try:
                             symbol = item.get("symbol", "")
                             if symbol:
-                                funding_rate = (
-                                    FundingRateModel.from_binance_premium_index(
-                                        item, symbol
-                                    )
-                                )
+                                funding_rate = FundingRateModel.from_binance_premium_index(item, symbol)
                                 funding_rates.append(funding_rate)
                         except (KeyError, ValueError, TypeError) as e:
-                            logger.warning(
-                                "Failed to parse funding rate data: %s, data: %s", e, item
-                            )
+                            logger.warning("Failed to parse funding rate data: %s, data: %s", e, item)
                             continue
 
             logger.info("Fetched %d current funding rates", len(funding_rates))
@@ -194,9 +174,7 @@ class FundingRatesFetcher:
         current_start = start_time
         batch_delta = timedelta(hours=batch_hours)
 
-        logger.info(
-            "Fetching funding rates for %s from %s to %s", symbol, start_time, end_time
-        )
+        logger.info("Fetching funding rates for %s from %s to %s", symbol, start_time, end_time)
 
         while current_start < end_time:
             batch_end = min(current_start + batch_delta, end_time)
@@ -212,8 +190,7 @@ class FundingRatesFetcher:
                 all_rates.extend(batch_rates)
 
                 logger.debug(
-                    "Fetched %d funding rates for %s from %s to %s",
-                    len(batch_rates), symbol, current_start, batch_end
+                    "Fetched %d funding rates for %s from %s to %s", len(batch_rates), symbol, current_start, batch_end
                 )
 
                 current_start = batch_end
@@ -266,9 +243,7 @@ class FundingRatesFetcher:
             try:
                 if start_time and end_time:
                     # Use batch fetching for time ranges
-                    rates = self.fetch_funding_rates_batch(
-                        symbol=symbol, start_time=start_time, end_time=end_time
-                    )
+                    rates = self.fetch_funding_rates_batch(symbol=symbol, start_time=start_time, end_time=end_time)
                 else:
                     # Fetch recent history
                     rates = self.fetch_funding_rate_history(
@@ -286,16 +261,11 @@ class FundingRatesFetcher:
                 continue
 
         total_rates = sum(len(rates) for rates in results.values())
-        logger.info(
-            "Fetched total of %d funding rates across %d symbols",
-            total_rates, len(symbols)
-        )
+        logger.info("Fetched total of %d funding rates across %d symbols", total_rates, len(symbols))
 
         return results
 
-    def fetch_latest_funding_rates(
-        self, symbols: List[str], limit: int = 10
-    ) -> Dict[str, List[FundingRateModel]]:
+    def fetch_latest_funding_rates(self, symbols: List[str], limit: int = 10) -> Dict[str, List[FundingRateModel]]:
         """
         Fetch the most recent funding rates for symbols.
 
@@ -343,9 +313,7 @@ class FundingRatesFetcher:
             if not premium_data:
                 return {}
 
-            next_funding_time = datetime.utcfromtimestamp(
-                int(premium_data["nextFundingTime"]) / 1000
-            )
+            next_funding_time = datetime.utcfromtimestamp(int(premium_data["nextFundingTime"]) / 1000)
 
             return {
                 "symbol": symbol.upper(),

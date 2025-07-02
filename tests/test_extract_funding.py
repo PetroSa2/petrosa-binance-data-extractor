@@ -4,8 +4,9 @@ Unit tests for jobs/extract_funding.py
 """
 import os
 import sys
-from unittest.mock import patch, Mock, MagicMock
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 
 # Add project root to path
@@ -13,6 +14,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import jobs.extract_funding as extract_funding
+
 
 class TestParseArguments:
     def test_default_arguments(self):
@@ -61,6 +63,7 @@ class TestParseArguments:
             assert args.batch_size == 50
             assert args.log_level == "DEBUG"
             assert args.dry_run is True
+
 
 class TestMain:
     def _run_main_and_catch_exit(self, *args, **kwargs):
@@ -293,4 +296,4 @@ class TestMain:
         assert exit_code == 0
         mock_fetcher.fetch_current_funding_rates.assert_called()
         mock_get_adapter.return_value.write_batch.assert_not_called()
-        mock_log_completion.assert_called() 
+        mock_log_completion.assert_called()

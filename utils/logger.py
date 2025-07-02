@@ -15,7 +15,8 @@ import constants
 # Try to import OpenTelemetry components
 try:
     from opentelemetry import trace
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
+        OTLPSpanExporter
     from opentelemetry.instrumentation.logging import LoggingInstrumentor
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
@@ -91,9 +92,7 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_entry, default=str)
 
 
-def setup_logging(
-    level: Optional[str] = None, format_type: Optional[str] = None, enable_otel: bool = True
-) -> logging.Logger:
+def setup_logging(level: Optional[str] = None, format_type: Optional[str] = None, enable_otel: bool = True) -> logging.Logger:
     """
     Set up logging configuration for the application.
 
@@ -144,10 +143,7 @@ def setup_logging(
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
     local_logger = logging.getLogger(__name__)
-    local_logger.info(
-        "Logging configured: level=%s, format=%s, otel=%s",
-        level, format_type, enable_otel and OTEL_AVAILABLE
-    )
+    local_logger.info("Logging configured: level=%s, format=%s, otel=%s", level, format_type, enable_otel and OTEL_AVAILABLE)
 
     return local_logger
 
@@ -272,9 +268,7 @@ def log_gap_detection(log: logging.Logger, symbol: str, gaps: list, collection: 
             "symbol": symbol,
             "collection": collection,
             "gaps_count": len(gaps),
-            "gaps": [
-                {"start": gap[0].isoformat(), "end": gap[1].isoformat()} for gap in gaps
-            ],
+            "gaps": [{"start": gap[0].isoformat(), "end": gap[1].isoformat()} for gap in gaps],
             "extraction_phase": "gap_detection",
         },
     )

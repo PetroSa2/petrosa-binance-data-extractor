@@ -21,6 +21,7 @@ sys.path.insert(0, project_root)
 try:
     import constants
     from otel_init import setup_telemetry
+
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
     if not os.getenv("OTEL_NO_AUTO_INIT"):
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
@@ -30,16 +31,10 @@ except ImportError:
 import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
-from utils.logger import (
-    log_extraction_completion,
-    log_extraction_start,
-    setup_logging,
-)
-from utils.time_utils import (
-    format_duration,
-    get_current_utc_time,
-    parse_datetime_string,
-)
+from utils.logger import (log_extraction_completion, log_extraction_start,
+                          setup_logging)
+from utils.time_utils import (format_duration, get_current_utc_time,
+                              parse_datetime_string)
 
 
 def parse_arguments():
@@ -61,9 +56,7 @@ Examples:
     )
 
     # Core parameters
-    parser.add_argument(
-        "--symbol", type=str, help="Single trading symbol to extract (e.g., BTCUSDT)"
-    )
+    parser.add_argument("--symbol", type=str, help="Single trading symbol to extract (e.g., BTCUSDT)")
 
     parser.add_argument(
         "--symbols",
@@ -86,9 +79,7 @@ Examples:
         help=f"Start date in ISO format (default: {constants.DEFAULT_START_DATE})",
     )
 
-    parser.add_argument(
-        "--end-date", type=str, help="End date in ISO format (default: current time)"
-    )
+    parser.add_argument("--end-date", type=str, help="End date in ISO format (default: current time)")
 
     # Extraction modes
     parser.add_argument(
@@ -105,9 +96,7 @@ Examples:
     )
 
     # Limits and batching
-    parser.add_argument(
-        "--limit", type=int, help="Maximum number of klines to extract per symbol"
-    )
+    parser.add_argument("--limit", type=int, help="Maximum number of klines to extract per symbol")
 
     parser.add_argument(
         "--batch-size",
@@ -125,9 +114,7 @@ Examples:
         help=f"Database adapter to use (default: {constants.DB_ADAPTER})",
     )
 
-    parser.add_argument(
-        "--db-uri", type=str, help="Database connection URI (overrides default)"
-    )
+    parser.add_argument("--db-uri", type=str, help="Database connection URI (overrides default)")
 
     # Logging and monitoring
     parser.add_argument(
@@ -195,15 +182,14 @@ def extract_klines_for_symbol(
     try:
         # Get collection name with proper financial market naming
         from utils.time_utils import binance_interval_to_table_suffix
+
         table_suffix = binance_interval_to_table_suffix(period)
         collection_name = f"klines_{table_suffix}"
 
         # Check if incremental extraction
         if args.incremental:
             # Get last timestamp from database
-            latest_records = db_adapter.query_latest(
-                collection_name, symbol=symbol, limit=1
-            )
+            latest_records = db_adapter.query_latest(collection_name, symbol=symbol, limit=1)
             if latest_records:
                 last_timestamp = latest_records[0]["timestamp"]
                 logger.info(f"Last timestamp for {symbol}: {last_timestamp}")
@@ -216,9 +202,7 @@ def extract_klines_for_symbol(
                     max_records=args.limit,
                 )
             else:
-                logger.info(
-                    f"No existing data for {symbol}, performing full extraction"
-                )
+                logger.info(f"No existing data for {symbol}, performing full extraction")
                 klines = fetcher.fetch_klines(
                     symbol=symbol,
                     interval=period,
@@ -240,9 +224,7 @@ def extract_klines_for_symbol(
         written_count = 0
         if not args.dry_run and klines:
             db_adapter.ensure_indexes(collection_name)
-            written_count = db_adapter.write_batch(
-                klines, collection_name, args.batch_size
-            )
+            written_count = db_adapter.write_batch(klines, collection_name, args.batch_size)
 
         # Check for gaps if requested
         gaps_found = 0
@@ -251,9 +233,7 @@ def extract_klines_for_symbol(
 
             interval_minutes = get_interval_minutes(period)
 
-            gaps = db_adapter.find_gaps(
-                collection_name, start_date, end_date, interval_minutes, symbol=symbol
-            )
+            gaps = db_adapter.find_gaps(collection_name, start_date, end_date, interval_minutes, symbol=symbol)
             gaps_found = len(gaps)
 
             if gaps:
@@ -299,11 +279,7 @@ def main():
     # Parse dates
     try:
         start_date = parse_datetime_string(args.start_date)
-        end_date = (
-            parse_datetime_string(args.end_date)
-            if args.end_date
-            else get_current_utc_time()
-        )
+        end_date = parse_datetime_string(args.end_date) if args.end_date else get_current_utc_time()
     except ValueError as e:
         logger.error(f"Invalid date format: {e}")
         sys.exit(1)

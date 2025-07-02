@@ -4,8 +4,9 @@ Unit tests for jobs/extract_klines_gap_filler.py
 """
 import os
 import sys
-from unittest.mock import patch, Mock, MagicMock
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 
 # Add project root to path
@@ -13,6 +14,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import jobs.extract_klines_gap_filler as gap_filler
+
 
 class TestRetryWithBackoff:
     def test_retry_success_on_first_attempt(self):
@@ -23,14 +25,16 @@ class TestRetryWithBackoff:
 
     def test_retry_success_after_failures(self):
         mock_func = Mock(side_effect=[Exception("fail"), Exception("fail"), "success"])
-        result = gap_filler.retry_with_backoff(mock_func, max_retries=3)
+        with patch("time.sleep"):  # Mock sleep to speed up test
+            result = gap_filler.retry_with_backoff(mock_func, max_retries=3, retry_on_all_errors=True)
         assert result == "success"
         assert mock_func.call_count == 3
 
     def test_retry_all_attempts_fail(self):
         mock_func = Mock(side_effect=Exception("persistent failure"))
-        with pytest.raises(Exception, match="persistent failure"):
-            gap_filler.retry_with_backoff(mock_func, max_retries=2)
+        with patch("time.sleep"):  # Mock sleep to speed up test
+            with pytest.raises(Exception, match="persistent failure"):
+                gap_filler.retry_with_backoff(mock_func, max_retries=2, retry_on_all_errors=True)
         assert mock_func.call_count == 3
 
     def test_retry_connection_error(self):
@@ -56,6 +60,7 @@ class TestRetryWithBackoff:
             gap_filler.retry_with_backoff(mock_func, max_retries=3, logger=mock_logger)
         assert mock_func.call_count == 1
 
+
 class TestGapFillerExtractor:
     def test_initialization(self):
         extractor = gap_filler.GapFillerExtractor(
@@ -66,7 +71,7 @@ class TestGapFillerExtractor:
             max_workers=5,
             batch_size=500,
             weekly_chunk_days=3,
-            max_gap_size_days=15
+            max_gap_size_days=15,
         )
         assert extractor.symbols == ["BTCUSDT", "ETHUSDT"]
         assert extractor.period == "15m"
@@ -76,20 +81,18 @@ class TestGapFillerExtractor:
         assert extractor.batch_size == 500
         assert extractor.weekly_chunk_days == 3
         assert extractor.max_gap_size_days == 15
-        assert extractor.stats['symbols_processed'] == 0
+        assert extractor.stats["symbols_processed"] == 0
 
-    @patch("utils.time_utils.get_interval_minutes", return_value=15)
-    def test_period_to_minutes(self, mock_get_interval):
+    def test_period_to_minutes(self):
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         result = extractor.period_to_minutes()
         assert result == 15
-        mock_get_interval.assert_called_with("15m")
 
-    @patch("utils.time_utils.binance_interval_to_table_suffix", return_value="15m")
+    @patch("jobs.extract_klines_gap_filler.binance_interval_to_table_suffix", return_value="m15")
     def test_get_collection_name(self, mock_suffix):
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         result = extractor.get_collection_name()
-        assert result == "klines_15m"
+        assert result == "klines_m15"
         mock_suffix.assert_called_with("15m")
 
     def test_get_start_date(self):
@@ -126,40 +129,30 @@ class TestGapFillerExtractor:
         assert len(gaps) == 1
         mock_db_adapter.find_gaps.assert_called()
 
-    def test_fill_gap_chunk(self):
+    @patch("jobs.extract_klines_gap_filler.KlinesFetcher")
+    @patch("jobs.extract_klines_gap_filler.KlineModel")
+    def test_process_symbol_gaps(self, mock_kline_model_cls, mock_klines_fetcher_cls):
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         mock_binance_client = Mock()
         mock_db_adapter = Mock()
-        mock_fetcher = Mock()
-        mock_fetcher.fetch_klines.return_value = [Mock(), Mock()]
-        mock_binance_client.get_klines_fetcher.return_value = mock_fetcher
-        mock_db_adapter.write_batch.return_value = 2
-        
         gap_start = datetime(2024, 1, 1, tzinfo=timezone.utc)
         gap_end = datetime(2024, 1, 2, tzinfo=timezone.utc)
-        
-        result = extractor.fill_gap_chunk("BTCUSDT", gap_start, gap_end, mock_binance_client, mock_db_adapter)
-        assert result['success'] is True
-        assert result['records_fetched'] == 2
-        assert result['records_written'] == 2
-
-    def test_process_symbol_gaps(self):
-        extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
-        mock_binance_client = Mock()
-        mock_db_adapter = Mock()
-        mock_db_adapter.find_gaps.return_value = [
-            (datetime(2024, 1, 1, tzinfo=timezone.utc), datetime(2024, 1, 2, tzinfo=timezone.utc))
-        ]
+        mock_db_adapter.find_gaps.return_value = [(gap_start, gap_end)]
         mock_fetcher = Mock()
-        mock_fetcher.fetch_klines.return_value = [Mock()]
-        mock_binance_client.get_klines_fetcher.return_value = mock_fetcher
-        mock_db_adapter.write_batch.return_value = 1
-        
-        with patch("utils.time_utils.get_interval_minutes", return_value=15):
+        class FakeKline:
+            def model_dump(self):
+                return {"open": 1}
+        mock_fetcher.fetch_klines.return_value = [FakeKline(), FakeKline()]
+        mock_klines_fetcher_cls.return_value = mock_fetcher
+        mock_db_adapter.write.side_effect = lambda *args, **kwargs: 2
+
+        with patch.object(extractor, "get_start_date", return_value=gap_start), \
+             patch.object(extractor, "get_end_date", return_value=gap_end), \
+             patch("time.sleep"):
             result = extractor.process_symbol_gaps("BTCUSDT", mock_binance_client)
-        assert result['success'] is True
-        assert result['gaps_found'] == 1
-        assert result['gaps_filled'] == 1
+        assert result["success"] is True
+        assert result["gaps_found"] == 1
+        assert result["gaps_filled"] == 1
 
     def test_run_gap_filling(self):
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
@@ -169,15 +162,16 @@ class TestGapFillerExtractor:
         mock_fetcher = Mock()
         mock_fetcher.fetch_klines.return_value = []
         mock_binance_client.get_klines_fetcher.return_value = mock_fetcher
-        
+
         with patch("jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter):
             with patch("jobs.extract_klines_gap_filler.BinanceClient", return_value=mock_binance_client):
                 with patch("utils.time_utils.get_interval_minutes", return_value=15):
                     result = extractor.run_gap_filling()
-        
-        assert result['success'] is True
-        assert result['total_symbols'] == 1
-        assert result['symbols_processed'] == 1
+
+        assert result["success"] is True
+        assert result["total_symbols"] == 1
+        assert result["symbols_processed"] == 1
+
 
 class TestParseArguments:
     def test_default_arguments(self):
@@ -230,6 +224,7 @@ class TestParseArguments:
             assert args.log_level == "DEBUG"
             assert args.dry_run is True
 
+
 class TestMainFunction:
     def _run_main_and_catch_exit(self, *args, **kwargs):
         try:
@@ -267,23 +262,23 @@ class TestMainFunction:
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        
+
         mock_gap_filler = Mock()
         mock_gap_filler.run_gap_filling.return_value = {
-            'success': True,
-            'total_symbols': 1,
-            'symbols_processed': 1,
-            'symbols_failed': 0,
-            'total_gaps_found': 0,
-            'total_gaps_filled': 0,
-            'total_records_fetched': 0,
-            'total_records_written': 0,
-            'total_weekly_chunks_processed': 0,
-            'duration_seconds': 1.0,
-            'errors': []
+            "success": True,
+            "total_symbols": 1,
+            "symbols_processed": 1,
+            "symbols_failed": 0,
+            "total_gaps_found": 0,
+            "total_gaps_filled": 0,
+            "total_records_fetched": 0,
+            "total_records_written": 0,
+            "total_weekly_chunks_processed": 0,
+            "duration_seconds": 1.0,
+            "errors": [],
         }
         mock_gap_filler_cls.return_value = mock_gap_filler
-        
+
         exit_code = self._run_main_and_catch_exit()
         assert exit_code == 0
         mock_gap_filler.run_gap_filling.assert_called()
@@ -318,23 +313,23 @@ class TestMainFunction:
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        
+
         mock_gap_filler = Mock()
         mock_gap_filler.run_gap_filling.return_value = {
-            'success': False,
-            'total_symbols': 1,
-            'symbols_processed': 0,
-            'symbols_failed': 1,
-            'total_gaps_found': 0,
-            'total_gaps_filled': 0,
-            'total_records_fetched': 0,
-            'total_records_written': 0,
-            'total_weekly_chunks_processed': 0,
-            'duration_seconds': 1.0,
-            'errors': ["test error"]
+            "success": False,
+            "total_symbols": 1,
+            "symbols_processed": 0,
+            "symbols_failed": 1,
+            "total_gaps_found": 0,
+            "total_gaps_filled": 0,
+            "total_records_fetched": 0,
+            "total_records_written": 0,
+            "total_weekly_chunks_processed": 0,
+            "duration_seconds": 1.0,
+            "errors": ["test error"],
         }
         mock_gap_filler_cls.return_value = mock_gap_filler
-        
+
         exit_code = self._run_main_and_catch_exit()
         assert exit_code == 1
         mock_gap_filler.run_gap_filling.assert_called()
@@ -354,7 +349,7 @@ class TestMainFunction:
         mock_args = Mock()
         mock_parse_args.return_value = mock_args
         mock_parse_args.side_effect = KeyboardInterrupt()
-        
+
         with patch("sys.exit") as mock_exit:
             gap_filler._main_impl()
             mock_exit.assert_called_with(130)
@@ -373,8 +368,8 @@ class TestMainFunction:
         mock_args = Mock()
         mock_parse_args.return_value = mock_args
         mock_parse_args.side_effect = Exception("test error")
-        
+
         with patch("sys.exit") as mock_exit:
             with patch("traceback.print_exc"):
                 gap_filler._main_impl()
-                mock_exit.assert_called_with(1) 
+                mock_exit.assert_called_with(1)

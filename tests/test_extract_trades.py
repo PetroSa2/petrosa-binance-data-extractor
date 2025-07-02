@@ -4,7 +4,8 @@ Unit tests for jobs/extract_trades.py
 """
 import os
 import sys
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
 import pytest
 
 # Add project root to path
@@ -12,6 +13,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import jobs.extract_trades as extract_trades
+
 
 class TestParseArguments:
     def test_default_arguments(self):
@@ -57,6 +59,7 @@ class TestParseArguments:
             assert args.batch_size == 50
             assert args.log_level == "DEBUG"
             assert args.dry_run is True
+
 
 class TestMain:
     def _run_main_and_catch_exit(self, *args, **kwargs):
@@ -276,4 +279,4 @@ class TestMain:
         mock_get_adapter.side_effect = Exception("DB error")
         with patch("sys.exit") as mock_exit:
             extract_trades.main()
-            mock_exit.assert_called() 
+            mock_exit.assert_called()

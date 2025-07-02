@@ -20,18 +20,12 @@ def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
         UTC datetime object
     """
     if isinstance(timestamp, datetime):
-        return (
-            timestamp.replace(tzinfo=timezone.utc)
-            if timestamp.tzinfo is None
-            else timestamp.astimezone(timezone.utc)
-        )
+        return timestamp.replace(tzinfo=timezone.utc) if timestamp.tzinfo is None else timestamp.astimezone(timezone.utc)
 
     if isinstance(timestamp, str):
         # Try to parse as ISO format first
         try:
-            return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(
-                timezone.utc
-            )
+            return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(timezone.utc)
         except ValueError:
             # Try to parse as timestamp string
             timestamp_float = float(timestamp)
@@ -54,13 +48,13 @@ def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
 def ensure_timezone_aware(dt: datetime) -> datetime:
     """
     Ensure a datetime object is timezone-aware and in UTC.
-    
+
     If the datetime is timezone-naive, it's assumed to be in UTC.
     If it's timezone-aware, it's converted to UTC.
-    
+
     Args:
         dt: Datetime object (naive or aware)
-        
+
     Returns:
         Timezone-aware datetime in UTC
     """
@@ -160,9 +154,7 @@ def get_interval_minutes(interval: str) -> int:
     return int(delta.total_seconds() / 60)
 
 
-def generate_time_range(
-    start: datetime, end: datetime, interval: str
-) -> List[datetime]:
+def generate_time_range(start: datetime, end: datetime, interval: str) -> List[datetime]:
     """
     Generate list of timestamps for the given time range and interval.
 
@@ -207,9 +199,7 @@ def align_timestamp_to_interval(timestamp: datetime, interval: str) -> datetime:
     aligned_hour = aligned_minutes // 60
     aligned_minute = aligned_minutes % 60
 
-    aligned_timestamp = timestamp.replace(
-        hour=aligned_hour, minute=aligned_minute, second=0, microsecond=0
-    )
+    aligned_timestamp = timestamp.replace(hour=aligned_hour, minute=aligned_minute, second=0, microsecond=0)
 
     # Preserve timezone if original timestamp had one
     if timestamp.tzinfo is not None and aligned_timestamp.tzinfo is None:
@@ -337,9 +327,7 @@ def validate_time_range(start: datetime, end: datetime, max_days: int = 1000) ->
 
     duration = end - start
     if duration.days > max_days:
-        raise ValueError(
-            f"Time range too large: {duration.days} days (max: {max_days})"
-        )
+        raise ValueError(f"Time range too large: {duration.days} days (max: {max_days})")
 
     # Check if start time is too far in the future
     now = get_current_utc_time()
@@ -364,9 +352,7 @@ def get_default_start_time(interval: str) -> datetime:
         return get_current_utc_time() - timedelta(days=30)
 
 
-def chunk_time_range(
-    start: datetime, end: datetime, chunk_hours: int = 24
-) -> List[Tuple[datetime, datetime]]:
+def chunk_time_range(start: datetime, end: datetime, chunk_hours: int = 24) -> List[Tuple[datetime, datetime]]:
     """
     Split time range into smaller chunks for API requests.
 
