@@ -404,10 +404,4 @@ class TestEnvironmentVariables:
             mock_resource.create.assert_called()
 
 
-@pytest.mark.skip("Cloud resource detector attributes not present in this environment")
-class TestCloudResourceDetectors:
-    pass
-
-@pytest.mark.skip("Cloud resource detector attributes not present in this environment")
-class TestErrorHandling:
-    pass 
+ 
