@@ -1,47 +1,53 @@
 #!/usr/bin/env python3
 """
-Gap detection and filling job for klines data.
-
-This script:
-- Detects missing klines in the database from the start date in constants
-- Splits requests into weekly chunks to avoid Binance rate limiting
-- Downloads missing data and loads it into the database
-- Designed to run daily with a long runtime
+Gap filler job to detect and fill missing klines data.
 """
 
-import sys
-import os
 import argparse
+import os
 import random
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-# Add project root to path
+# Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
     import constants
-    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+    from otel_init import setup_telemetry
+    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+
+    # Import tracing after setup
     from utils.telemetry import get_tracer
     tracer = get_tracer(__name__)
 except ImportError:
     tracer = None
 
+import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from utils.logger import (get_logger, log_extraction_completion,
-                          log_extraction_start, setup_logging)
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              format_duration, get_current_utc_time)
+from models.kline import KlineModel
+from utils.logger import get_logger, log_extraction_completion, log_extraction_start, setup_logging
+from utils.retry import exponential_backoff
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    format_duration,
+    get_current_utc_time,
+    get_interval_minutes,
+    parse_datetime_string,
+)
 
 
-def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, logger=None, 
+def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, logger=None,
                       retry_on_all_errors=False, operation_name="operation"):
     """
     Retry a function with exponential backoff and jitter.
@@ -56,14 +62,14 @@ def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, log
         operation_name: Name of the operation for logging
     """
     last_exception = None
-    
+
     for attempt in range(max_retries + 1):
         try:
             return func()
         except Exception as e:
             last_exception = e
             error_msg = str(e).lower()
-            
+
             # Check for various types of retryable errors
             is_connection_error = (
                 any(keyword in error_msg for keyword in [
@@ -86,7 +92,7 @@ def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, log
                 'operationalerror' in str(type(e)).lower() or
                 'databaseerror' in str(type(e)).lower()
             )
-            
+
             # Check for API rate limiting and temporary errors
             is_api_error = (
                 any(keyword in error_msg for keyword in [
@@ -104,7 +110,7 @@ def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, log
                     'temporary error'
                 ])
             )
-            
+
             # Check for temporary network issues
             is_network_error = (
                 any(keyword in error_msg for keyword in [
@@ -120,30 +126,30 @@ def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, log
                     'write timeout'
                 ])
             )
-            
+
             should_retry = (
-                retry_on_all_errors or 
-                is_connection_error or 
-                is_api_error or 
+                retry_on_all_errors or
+                is_connection_error or
+                is_api_error or
                 is_network_error
             )
-            
+
             if should_retry and attempt < max_retries:
                 # Exponential backoff with jitter
                 delay = min(base_delay * (2 ** attempt), max_delay)
                 jitter = random.uniform(0.1, 0.3) * delay
                 total_delay = delay + jitter
-                
+
                 # Additional delay for API rate limiting
                 if is_api_error:
                     api_delay = random.uniform(30.0, 60.0)  # 30-60 seconds for rate limits
                     total_delay += api_delay
-                
+
                 if logger:
                     error_type = "API rate limit" if is_api_error else "Connection" if is_connection_error else "Network" if is_network_error else "General"
                     logger.warning(f"{error_type} error on {operation_name} attempt {attempt + 1}/{max_retries + 1}: {e}")
                     logger.info(f"Retrying {operation_name} in {total_delay:.2f} seconds...")
-                
+
                 time.sleep(total_delay)
                 continue
             else:
@@ -153,7 +159,7 @@ def retry_with_backoff(func, max_retries=5, base_delay=1.0, max_delay=300.0, log
                     else:
                         logger.error(f"All {max_retries + 1} attempts failed for {operation_name}. Last error: {e}")
                 break
-    
+
     raise last_exception
 
 
@@ -220,7 +226,7 @@ class GapFillerExtractor:
         """Split a date range into weekly chunks."""
         chunks = []
         current_start = start_date
-        
+
         while current_start < end_date:
             current_end = min(
                 current_start + timedelta(days=self.weekly_chunk_days),
@@ -228,7 +234,7 @@ class GapFillerExtractor:
             )
             chunks.append((current_start, current_end))
             current_start = current_end
-            
+
         return chunks
 
     def detect_gaps_for_symbol(self, symbol: str, db_adapter) -> List[Tuple[datetime, datetime]]:
@@ -265,10 +271,10 @@ class GapFillerExtractor:
 
         try:
             return retry_with_backoff(
-                _detect_gaps, 
-                max_retries=5, 
-                base_delay=2.0, 
-                max_delay=120.0, 
+                _detect_gaps,
+                max_retries=5,
+                base_delay=2.0,
+                max_delay=120.0,
                 logger=self.logger,
                 operation_name=f"gap detection for {symbol}"
             )
@@ -276,7 +282,7 @@ class GapFillerExtractor:
             self.logger.error(f"Failed to detect gaps for {symbol} after all retries: {e}")
             return []
 
-    def fill_gap_chunk(self, symbol: str, gap_start: datetime, gap_end: datetime, 
+    def fill_gap_chunk(self, symbol: str, gap_start: datetime, gap_end: datetime,
                       binance_client: BinanceClient, db_adapter) -> Dict:
         """Fill a single gap chunk with data."""
         chunk_start_time = time.time()
@@ -317,15 +323,15 @@ class GapFillerExtractor:
 
             if klines_data:
                 collection_name = self.get_collection_name()
-                
+
                 def _write_data():
                     return db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
-                
+
                 records_written = retry_with_backoff(
-                    _write_data, 
-                    max_retries=5, 
-                    base_delay=2.0, 
-                    max_delay=180.0, 
+                    _write_data,
+                    max_retries=5,
+                    base_delay=2.0,
+                    max_delay=180.0,
                     logger=self.logger,
                     operation_name=f"database write for {symbol} gap"
                 )
@@ -344,10 +350,10 @@ class GapFillerExtractor:
 
         try:
             return retry_with_backoff(
-                _fill_chunk, 
-                max_retries=7, 
-                base_delay=3.0, 
-                max_delay=300.0, 
+                _fill_chunk,
+                max_retries=7,
+                base_delay=3.0,
+                max_delay=300.0,
                 logger=self.logger,
                 retry_on_all_errors=True,  # Retry on all errors for data fetching
                 operation_name=f"gap filling for {symbol}"
@@ -382,20 +388,20 @@ class GapFillerExtractor:
                     db_uri = constants.MONGODB_URI
                 elif self.db_adapter_name == "postgresql":
                     db_uri = constants.POSTGRESQL_URI
-                
+
                 if not db_uri:
                     raise ValueError(f"No database URI available for adapter: {self.db_adapter_name}")
-            
+
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
-            
+
             def _connect_db():
                 db_adapter.connect()
-            
+
             retry_with_backoff(
-                _connect_db, 
-                max_retries=5, 
-                base_delay=2.0, 
-                max_delay=120.0, 
+                _connect_db,
+                max_retries=5,
+                base_delay=2.0,
+                max_delay=120.0,
                 logger=self.logger,
                 operation_name=f"database connection for {symbol}"
             )
@@ -419,7 +425,7 @@ class GapFillerExtractor:
 
                 for gap_start, gap_end in gaps:
                     weekly_chunks = self.split_weekly_chunks(gap_start, gap_end)
-                    
+
                     for chunk_start, chunk_end in weekly_chunks:
                         if result['weekly_chunks_processed'] > 0:
                             delay = random.uniform(2.0, 5.0)
@@ -466,10 +472,10 @@ class GapFillerExtractor:
 
         try:
             return retry_with_backoff(
-                _process_symbol, 
-                max_retries=5, 
-                base_delay=3.0, 
-                max_delay=240.0, 
+                _process_symbol,
+                max_retries=5,
+                base_delay=3.0,
+                max_delay=240.0,
                 logger=self.logger,
                 retry_on_all_errors=True,  # Retry on all errors for symbol processing
                 operation_name=f"symbol processing for {symbol}"
@@ -490,7 +496,7 @@ class GapFillerExtractor:
                 return self._run_gap_filling_impl()
         else:
             return self._run_gap_filling_impl()
-            
+
     def _run_gap_filling_impl(self) -> Dict:
         """Implementation of run_gap_filling method."""
         extraction_start_time = time.time()
@@ -697,20 +703,6 @@ Examples:
     return parser.parse_args()
 
 
-def get_default_symbols() -> List[str]:
-    """Get default symbols from configuration."""
-    try:
-        sys.path.append(os.path.join(project_root, 'config'))
-        from symbols import get_symbols_for_environment
-        environment = os.getenv('ENVIRONMENT', 'production')
-        return get_symbols_for_environment(environment)
-    except ImportError:
-        return [
-            "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT",
-            "XRPUSDT", "DOTUSDT", "AVAXUSDT", "MATICUSDT", "LINKUSDT"
-        ]
-
-
 def main():
     """Main entry point."""
     if tracer:
@@ -733,7 +725,7 @@ def _main_impl():
         if args.symbols:
             symbols = [s.strip().upper() for s in args.symbols.split(",")]
         else:
-            symbols = get_default_symbols()
+            symbols = constants.DEFAULT_SYMBOLS
             logger.info(f"Using default symbols: {symbols}")
 
         log_extraction_start(

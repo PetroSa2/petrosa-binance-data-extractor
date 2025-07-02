@@ -2,11 +2,12 @@
 Retry utility with exponential backoff for API calls.
 """
 
-import time
-import random
 import logging
+import random
+import time
 from functools import wraps
-from typing import Callable, Any, Type, Tuple, Optional, List
+from typing import Any, Callable, List, Optional, Tuple, Type
+
 import constants
 
 logger = logging.getLogger(__name__)
@@ -15,13 +16,9 @@ logger = logging.getLogger(__name__)
 class RetryableError(Exception):
     """Base class for errors that should trigger retries."""
 
-    pass
-
 
 class NonRetryableError(Exception):
     """Base class for errors that should not trigger retries."""
-
-    pass
 
 
 def exponential_backoff(
@@ -263,10 +260,10 @@ def retry_on_http_errors(max_retries: Optional[int] = None, base_delay: Optional
 
     # Try to import requests exceptions if available
     try:
+        from requests.exceptions import ConnectionError as RequestsConnectionError
         from requests.exceptions import (
             RequestException,
             Timeout,
-            ConnectionError as RequestsConnectionError,
         )
 
         http_retryable_exceptions = http_retryable_exceptions + (

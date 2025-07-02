@@ -100,5 +100,6 @@ class ExtractionMetadata(BaseModel):
         default_factory=list, description="List of errors encountered during extraction"
     )
 
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() + "Z" if v else None}
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat() + "Z" if v else None}
+    )

@@ -9,41 +9,54 @@ This script automatically:
 - Runs incremental updates without manual date configuration
 """
 
-# Initialize OpenTelemetry as early as possible
-import sys
+import argparse
 import os
+import random
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple, cast
 
-# Add project root to path
+# Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
     import constants
-    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
-    
+    from otel_init import setup_telemetry
+    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
+
     # Import tracing after setup
     from utils.telemetry import get_tracer
     tracer = get_tracer(__name__)
 except ImportError:
     tracer = None
 
-import argparse
-import random
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, cast
-
 import constants
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from utils.logger import (get_logger, log_extraction_completion,
-                          log_extraction_start, setup_logging)
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              format_duration, get_current_utc_time)
+from models.kline import KlineModel
+from utils.logger import (
+    get_logger,
+    log_extraction_completion,
+    log_extraction_start,
+    setup_logging,
+)
+from utils.retry import exponential_backoff
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    ensure_timezone_aware,
+    format_duration,
+    get_current_utc_time,
+    get_interval_minutes,
+    parse_datetime_string,
+)
 
 
 def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logger=None):
@@ -64,13 +77,13 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
         The last exception if all retries fail
     """
     last_exception = None
-    
+
     for attempt in range(max_retries + 1):
         try:
             return func()
         except Exception as e:
             last_exception = e
-            
+
             # Check if it's a MySQL connection error
             error_msg = str(e).lower()
             # Also check for pymysql specific errors and SQLAlchemy errors
@@ -92,14 +105,14 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
                 'operationalerror' in str(type(e)).lower() or
                 'databaseerror' in str(type(e)).lower()
             )
-            
+
             if is_connection_error:
                 if attempt < max_retries:
                     # Calculate delay with exponential backoff and jitter
                     delay = min(base_delay * (2 ** attempt), max_delay)
                     jitter = random.uniform(0.1, 0.3) * delay
                     total_delay = delay + jitter
-                    
+
                     if logger:
                         logger.warning(f"MySQL connection error on attempt {attempt + 1}/{max_retries + 1}: {e}")
                         logger.info(f"Retrying in {total_delay:.2f} seconds...")
@@ -114,13 +127,18 @@ def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logg
                 if logger:
                     logger.error(f"Non-connection error, not retrying: {e}")
                 break
-    
+
     # If we get here, all retries failed
     raise last_exception
 
 
 class ProductionKlinesExtractor:
     """Production-ready klines extractor with automatic gap detection and parallel processing."""
+    
+    # Configuration constants
+    OVERLAP_MINUTES = 30  # Minutes of overlap to catch missed data
+    END_TIME_BUFFER_MINUTES = 5  # Buffer before current time to avoid incomplete candles
+    MAX_CATCHUP_DAYS = 1  # Maximum days to catch up at once
 
     def __init__(
         self,
@@ -181,14 +199,22 @@ class ProductionKlinesExtractor:
             if latest_records:
                 # Return the close_time of the latest record (access as dictionary key)
                 latest_record = latest_records[0]
+                timestamp = None
                 if 'close_time' in latest_record:
-                    return latest_record['close_time']
+                    timestamp = latest_record['close_time']
                 elif 'timestamp' in latest_record:
                     # Fallback to timestamp if close_time not available
-                    return latest_record['timestamp']
+                    timestamp = latest_record['timestamp']
                 else:
                     self.logger.warning(f"No timestamp found in latest record for {symbol}: {latest_record}")
-                    return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+                    timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
+
+                # Ensure timestamp is timezone-aware
+                if timestamp:
+                    timestamp = ensure_timezone_aware(timestamp)
+                    self.logger.debug(f"Made timestamp timezone-aware for {symbol}: {timestamp}")
+
+                return timestamp
             else:
                 # No data found, start from default start date
                 return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace('Z', '+00:00'))
@@ -204,22 +230,25 @@ class ProductionKlinesExtractor:
         """Calculate the extraction window based on last timestamp."""
         current_time = get_current_utc_time()
 
+        # Ensure last_timestamp is timezone-aware for comparison
+        last_timestamp = ensure_timezone_aware(last_timestamp)
+        self.logger.debug(f"Made last_timestamp timezone-aware: {last_timestamp}")
+
         # Start from the last timestamp, but ensure we have some overlap
         # to catch any missed data due to timing issues
-        start_time = last_timestamp - timedelta(minutes=30)  # 30 minutes overlap instead of 1 hour
+        start_time = last_timestamp - timedelta(minutes=self.OVERLAP_MINUTES)
 
         # If we're too far behind, limit the catch-up window to avoid overwhelming
-        max_catchup_days = 1  # Don't try to catch up more than 1 day at once (reduced from 7)
-        earliest_start = current_time - timedelta(days=max_catchup_days)
+        earliest_start = current_time - timedelta(days=self.MAX_CATCHUP_DAYS)
 
         if start_time < earliest_start:
             start_time = earliest_start
             self.logger.warning(
-                f"Last timestamp is very old, limiting catch-up to {max_catchup_days} day"
+                f"Last timestamp is very old, limiting catch-up to {self.MAX_CATCHUP_DAYS} day"
             )
 
         # End time is current time minus a small buffer to avoid incomplete candles
-        end_time = current_time - timedelta(minutes=5)
+        end_time = current_time - timedelta(minutes=self.END_TIME_BUFFER_MINUTES)
 
         # Log the extraction window for debugging
         self.logger.info(
@@ -239,7 +268,7 @@ class ProductionKlinesExtractor:
                 return self._extract_symbol_data_impl(symbol, binance_client, span)
         else:
             return self._extract_symbol_data_impl(symbol, binance_client)
-            
+
     def _extract_symbol_data_impl(self, symbol: str, binance_client: BinanceClient, span=None) -> Dict:
         """Implementation of extract_symbol_data method."""
         symbol_start_time = time.time()
@@ -266,16 +295,16 @@ class ProductionKlinesExtractor:
                     db_uri = constants.MONGODB_URI
                 elif self.db_adapter_name == "postgresql":
                     db_uri = constants.POSTGRESQL_URI
-                
+
                 if not db_uri:
                     raise ValueError(f"No database URI available for adapter: {self.db_adapter_name}")
-            
+
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
-            
+
             # Connect with retry logic
             def _connect_db():
                 db_adapter.connect()
-            
+
             retry_with_backoff(_connect_db, max_retries=2, base_delay=1.0, logger=self.logger)
 
             try:
@@ -308,10 +337,10 @@ class ProductionKlinesExtractor:
                 if klines_data:
                     # Write to database with retry logic
                     collection_name = self.get_collection_name()
-                    
+
                     def _write_data():
                         return db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
-                    
+
                     records_written = retry_with_backoff(_write_data, max_retries=2, base_delay=1.0, logger=self.logger)
                     result['records_written'] = records_written
 
@@ -335,7 +364,7 @@ class ProductionKlinesExtractor:
                                 'mysql server has gone away',
                                 'connection was killed'
                             ]):
-                                self.logger.warning(f"MySQL connection lost during gap detection, attempting reconnect...")
+                                self.logger.warning("MySQL connection lost during gap detection, attempting reconnect...")
                                 try:
                                     db_adapter.disconnect()
                                     db_adapter.connect()
@@ -391,7 +420,7 @@ class ProductionKlinesExtractor:
                 return self._run_extraction_impl()
         else:
             return self._run_extraction_impl()
-            
+
     def _run_extraction_impl(self) -> Dict:
         """Implementation of run_extraction method."""
         extraction_start_time = time.time()
@@ -563,25 +592,6 @@ Examples:
     return parser.parse_args()
 
 
-def get_default_symbols() -> List[str]:
-    """Get default symbols from configuration."""
-    try:
-        # Try to import from config
-        sys.path.append(os.path.join(project_root, 'config'))
-        from symbols import get_symbols_for_environment
-
-        # Get environment from env var, default to production
-        environment = os.getenv('ENVIRONMENT', 'production')
-        return get_symbols_for_environment(environment)
-
-    except ImportError:
-        # Fallback to hardcoded list
-        return [
-            "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT",
-            "XRPUSDT", "DOTUSDT", "AVAXUSDT", "MATICUSDT", "LINKUSDT"
-        ]
-
-
 def main():
     """Main entry point."""
     # Create a main span if tracing is available
@@ -590,7 +600,6 @@ def main():
             span.set_attribute("extraction.type", "klines_production")
             span.set_attribute("service.name", "binance-klines-extractor")
             # Force span context to be active for logging
-            from opentelemetry import trace
             span_context = span.get_span_context()
             if span_context.trace_id != 0:
                 print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")
@@ -613,7 +622,7 @@ def _main_impl():
         if args.symbols:
             symbols = [s.strip().upper() for s in args.symbols.split(",")]
         else:
-            symbols = get_default_symbols()
+            symbols = constants.DEFAULT_SYMBOLS
             logger.info(f"Using default symbols: {symbols}")
 
         # Log extraction start

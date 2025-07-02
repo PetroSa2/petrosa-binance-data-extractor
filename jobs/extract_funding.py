@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-CLI entry point for funding rates extraction job.
+Extract funding rates from Binance Futures API.
 """
 
 import argparse
 import os
 import sys
 import time
-from datetime import datetime
-from typing import List
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,21 +14,25 @@ sys.path.insert(0, project_root)
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
     import constants
-    setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_FUNDING)
+    from otel_init import setup_telemetry
+    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_FUNDING)
 except ImportError:
     pass
 
 import constants
-from utils.logger import setup_logging, log_extraction_start, log_extraction_completion
-from utils.time_utils import (
-    parse_datetime_string,
-    get_current_utc_time,
-    format_duration,
-)
-from fetchers import FundingRatesFetcher, BinanceClient
 from db import get_adapter
+from fetchers import BinanceClient, FundingRatesFetcher
+from models.funding_rate import FundingRateModel
+from utils.logger import get_logger, setup_logging, log_extraction_completion, log_extraction_start
+from utils.retry import exponential_backoff
+from utils.time_utils import (
+    format_duration,
+    get_current_utc_time,
+    parse_datetime_string,
+)
 
 
 def parse_arguments():

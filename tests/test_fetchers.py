@@ -1,30 +1,36 @@
+#!/usr/bin/env python3
 """
-Unit tests for fetchers.
+Tests for data fetchers.
 """
 
 import os
 import sys
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from decimal import Decimal
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from fetchers.client import BinanceClient, BinanceAPIError
+from fetchers.client import BinanceAPIError, BinanceClient
+from fetchers.funding import FundingRatesFetcher
 from fetchers.klines import KlinesFetcher
 from fetchers.trades import TradesFetcher
-from fetchers.funding import FundingRatesFetcher
 
 
 class TestBinanceClient:
     """Test BinanceClient functionality."""
 
     @patch("fetchers.client.requests.Session")
-    def test_client_initialization(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_initialization(self, mock_retry_decorator, mock_session_class):
         """Test client initialization."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -36,8 +42,12 @@ class TestBinanceClient:
         mock_session_class.assert_called_once()
 
     @patch("fetchers.client.requests.Session")
-    def test_client_get_request_success(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_get_request_success(self, mock_retry_decorator, mock_session_class):
         """Test successful GET request."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -55,8 +65,12 @@ class TestBinanceClient:
         mock_session.get.assert_called_once()
 
     @patch("fetchers.client.requests.Session")
-    def test_client_get_request_error(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_get_request_error(self, mock_retry_decorator, mock_session_class):
         """Test GET request with API error."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -76,8 +90,12 @@ class TestBinanceClient:
         assert exc_info.value.status_code == 400
 
     @patch("fetchers.client.requests.Session")
-    def test_client_rate_limit_error(self, mock_session_class):
+    @patch("fetchers.client.with_retries_and_rate_limit")
+    def test_client_rate_limit_error(self, mock_retry_decorator, mock_session_class):
         """Test rate limit error handling."""
+        # Mock the retry decorator to just call the function directly
+        mock_retry_decorator.side_effect = lambda func: func
+        
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -227,7 +245,7 @@ class TestKlinesFetcher:
                 return mock_klines_data
             else:
                 return []  # No more data
-        
+
         self.mock_client.get_klines.side_effect = mock_get_klines_incremental
 
         klines = self.fetcher.fetch_incremental("BTCUSDT", "15m", last_timestamp)
@@ -265,7 +283,7 @@ class TestKlinesFetcher:
                 return mock_klines_data
             else:
                 return []  # No more data
-        
+
         self.mock_client.get_klines.side_effect = mock_get_klines_multiple
 
         symbols = ["BTCUSDT", "ETHUSDT"]

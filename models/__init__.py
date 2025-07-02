@@ -2,10 +2,10 @@
 Models package for Binance data structures.
 """
 
-from .base import BaseTimestampedModel, BaseSymbolModel, ExtractionMetadata
+from .base import BaseSymbolModel, BaseTimestampedModel, ExtractionMetadata
+from .funding_rate import FundingRateModel
 from .kline import KlineModel
 from .trade import TradeModel
-from .funding_rate import FundingRateModel
 
 __all__ = [
     'BaseTimestampedModel',

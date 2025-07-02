@@ -1,13 +1,15 @@
+#!/usr/bin/env python3
 """
-Unit tests for database adapters.
+Tests for database adapters.
 """
 
 import os
 import sys
-import pytest
-from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime, timezone
 from decimal import Decimal
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,7 +18,9 @@ sys.path.insert(0, project_root)
 from db.base_adapter import BaseAdapter, DatabaseError
 from db.mongodb_adapter import MongoDBAdapter
 from db.mysql_adapter import MySQLAdapter
+from models.funding_rate import FundingRateModel
 from models.kline import KlineModel
+from models.trade import TradeModel
 
 
 class TestBaseAdapter:

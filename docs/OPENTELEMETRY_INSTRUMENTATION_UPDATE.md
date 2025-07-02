@@ -52,6 +52,42 @@ command:
 - Log correlation with traces
 - Metrics collection
 
+## Double Initialization Prevention
+
+### Problem
+When using `opentelemetry-instrument`, the application code should not also initialize OpenTelemetry to prevent:
+- Double initialization conflicts
+- "I/O operation on closed file" errors during shutdown
+- Exporter conflicts and resource leaks
+
+### Solution
+The application now uses the `OTEL_NO_AUTO_INIT` environment variable to control initialization:
+
+```yaml
+env:
+- name: OTEL_NO_AUTO_INIT
+  value: "1"
+```
+
+When `OTEL_NO_AUTO_INIT=1` is set:
+- In-code `setup_telemetry()` calls are skipped
+- Only `opentelemetry-instrument` handles initialization
+- Prevents double initialization in production environments
+
+### Initialization Modes
+
+1. **Local Development** (without `OTEL_NO_AUTO_INIT`):
+   ```bash
+   python -m jobs.extract_klines --symbols BTCUSDT --period 1m
+   ```
+   - Uses in-code initialization via `setup_telemetry()`
+
+2. **Production/Kubernetes** (with `OTEL_NO_AUTO_INIT=1`):
+   ```bash
+   opentelemetry-instrument python -m jobs.extract_klines --symbols BTCUSDT --period 1m
+   ```
+   - Uses `opentelemetry-instrument` initialization only
+
 ## How It Works
 
 ### Command Structure

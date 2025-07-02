@@ -137,6 +137,58 @@ petrosa-binance-data-extractor/
 
 ## 🚀 Usage
 
+### 🎯 Unified Pipeline Runner (New!)
+
+The `run_pipeline.py` script provides a unified interface to run all data extraction jobs with proper error handling, logging, and configuration management.
+
+**Quick Start:**
+```bash
+# Run all jobs in sequence (dry-run mode)
+python scripts/run_pipeline.py --all --dry-run
+
+# Run specific job
+python scripts/run_pipeline.py --job klines --period 15m --dry-run
+python scripts/run_pipeline.py --job funding --dry-run
+python scripts/run_pipeline.py --job trades --limit 1000 --dry-run
+python scripts/run_pipeline.py --job gap-filler --period 1h --dry-run
+```
+
+**Available Commands:**
+```bash
+# Pipeline runner help
+python scripts/run_pipeline.py --help
+
+# Run with custom parameters
+python scripts/run_pipeline.py --job klines \
+  --period 15m \
+  --symbols BTCUSDT ETHUSDT \
+  --max-workers 5 \
+  --db-adapter mysql \
+  --log-level DEBUG
+
+# Run all jobs with custom configuration
+python scripts/run_pipeline.py --all \
+  --symbols BTCUSDT ETHUSDT BNBUSDT \
+  --db-adapter mysql \
+  --log-level INFO \
+  --dry-run
+```
+
+**Makefile Integration:**
+```bash
+# Test pipeline runner
+make test-pipeline
+
+# Run individual jobs via pipeline
+make pipeline-klines
+make pipeline-funding
+make pipeline-trades
+make pipeline-gap-filler
+
+# Run all jobs via pipeline
+make pipeline-all
+```
+
 ### 🏭 Production Extractor (Recommended)
 
 The production extractor automatically detects the last extraction timestamp and continues from there, making it perfect for Kubernetes CronJobs and automated deployments.
@@ -695,7 +747,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-## � Documentation
+## 📝 Documentation
 
 ### Production Guides
 - **[Production Readiness Checklist](docs/PRODUCTION_READINESS.md)** - Complete pre-deployment validation
@@ -745,7 +797,7 @@ pre-commit run --all-files
 - **Symbol Management**: Environment-based configuration (20+ production symbols)
 - **CI/CD Pipeline**: Automated testing, building, and deployment
 
-## �📝 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -796,3 +848,39 @@ When reporting issues, please include:
 ---
 
 **🚀 Production-ready crypto data extraction at enterprise scale**
+
+## OpenTelemetry Configuration
+
+### Initialization Strategy
+
+The application supports two OpenTelemetry initialization modes to prevent double initialization conflicts:
+
+1. **Manual Initialization** (for local development/testing):
+   - OpenTelemetry is initialized in-code via `setup_telemetry()`
+   - Used when running jobs directly with `python -m jobs.extract_klines`
+
+2. **Automatic Initialization** (for production/Kubernetes):
+   - Uses `opentelemetry-instrument` wrapper
+   - In-code initialization is disabled via `OTEL_NO_AUTO_INIT=1`
+   - Prevents "I/O operation on closed file" errors
+
+### Environment Variables
+
+- `OTEL_NO_AUTO_INIT`: Set to "1" to disable in-code OpenTelemetry initialization
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP endpoint for remote tracing
+- `OTEL_SERVICE_NAME`: Service name for traces
+- `OTEL_RESOURCE_ATTRIBUTES`: Additional resource attributes
+
+### Usage
+
+**Local Development:**
+```bash
+python -m jobs.extract_klines --symbols BTCUSDT --period 1m
+```
+
+**Production/Kubernetes:**
+```bash
+opentelemetry-instrument python -m jobs.extract_klines --symbols BTCUSDT --period 1m
+```
+
+## Gap Filler Job

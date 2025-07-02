@@ -2,10 +2,12 @@
 Pydantic model for Binance Futures Funding Rate data.
 """
 
-from decimal import Decimal
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Dict, Optional
-from pydantic import Field, field_validator
+
+from pydantic import ConfigDict, Field, field_validator
+
 from .base import BaseSymbolModel
 
 
@@ -38,8 +40,8 @@ class FundingRateModel(BaseSymbolModel):
         default=8, description="Funding interval in hours"
     )
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "symbol": "BTCUSDT",
                 "timestamp": "2023-01-01T08:00:00Z",
@@ -50,6 +52,7 @@ class FundingRateModel(BaseSymbolModel):
                 "funding_interval_hours": 8,
             }
         }
+    )
 
     @field_validator("timestamp", mode="before")
     @classmethod

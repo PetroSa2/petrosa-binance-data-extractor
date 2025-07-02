@@ -10,14 +10,27 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              table_suffix_to_binance_interval)
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    ensure_timezone_aware,
+    table_suffix_to_binance_interval,
+)
 
 try:
     import sqlalchemy as sa
-    from sqlalchemy import (Boolean, Column, DateTime, Index, Integer,
-                            MetaData, Numeric, String, Table, create_engine,
-                            literal_column)
+    from sqlalchemy import (
+        Boolean,
+        Column,
+        DateTime,
+        Index,
+        Integer,
+        MetaData,
+        Numeric,
+        String,
+        Table,
+        create_engine,
+        literal_column,
+    )
     from sqlalchemy.engine import Engine
     from sqlalchemy.exc import IntegrityError, SQLAlchemyError
     from sqlalchemy.sql import and_, delete, func, select
@@ -83,6 +96,10 @@ class MySQLAdapter(BaseAdapter):
 
             # Create tables if they don't exist
             self._create_tables()
+
+            # Create indexes for better query performance
+            # Indexes are created during table creation in MySQL adapter
+            # self._create_indexes()  # Removed, not needed
 
         except SQLAlchemyError as e:
             raise DatabaseError(f"Failed to connect to MySQL: {e}") from e
@@ -267,7 +284,7 @@ class MySQLAdapter(BaseAdapter):
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i : i + batch_size]
+            batch = model_instances[i:i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 
@@ -354,8 +371,7 @@ class MySQLAdapter(BaseAdapter):
         for record in records:
             ts = record["timestamp"]
             # Ensure timezone awareness for comparison
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
+            ts = ensure_timezone_aware(ts)
             timestamps.append(ts)
 
         timestamps.sort()
