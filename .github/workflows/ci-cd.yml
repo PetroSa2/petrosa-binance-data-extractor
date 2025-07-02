@@ -6,6 +6,7 @@ name: CI/CD Pipeline
 # - Gap filler CronJob (daily at 2 AM UTC with enhanced retry logic)
 # - Security scanning and testing
 # - Multi-architecture Docker builds
+# - Automatic version tagging and release management
 
 on:
   push:
@@ -107,8 +108,77 @@ jobs:
         format: 'table'
         exit-code: '1'
 
-  build-and-push:
+  create-release:
     needs: [lint-and-test, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      packages: write
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag-created: ${{ steps.create-tag.outputs.tag-created }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+    
+    - name: Generate semantic version
+      id: version
+      run: |
+        # Get the latest version from git tags
+        LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
+        
+        if [ -z "$LATEST_VERSION" ]; then
+          # No version tags found, start with v1.0.0
+          VERSION="v1.0.0"
+        else
+          # Extract major, minor, patch from semantic version
+          if [[ "$LATEST_VERSION" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            
+            # Increment patch version for each deployment
+            NEW_PATCH=$((PATCH + 1))
+            VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+          else
+            # Fallback: if not semantic version, convert to v1.0.0
+            VERSION="v1.0.0"
+          fi
+        fi
+        
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Generated version: ${VERSION}"
+    
+    - name: Create and push tag
+      id: create-tag
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        # Check if tag already exists
+        if git tag "$VERSION" 2>/dev/null; then
+          echo "Tag $VERSION already exists, skipping tag creation"
+          echo "tag-created=false" >> $GITHUB_OUTPUT
+        else
+          # Create and push the tag
+          git tag "$VERSION"
+          git push origin "$VERSION"
+          echo "✅ Created and pushed tag: $VERSION"
+          echo "tag-created=true" >> $GITHUB_OUTPUT
+        fi
+
+  build-and-push:
+    needs: [lint-and-test, security-scan, create-release]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -126,30 +196,19 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Generate version
+    - name: Determine version
       id: version
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           # For tags, use the tag name (e.g., v1.0.0)
           VERSION="${{ github.ref_name }}"
         else
-          # For main branch, increment version automatically
-          # Get the latest version from git tags
-          LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
-          
-          if [ -z "$LATEST_VERSION" ]; then
-            # No version tags found, start with v1
-            VERSION="v1"
-          else
-            # Extract the number and increment
-            VERSION_NUM=$(echo "$LATEST_VERSION" | sed 's/^v//')
-            NEW_VERSION_NUM=$((VERSION_NUM + 1))
-            VERSION="v${NEW_VERSION_NUM}"
-          fi
+          # For main branch, use the version from create-release job
+          VERSION="${{ needs.create-release.outputs.version }}"
         fi
         
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "Generated version: ${VERSION}"
+        echo "Using version: ${VERSION}"
     
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -189,7 +248,7 @@ jobs:
           BUILD_DATE=${{ steps.meta.outputs.date }}
 
   deploy:
-    needs: build-and-push
+    needs: [build-and-push, create-release]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     environment: production
@@ -337,18 +396,28 @@ jobs:
         echo "  5. Monitor gap filler job logs for retry behavior and success rates"
 
   notify:
-    needs: [build-and-push, deploy]
+    needs: [build-and-push, deploy, create-release]
     runs-on: ubuntu-latest
     if: always()
     
     steps:
     - name: Notify deployment status
       run: |
+        VERSION="${{ needs.create-release.outputs.version }}"
+        TAG_CREATED="${{ needs.create-release.outputs.tag-created }}"
+        
         if [ "${{ needs.deploy.result }}" == "success" ]; then
           echo "✅ Deployment successful!"
+          echo "📦 Version: ${VERSION}"
+          if [ "$TAG_CREATED" == "true" ]; then
+            echo "🏷️  New tag created: ${VERSION}"
+          else
+            echo "🏷️  Using existing tag: ${VERSION}"
+          fi
           # Add success notification logic here
         else
           echo "❌ Deployment failed!"
+          echo "📦 Version: ${VERSION}"
           # Add failure notification logic here
         fi
 

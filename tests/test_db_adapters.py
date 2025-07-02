@@ -221,6 +221,190 @@ class TestMongoDBAdapter:
         assert isinstance(result, list)
         mock_collection.find.assert_called_once()
 
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_disconnect(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter.client = mock_client
+        adapter._connected = True
+        adapter.disconnect()
+        mock_client.close.assert_called_once()
+        assert adapter._connected is False
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_write_batch(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        mock_result = MagicMock()
+        mock_result.inserted_ids = ["id1", "id2", "id3"]
+        mock_collection.insert_many.return_value = mock_result
+        now = datetime.now(timezone.utc)
+        klines = [
+            KlineModel(
+                symbol="BTCUSDT",
+                timestamp=now,
+                open_time=now,
+                close_time=now,
+                interval="15m",
+                open_price=Decimal("50000"),
+                high_price=Decimal("50000"),
+                low_price=Decimal("50000"),
+                close_price=Decimal("50000"),
+                volume=Decimal("0"),
+                quote_asset_volume=Decimal("0"),
+                number_of_trades=0,
+                taker_buy_base_asset_volume=Decimal("0"),
+                taker_buy_quote_asset_volume=Decimal("0"),
+            ) for _ in range(3)
+        ]
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        result = adapter.write_batch(klines, "klines_m15", batch_size=2)
+        assert result == 6  # 3 records * 2 batches = 6 total written
+        assert mock_collection.insert_many.call_count >= 1
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_query_latest(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__.return_value = iter([
+            {"symbol": "BTCUSDT", "timestamp": datetime.now(timezone.utc)}
+        ])
+        mock_collection.find.return_value = mock_cursor
+        mock_cursor.sort.return_value = mock_cursor
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        result = adapter.query_latest("klines_m15", symbol="BTCUSDT", limit=1)
+        assert isinstance(result, list)
+        mock_collection.find.assert_called_once()
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_find_gaps(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        
+        # Mock the cursor chain: find().sort()
+        mock_collection.find.return_value = mock_cursor
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.__iter__.return_value = []  # Empty result
+        
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        start = datetime.now(timezone.utc)
+        end = datetime.now(timezone.utc)
+        result = adapter.find_gaps("klines_m15", start, end, interval_minutes=15, symbol="BTCUSDT")
+        assert isinstance(result, list)
+        mock_collection.find.assert_called()
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_get_record_count(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        mock_collection.count_documents.return_value = 42
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        start = datetime.now(timezone.utc)
+        end = datetime.now(timezone.utc)
+        result = adapter.get_record_count("klines_m15", start=start, end=end, symbol="BTCUSDT")
+        assert result == 42
+        mock_collection.count_documents.assert_called()
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_ensure_indexes(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        adapter.ensure_indexes("klines_m15")
+        mock_collection.create_index.assert_called()
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_delete_range(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        mock_collection.delete_many.return_value = MagicMock(deleted_count=2)
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        start = datetime.now(timezone.utc)
+        end = datetime.now(timezone.utc)
+        result = adapter.delete_range("klines_m15", start, end, symbol="BTCUSDT")
+        assert result == 2
+        mock_collection.delete_many.assert_called()
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_connect_error(self, mock_mongo_client):
+        mock_mongo_client.side_effect = Exception("connection error")
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        with pytest.raises(Exception):
+            adapter.connect()
+
+    @patch("db.mongodb_adapter.MongoClient")
+    def test_mongodb_adapter_write_error(self, mock_mongo_client):
+        mock_client = MagicMock()
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        mock_mongo_client.return_value = mock_client
+        mock_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+        mock_collection.insert_many.side_effect = Exception("write error")
+        now = datetime.now(timezone.utc)
+        klines = [
+            KlineModel(
+                symbol="BTCUSDT",
+                timestamp=now,
+                open_time=now,
+                close_time=now,
+                interval="15m",
+                open_price=Decimal("50000"),
+                high_price=Decimal("50000"),
+                low_price=Decimal("50000"),
+                close_price=Decimal("50000"),
+                volume=Decimal("0"),
+                quote_asset_volume=Decimal("0"),
+                number_of_trades=0,
+                taker_buy_base_asset_volume=Decimal("0"),
+                taker_buy_quote_asset_volume=Decimal("0"),
+            )
+        ]
+        adapter = MongoDBAdapter("mongodb://test:27017/test")
+        adapter._connected = True
+        adapter.database = mock_database
+        with pytest.raises(Exception):
+            adapter.write(klines, "klines_m15")
+
 
 @pytest.mark.skipif(not hasattr(MySQLAdapter, "__init__"), reason="MySQL dependencies not available")
 class TestMySQLAdapter:
