@@ -137,6 +137,58 @@ petrosa-binance-data-extractor/
 
 ## 🚀 Usage
 
+### 🎯 Unified Pipeline Runner (New!)
+
+The `run_pipeline.py` script provides a unified interface to run all data extraction jobs with proper error handling, logging, and configuration management.
+
+**Quick Start:**
+```bash
+# Run all jobs in sequence (dry-run mode)
+python scripts/run_pipeline.py --all --dry-run
+
+# Run specific job
+python scripts/run_pipeline.py --job klines --period 15m --dry-run
+python scripts/run_pipeline.py --job funding --dry-run
+python scripts/run_pipeline.py --job trades --limit 1000 --dry-run
+python scripts/run_pipeline.py --job gap-filler --period 1h --dry-run
+```
+
+**Available Commands:**
+```bash
+# Pipeline runner help
+python scripts/run_pipeline.py --help
+
+# Run with custom parameters
+python scripts/run_pipeline.py --job klines \
+  --period 15m \
+  --symbols BTCUSDT ETHUSDT \
+  --max-workers 5 \
+  --db-adapter mysql \
+  --log-level DEBUG
+
+# Run all jobs with custom configuration
+python scripts/run_pipeline.py --all \
+  --symbols BTCUSDT ETHUSDT BNBUSDT \
+  --db-adapter mysql \
+  --log-level INFO \
+  --dry-run
+```
+
+**Makefile Integration:**
+```bash
+# Test pipeline runner
+make test-pipeline
+
+# Run individual jobs via pipeline
+make pipeline-klines
+make pipeline-funding
+make pipeline-trades
+make pipeline-gap-filler
+
+# Run all jobs via pipeline
+make pipeline-all
+```
+
 ### 🏭 Production Extractor (Recommended)
 
 The production extractor automatically detects the last extraction timestamp and continues from there, making it perfect for Kubernetes CronJobs and automated deployments.

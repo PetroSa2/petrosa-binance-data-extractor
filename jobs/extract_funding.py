@@ -25,7 +25,7 @@ except ImportError:
 import constants
 from db import get_adapter
 from fetchers import BinanceClient, FundingRatesFetcher
-from models.funding_rate import FundingRate
+from models.funding_rate import FundingRateModel
 from utils.logger import get_logger, setup_logging, log_extraction_completion, log_extraction_start
 from utils.retry import exponential_backoff
 from utils.time_utils import (

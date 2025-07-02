@@ -32,11 +32,10 @@ except ImportError:
     tracer = None
 
 import constants
-from config.symbols import get_default_symbols
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from models.kline import Kline, KlineModel
+from models.kline import KlineModel
 from utils.logger import get_logger, log_extraction_completion, log_extraction_start, setup_logging
 from utils.retry import exponential_backoff
 from utils.time_utils import (
@@ -702,20 +701,6 @@ Examples:
     )
 
     return parser.parse_args()
-
-
-def get_default_symbols() -> List[str]:
-    """Get default symbols from configuration."""
-    try:
-        sys.path.append(os.path.join(project_root, 'config'))
-        from symbols import get_symbols_for_environment
-        environment = os.getenv('ENVIRONMENT', 'production')
-        return get_symbols_for_environment(environment)
-    except ImportError:
-        return [
-            "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT",
-            "XRPUSDT", "DOTUSDT", "AVAXUSDT", "MATICUSDT", "LINKUSDT"
-        ]
 
 
 def main():

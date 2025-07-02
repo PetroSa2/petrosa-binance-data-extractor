@@ -176,9 +176,34 @@ test-gap-filler:
 	@echo "🧪 Testing gap filler..."
 	python jobs/extract_klines_gap_filler.py --help
 
+test-pipeline:
+	@echo "🧪 Testing pipeline runner..."
+	python scripts/run_pipeline.py --help
+
 # All-in-one development command
 dev: dev-setup run_pipeline
 	@echo "🎉 Development setup and pipeline completed!"
+
+# Pipeline runner commands
+pipeline-klines:
+	@echo "🚀 Running klines extraction pipeline..."
+	python scripts/run_pipeline.py --job klines --dry-run
+
+pipeline-funding:
+	@echo "🚀 Running funding rates extraction pipeline..."
+	python scripts/run_pipeline.py --job funding --dry-run
+
+pipeline-trades:
+	@echo "🚀 Running trades extraction pipeline..."
+	python scripts/run_pipeline.py --job trades --dry-run
+
+pipeline-gap-filler:
+	@echo "🚀 Running gap filler pipeline..."
+	python scripts/run_pipeline.py --job gap-filler --dry-run
+
+pipeline-all:
+	@echo "🚀 Running all extraction pipelines..."
+	python scripts/run_pipeline.py --all --dry-run
 
 # CI/CD simulation (matches GitHub Actions workflow)
 ci-simulation: install-dev

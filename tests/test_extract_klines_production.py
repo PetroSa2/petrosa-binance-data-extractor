@@ -19,7 +19,6 @@ sys.path.insert(0, project_root)
 from jobs.extract_klines_production import (
     ProductionKlinesExtractor,
     _main_impl,
-    get_default_symbols,
     main,
     parse_arguments,
     retry_with_backoff,
@@ -498,39 +497,6 @@ class TestParseArguments:
             assert args.dry_run is True
 
 
-class TestGetDefaultSymbols:
-    """Test get_default_symbols function."""
-
-    @patch("jobs.extract_klines_production.sys.path")
-    @patch("jobs.extract_klines_production.os.path.join")
-    def test_get_default_symbols_success(self, mock_join, mock_sys_path):
-        """Test successful symbol retrieval."""
-        mock_join.return_value = "/path/to/config"
-
-        with patch("builtins.__import__") as mock_import:
-            mock_symbols_module = Mock()
-            mock_symbols_module.get_symbols_for_environment.return_value = ["BTCUSDT", "ETHUSDT"]
-            mock_import.return_value = mock_symbols_module
-
-            symbols = get_default_symbols()
-
-            assert symbols == ["BTCUSDT", "ETHUSDT"]
-
-    @patch("jobs.extract_klines_production.sys.path")
-    @patch("jobs.extract_klines_production.sys.path")
-    def test_get_default_symbols_import_error(self, mock_join, mock_sys_path):
-        """Test fallback when import fails."""
-        mock_join.return_value = "/path/to/config"
-
-        with patch("builtins.__import__", side_effect=ImportError("Module not found")):
-            symbols = get_default_symbols()
-
-            # Should return fallback symbols
-            assert len(symbols) > 0
-            assert "BTCUSDT" in symbols
-            assert "ETHUSDT" in symbols
-
-
 class TestMainFunction:
     """Test main function and related functions."""
 
@@ -539,9 +505,9 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.log_extraction_start")
     @patch("jobs.extract_klines_production.log_extraction_completion")
     @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
-    @patch("jobs.extract_klines_production.get_default_symbols")
+    @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_success(self, mock_parse_args, mock_get_symbols, mock_extractor_class,
+    def test_main_impl_success(self, mock_parse_args, mock_constants, mock_extractor_class,
                               mock_log_completion, mock_log_start, mock_get_logger, mock_setup_logging):
         """Test successful main implementation."""
         # Mock arguments
@@ -557,8 +523,9 @@ class TestMainFunction:
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
 
-        # Mock symbols
-        mock_get_symbols.return_value = ["BTCUSDT", "ETHUSDT"]
+        # Mock constants
+        mock_constants.DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+        mock_constants.MYSQL_URI = "mysql://test:test@localhost/test"
 
         # Mock logger
         mock_logger = Mock()
@@ -579,22 +546,18 @@ class TestMainFunction:
             'errors': []
         }
 
-        # Mock constants
-        with patch("jobs.extract_klines_production.constants") as mock_constants:
-            mock_constants.MYSQL_URI = "mysql://test:test@localhost/test"
+        with patch("sys.exit") as mock_exit:
+            _main_impl()
 
-            with patch("sys.exit") as mock_exit:
-                _main_impl()
-
-                # Verify successful execution
-                mock_exit.assert_called_once_with(0)
+            # Verify successful execution
+            mock_exit.assert_called_once_with(0)
 
     @patch("jobs.extract_klines_production.setup_logging")
     @patch("jobs.extract_klines_production.get_logger")
     @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
-    @patch("jobs.extract_klines_production.get_default_symbols")
+    @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_failure(self, mock_parse_args, mock_get_symbols, mock_extractor_class,
+    def test_main_impl_failure(self, mock_parse_args, mock_constants, mock_extractor_class,
                               mock_get_logger, mock_setup_logging):
         """Test main implementation with extraction failure."""
         # Mock arguments
@@ -610,8 +573,9 @@ class TestMainFunction:
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
 
-        # Mock symbols
-        mock_get_symbols.return_value = ["BTCUSDT", "ETHUSDT"]
+        # Mock constants
+        mock_constants.DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+        mock_constants.MYSQL_URI = "mysql://test:test@localhost/test"
 
         # Mock logger
         mock_logger = Mock()
@@ -632,20 +596,19 @@ class TestMainFunction:
             'errors': ["ETHUSDT: API error"]
         }
 
-        # Mock constants
-        with patch("jobs.extract_klines_production.constants") as mock_constants:
-            mock_constants.MYSQL_URI = "mysql://test:test@localhost/test"
+        with patch("sys.exit") as mock_exit:
+            _main_impl()
 
-            with patch("sys.exit") as mock_exit:
-                _main_impl()
-
-                # Verify failure exit code
-                mock_exit.assert_called_once_with(1)
+            # Verify failure exit code
+            mock_exit.assert_called_once_with(1)
 
     @patch("jobs.extract_klines_production.setup_logging")
     @patch("jobs.extract_klines_production.get_logger")
-    @patch("jobs.extract_klines_production.get_default_symbols")
-    def test_main_impl_keyboard_interrupt(self, mock_get_symbols, mock_get_logger, mock_setup_logging):
+    @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
+    @patch("jobs.extract_klines_production.constants")
+    @patch("jobs.extract_klines_production.parse_arguments")
+    def test_main_impl_keyboard_interrupt(self, mock_parse_args, mock_constants, mock_extractor_class,
+                                        mock_get_logger, mock_setup_logging):
         """Test main implementation with keyboard interrupt."""
         # Mock arguments
         mock_args = Mock()
@@ -658,29 +621,36 @@ class TestMainFunction:
         mock_args.db_uri = None
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
+        mock_parse_args.return_value = mock_args
 
-        # Mock parse_arguments to return our mock args
-        with patch("jobs.extract_klines_production.parse_arguments", return_value=mock_args):
-            # Mock logger
-            mock_logger = Mock()
-            mock_get_logger.return_value = mock_logger
+        # Mock constants
+        mock_constants.DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+        mock_constants.MYSQL_URI = "mysql://test:test@localhost/test"
 
-            # Mock get_default_symbols to raise KeyboardInterrupt
-            mock_get_symbols.side_effect = KeyboardInterrupt()
+        # Mock logger
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
 
-            # Mock sys.exit to prevent actual exit
-            with patch("sys.exit") as mock_exit:
-                # The KeyboardInterrupt should be caught and sys.exit(130) should be called
-                _main_impl()
-                
-                # Verify that sys.exit was called with the correct code
-                mock_exit.assert_called_once_with(130)
+        # Mock extractor to raise KeyboardInterrupt
+        mock_extractor = Mock()
+        mock_extractor_class.return_value = mock_extractor
+        mock_extractor.run_extraction.side_effect = KeyboardInterrupt()
+
+        # Mock sys.exit to prevent actual exit
+        with patch("sys.exit") as mock_exit:
+            # The KeyboardInterrupt should be caught and sys.exit(130) should be called
+            _main_impl()
+            
+            # Verify that sys.exit was called with the correct code
+            mock_exit.assert_called_once_with(130)
 
     @patch("jobs.extract_klines_production.setup_logging")
     @patch("jobs.extract_klines_production.get_logger")
-    @patch("jobs.extract_klines_production.get_default_symbols")
+    @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
+    @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_general_exception(self, mock_parse_args, mock_get_default_symbols, mock_get_logger, mock_setup_logging):
+    def test_main_impl_general_exception(self, mock_parse_args, mock_constants, mock_extractor_class,
+                                       mock_get_logger, mock_setup_logging):
         """Test main implementation with general exception."""
         # Mock arguments
         mock_args = Mock()
@@ -695,12 +665,18 @@ class TestMainFunction:
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
 
+        # Mock constants
+        mock_constants.DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"]
+        mock_constants.MYSQL_URI = "mysql://test:test@localhost/test"
+
         # Mock logger
         mock_logger = Mock()
         mock_get_logger.return_value = mock_logger
 
-        # Mock get_default_symbols to raise Exception
-        mock_get_default_symbols.side_effect = Exception("Unexpected error")
+        # Mock extractor to raise Exception
+        mock_extractor = Mock()
+        mock_extractor_class.return_value = mock_extractor
+        mock_extractor.run_extraction.side_effect = Exception("Unexpected error")
 
         with patch("sys.exit") as mock_exit:
             _main_impl()

@@ -38,11 +38,10 @@ except ImportError:
     tracer = None
 
 import constants
-from config.symbols import get_default_symbols
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from models.kline import Kline, KlineModel
+from models.kline import KlineModel
 from utils.logger import (
     get_logger,
     log_extraction_completion,
