@@ -363,17 +363,24 @@ class TelemetryManager:
         
         # Add OTLP exporter if endpoint is configured
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        print(f"DEBUG: OTLP endpoint = {otlp_endpoint}")
         if otlp_endpoint:
+            print(f"DEBUG: Creating OTLP exporter for endpoint: {otlp_endpoint}")
             try:
                 headers = self._parse_headers(os.getenv("OTEL_EXPORTER_OTLP_HEADERS", ""))
+                print(f"DEBUG: About to create GRPCSpanExporter")
                 otlp_exporter = GRPCSpanExporter(
                     endpoint=otlp_endpoint,
                     headers=headers
                 )
+                print(f"DEBUG: GRPCSpanExporter created successfully")
                 span_processors.append(BatchSpanProcessor(otlp_exporter))
                 self.logger.info(f"OTLP exporter configured for endpoint: {otlp_endpoint}")
             except Exception as e:
+                print(f"DEBUG: Exception caught: {e}")
                 self.logger.error(f"Failed to configure OTLP exporter: {e}")
+        else:
+            print(f"DEBUG: No OTLP endpoint configured")
         
         # Add all span processors to the provider
         for processor in span_processors:
