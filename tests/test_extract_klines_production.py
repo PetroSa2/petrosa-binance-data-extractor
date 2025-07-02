@@ -17,13 +17,9 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import constants
-from jobs.extract_klines_production import (
-    ProductionKlinesExtractor,
-    _main_impl,
-    main,
-    parse_arguments,
-    retry_with_backoff,
-)
+from jobs.extract_klines_production import (ProductionKlinesExtractor,
+                                            _main_impl, main, parse_arguments,
+                                            retry_with_backoff)
 from models.kline import KlineModel
 
 
@@ -45,11 +41,9 @@ class TestRetryWithBackoff:
     @patch("jobs.extract_klines_production.time.sleep")
     def test_retry_success_after_failures(self, mock_sleep):
         """Test successful execution after some failures."""
-        mock_func = Mock(side_effect=[
-            Exception("Lost connection to MySQL server"), 
-            Exception("MySQL server has gone away"), 
-            "success"
-        ])
+        mock_func = Mock(
+            side_effect=[Exception("Lost connection to MySQL server"), Exception("MySQL server has gone away"), "success"]
+        )
         mock_logger = Mock()
 
         result = retry_with_backoff(mock_func, max_retries=2, logger=mock_logger)
@@ -87,11 +81,9 @@ class TestRetryWithBackoff:
     @patch("jobs.extract_klines_production.time.sleep")
     def test_retry_exponential_backoff(self, mock_sleep):
         """Test exponential backoff timing."""
-        mock_func = Mock(side_effect=[
-            Exception("Lost connection to MySQL server"), 
-            Exception("MySQL server has gone away"), 
-            "success"
-        ])
+        mock_func = Mock(
+            side_effect=[Exception("Lost connection to MySQL server"), Exception("MySQL server has gone away"), "success"]
+        )
         mock_logger = Mock()
 
         retry_with_backoff(mock_func, max_retries=2, base_delay=1.0, logger=mock_logger)
@@ -117,11 +109,7 @@ class TestProductionKlinesExtractor:
         self.db_uri = "mysql://test:test@localhost/test"
 
         self.extractor = ProductionKlinesExtractor(
-            symbols=self.symbols,
-            period=self.period,
-            db_adapter_name=self.db_adapter_name,
-            db_uri=self.db_uri,
-            max_workers=2
+            symbols=self.symbols, period=self.period, db_adapter_name=self.db_adapter_name, db_uri=self.db_uri, max_workers=2
         )
 
     def test_initialization(self):
@@ -136,12 +124,12 @@ class TestProductionKlinesExtractor:
         assert self.extractor.logger is not None
         assert isinstance(self.extractor._lock, type(threading.Lock()))
         assert self.extractor.stats == {
-            'symbols_processed': 0,
-            'symbols_failed': 0,
-            'total_records_fetched': 0,
-            'total_records_written': 0,
-            'total_gaps_filled': 0,
-            'errors': []
+            "symbols_processed": 0,
+            "symbols_failed": 0,
+            "total_records_fetched": 0,
+            "total_records_written": 0,
+            "total_gaps_filled": 0,
+            "errors": [],
         }
 
     def test_period_to_minutes(self):
@@ -175,18 +163,13 @@ class TestProductionKlinesExtractor:
         mock_get_adapter.return_value = mock_adapter
 
         # Mock database response with data
-        mock_record = {
-            'close_time': datetime(2023, 1, 1, 12, 0, 0),  # timezone-naive
-            'symbol': 'BTCUSDT'
-        }
+        mock_record = {"close_time": datetime(2023, 1, 1, 12, 0, 0), "symbol": "BTCUSDT"}  # timezone-naive
         mock_adapter.query_latest.return_value = [mock_record]
 
         timestamp = self.extractor.get_last_timestamp_for_symbol(mock_adapter, "BTCUSDT")
 
         assert timestamp == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        mock_adapter.query_latest.assert_called_once_with(
-            "klines_m15", symbol="BTCUSDT", limit=1
-        )
+        mock_adapter.query_latest.assert_called_once_with("klines_m15", symbol="BTCUSDT", limit=1)
 
     @patch("jobs.extract_klines_production.get_adapter")
     def test_get_last_timestamp_for_symbol_no_data(self, mock_get_adapter):
@@ -272,9 +255,7 @@ class TestProductionKlinesExtractor:
         mock_binance_client = Mock()
 
         # Mock database operations
-        mock_adapter.query_latest.return_value = [{
-            'close_time': datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
-        }]
+        mock_adapter.query_latest.return_value = [{"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}]
 
         # Mock klines data
         mock_klines = [
@@ -294,7 +275,7 @@ class TestProductionKlinesExtractor:
                 taker_buy_base_asset_volume=Decimal("50.25"),
                 taker_buy_quote_asset_volume=Decimal("2512500"),
                 price_change=Decimal("50"),
-                price_change_percent=Decimal("0.1")
+                price_change_percent=Decimal("0.1"),
             )
         ]
         mock_fetcher.fetch_klines.return_value = mock_klines
@@ -307,13 +288,13 @@ class TestProductionKlinesExtractor:
 
         result = self.extractor.extract_symbol_data("BTCUSDT", mock_binance_client)
 
-        assert result['success'] is True
-        assert result['symbol'] == "BTCUSDT"
-        assert result['records_fetched'] == 1
-        assert result['records_written'] == 1
-        assert result['gaps_filled'] == 0
-        assert result['error'] is None
-        assert result['duration'] > 0
+        assert result["success"] is True
+        assert result["symbol"] == "BTCUSDT"
+        assert result["records_fetched"] == 1
+        assert result["records_written"] == 1
+        assert result["gaps_filled"] == 0
+        assert result["error"] is None
+        assert result["duration"] > 0
 
     @patch("jobs.extract_klines_production.get_adapter")
     def test_extract_symbol_data_database_error(self, mock_get_adapter):
@@ -327,9 +308,9 @@ class TestProductionKlinesExtractor:
 
         result = self.extractor.extract_symbol_data("BTCUSDT", mock_binance_client)
 
-        assert result['success'] is False
-        assert result['symbol'] == "BTCUSDT"
-        assert "Database connection failed" in result['error']
+        assert result["success"] is False
+        assert result["symbol"] == "BTCUSDT"
+        assert "Database connection failed" in result["error"]
 
     @patch("jobs.extract_klines_production.get_adapter")
     @patch("jobs.extract_klines_production.KlinesFetcher")
@@ -345,18 +326,16 @@ class TestProductionKlinesExtractor:
         mock_binance_client = Mock()
 
         # Mock database operations
-        mock_adapter.query_latest.return_value = [{
-            'close_time': datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
-        }]
+        mock_adapter.query_latest.return_value = [{"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}]
 
         # Mock API error
         mock_fetcher.fetch_klines.side_effect = Exception("API rate limit exceeded")
 
         result = self.extractor.extract_symbol_data("BTCUSDT", mock_binance_client)
 
-        assert result['success'] is False
-        assert result['symbol'] == "BTCUSDT"
-        assert "API rate limit exceeded" in result['error']
+        assert result["success"] is False
+        assert result["symbol"] == "BTCUSDT"
+        assert "API rate limit exceeded" in result["error"]
 
     @patch("jobs.extract_klines_production.BinanceClient")
     @patch("jobs.extract_klines_production.ThreadPoolExecutor")
@@ -373,22 +352,22 @@ class TestProductionKlinesExtractor:
 
         # Mock results
         mock_future1.result.return_value = {
-            'success': True,
-            'symbol': 'BTCUSDT',
-            'records_fetched': 10,
-            'records_written': 10,
-            'gaps_filled': 0,
-            'error': None,
-            'duration': 1.0
+            "success": True,
+            "symbol": "BTCUSDT",
+            "records_fetched": 10,
+            "records_written": 10,
+            "gaps_filled": 0,
+            "error": None,
+            "duration": 1.0,
         }
         mock_future2.result.return_value = {
-            'success': True,
-            'symbol': 'ETHUSDT',
-            'records_fetched': 8,
-            'records_written': 8,
-            'gaps_filled': 0,
-            'error': None,
-            'duration': 0.8
+            "success": True,
+            "symbol": "ETHUSDT",
+            "records_fetched": 8,
+            "records_written": 8,
+            "gaps_filled": 0,
+            "error": None,
+            "duration": 0.8,
         }
 
         # Mock as_completed
@@ -397,15 +376,15 @@ class TestProductionKlinesExtractor:
 
             result = self.extractor.run_extraction()
 
-        assert result['success'] is True
-        assert result['total_symbols'] == 2
-        assert result['symbols_processed'] == 2
-        assert result['symbols_failed'] == 0
-        assert result['total_records_fetched'] == 18
-        assert result['total_records_written'] == 18
-        assert result['total_gaps_filled'] == 0
-        assert result['duration_seconds'] > 0
-        assert result['errors'] == []
+        assert result["success"] is True
+        assert result["total_symbols"] == 2
+        assert result["symbols_processed"] == 2
+        assert result["symbols_failed"] == 0
+        assert result["total_records_fetched"] == 18
+        assert result["total_records_written"] == 18
+        assert result["total_gaps_filled"] == 0
+        assert result["duration_seconds"] > 0
+        assert result["errors"] == []
 
     @patch("jobs.extract_klines_production.BinanceClient")
     @patch("jobs.extract_klines_production.ThreadPoolExecutor")
@@ -422,22 +401,22 @@ class TestProductionKlinesExtractor:
 
         # Mock results - one success, one failure
         mock_future1.result.return_value = {
-            'success': True,
-            'symbol': 'BTCUSDT',
-            'records_fetched': 10,
-            'records_written': 10,
-            'gaps_filled': 0,
-            'error': None,
-            'duration': 1.0
+            "success": True,
+            "symbol": "BTCUSDT",
+            "records_fetched": 10,
+            "records_written": 10,
+            "gaps_filled": 0,
+            "error": None,
+            "duration": 1.0,
         }
         mock_future2.result.return_value = {
-            'success': False,
-            'symbol': 'ETHUSDT',
-            'records_fetched': 0,
-            'records_written': 0,
-            'gaps_filled': 0,
-            'error': 'API error',
-            'duration': 0.5
+            "success": False,
+            "symbol": "ETHUSDT",
+            "records_fetched": 0,
+            "records_written": 0,
+            "gaps_filled": 0,
+            "error": "API error",
+            "duration": 0.5,
         }
 
         # Mock as_completed
@@ -446,15 +425,15 @@ class TestProductionKlinesExtractor:
 
             result = self.extractor.run_extraction()
 
-        assert result['success'] is False
-        assert result['total_symbols'] == 2
-        assert result['symbols_processed'] == 1
-        assert result['symbols_failed'] == 1
-        assert result['total_records_fetched'] == 10
-        assert result['total_records_written'] == 10
-        assert result['total_gaps_filled'] == 0
-        assert len(result['errors']) == 1
-        assert "ETHUSDT: API error" in result['errors'][0]
+        assert result["success"] is False
+        assert result["total_symbols"] == 2
+        assert result["symbols_processed"] == 1
+        assert result["symbols_failed"] == 1
+        assert result["total_records_fetched"] == 10
+        assert result["total_records_written"] == 10
+        assert result["total_gaps_filled"] == 0
+        assert len(result["errors"]) == 1
+        assert "ETHUSDT: API error" in result["errors"][0]
 
 
 class TestParseArguments:
@@ -477,16 +456,25 @@ class TestParseArguments:
 
     def test_custom_arguments(self):
         """Test custom argument values."""
-        with patch("sys.argv", [
-            "extract_klines_production.py",
-            "--period", "1h",
-            "--symbols", "BTCUSDT,ETHUSDT",
-            "--max-workers", "10",
-            "--db-adapter", "mongodb",
-            "--db-uri", "mongodb://localhost:27017/test",
-            "--log-level", "DEBUG",
-            "--dry-run"
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "extract_klines_production.py",
+                "--period",
+                "1h",
+                "--symbols",
+                "BTCUSDT,ETHUSDT",
+                "--max-workers",
+                "10",
+                "--db-adapter",
+                "mongodb",
+                "--db-uri",
+                "mongodb://localhost:27017/test",
+                "--log-level",
+                "DEBUG",
+                "--dry-run",
+            ],
+        ):
             args = parse_arguments()
 
             assert args.period == "1h"
@@ -508,8 +496,16 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_success(self, mock_parse_args, mock_constants, mock_extractor_class,
-                              mock_log_completion, mock_log_start, mock_get_logger, mock_setup_logging):
+    def test_main_impl_success(
+        self,
+        mock_parse_args,
+        mock_constants,
+        mock_extractor_class,
+        mock_log_completion,
+        mock_log_start,
+        mock_get_logger,
+        mock_setup_logging,
+    ):
         """Test successful main implementation."""
         # Mock arguments
         mock_args = Mock()
@@ -536,15 +532,15 @@ class TestMainFunction:
         mock_extractor = Mock()
         mock_extractor_class.return_value = mock_extractor
         mock_extractor.run_extraction.return_value = {
-            'success': True,
-            'total_symbols': 2,
-            'symbols_processed': 2,
-            'symbols_failed': 0,
-            'total_records_fetched': 20,
-            'total_records_written': 20,
-            'total_gaps_filled': 0,
-            'duration_seconds': 5.0,
-            'errors': []
+            "success": True,
+            "total_symbols": 2,
+            "symbols_processed": 2,
+            "symbols_failed": 0,
+            "total_records_fetched": 20,
+            "total_records_written": 20,
+            "total_gaps_filled": 0,
+            "duration_seconds": 5.0,
+            "errors": [],
         }
 
         with patch("sys.exit") as mock_exit:
@@ -558,8 +554,9 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_failure(self, mock_parse_args, mock_constants, mock_extractor_class,
-                              mock_get_logger, mock_setup_logging):
+    def test_main_impl_failure(
+        self, mock_parse_args, mock_constants, mock_extractor_class, mock_get_logger, mock_setup_logging
+    ):
         """Test main implementation with extraction failure."""
         # Mock arguments
         mock_args = Mock()
@@ -586,15 +583,15 @@ class TestMainFunction:
         mock_extractor = Mock()
         mock_extractor_class.return_value = mock_extractor
         mock_extractor.run_extraction.return_value = {
-            'success': False,
-            'total_symbols': 2,
-            'symbols_processed': 1,
-            'symbols_failed': 1,
-            'total_records_fetched': 10,
-            'total_records_written': 10,
-            'total_gaps_filled': 0,
-            'duration_seconds': 5.0,
-            'errors': ["ETHUSDT: API error"]
+            "success": False,
+            "total_symbols": 2,
+            "symbols_processed": 1,
+            "symbols_failed": 1,
+            "total_records_fetched": 10,
+            "total_records_written": 10,
+            "total_gaps_filled": 0,
+            "duration_seconds": 5.0,
+            "errors": ["ETHUSDT: API error"],
         }
 
         with patch("sys.exit") as mock_exit:
@@ -608,8 +605,9 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_keyboard_interrupt(self, mock_parse_args, mock_constants, mock_extractor_class,
-                                        mock_get_logger, mock_setup_logging):
+    def test_main_impl_keyboard_interrupt(
+        self, mock_parse_args, mock_constants, mock_extractor_class, mock_get_logger, mock_setup_logging
+    ):
         """Test main implementation with keyboard interrupt."""
         # Mock arguments
         mock_args = Mock()
@@ -641,7 +639,7 @@ class TestMainFunction:
         with patch("sys.exit") as mock_exit:
             # The KeyboardInterrupt should be caught and sys.exit(130) should be called
             _main_impl()
-            
+
             # Verify that sys.exit was called with the correct code
             mock_exit.assert_called_once_with(130)
 
@@ -650,8 +648,9 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.ProductionKlinesExtractor")
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
-    def test_main_impl_general_exception(self, mock_parse_args, mock_constants, mock_extractor_class,
-                                       mock_get_logger, mock_setup_logging):
+    def test_main_impl_general_exception(
+        self, mock_parse_args, mock_constants, mock_extractor_class, mock_get_logger, mock_setup_logging
+    ):
         """Test main implementation with general exception."""
         # Mock arguments
         mock_args = Mock()
@@ -714,11 +713,7 @@ class TestTimezoneHandling:
 
     def test_timezone_aware_comparison(self):
         """Test that timezone-aware and timezone-naive datetimes are handled correctly."""
-        extractor = ProductionKlinesExtractor(
-            symbols=["BTCUSDT"],
-            period="15m",
-            db_adapter_name="mysql"
-        )
+        extractor = ProductionKlinesExtractor(symbols=["BTCUSDT"], period="15m", db_adapter_name="mysql")
 
         # Test with timezone-naive datetime from database
         naive_timestamp = datetime(2023, 1, 1, 12, 0, 0)  # No timezone info
@@ -736,19 +731,13 @@ class TestTimezoneHandling:
 
     def test_timezone_aware_timestamp_retrieval(self):
         """Test that timestamps from database are made timezone-aware."""
-        extractor = ProductionKlinesExtractor(
-            symbols=["BTCUSDT"],
-            period="15m",
-            db_adapter_name="mysql"
-        )
+        extractor = ProductionKlinesExtractor(symbols=["BTCUSDT"], period="15m", db_adapter_name="mysql")
 
         # Mock database adapter
         mock_adapter = Mock()
 
         # Mock database response with timezone-naive timestamp
-        mock_record = {
-            'close_time': datetime(2023, 1, 1, 12, 0, 0)  # No timezone info
-        }
+        mock_record = {"close_time": datetime(2023, 1, 1, 12, 0, 0)}  # No timezone info
         mock_adapter.query_latest.return_value = [mock_record]
 
         timestamp = extractor.get_last_timestamp_for_symbol(mock_adapter, "BTCUSDT")

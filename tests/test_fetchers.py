@@ -30,7 +30,7 @@ class TestBinanceClient:
         """Test client initialization."""
         # Mock the retry decorator to just call the function directly
         mock_retry_decorator.side_effect = lambda func: func
-        
+
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -47,7 +47,7 @@ class TestBinanceClient:
         """Test successful GET request."""
         # Mock the retry decorator to just call the function directly
         mock_retry_decorator.side_effect = lambda func: func
-        
+
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -70,7 +70,7 @@ class TestBinanceClient:
         """Test GET request with API error."""
         # Mock the retry decorator to just call the function directly
         mock_retry_decorator.side_effect = lambda func: func
-        
+
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -95,7 +95,7 @@ class TestBinanceClient:
         """Test rate limit error handling."""
         # Mock the retry decorator to just call the function directly
         mock_retry_decorator.side_effect = lambda func: func
-        
+
         mock_session = Mock()
         mock_session_class.return_value = mock_session
 
@@ -208,9 +208,7 @@ class TestKlinesFetcher:
         assert len(klines) == 1
         assert klines[0].symbol == "BTCUSDT"
 
-        self.mock_client.get_klines.assert_called_with(
-            symbol="BTCUSDT", interval="15m", limit=100
-        )
+        self.mock_client.get_klines.assert_called_with(symbol="BTCUSDT", interval="15m", limit=100)
 
     @patch("fetchers.klines.get_current_utc_time")
     def test_fetch_incremental(self, mock_current_time):
@@ -238,6 +236,7 @@ class TestKlinesFetcher:
 
         # Mock the client to return data on first call, empty on subsequent calls
         call_count = 0
+
         def mock_get_klines_incremental(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -274,6 +273,7 @@ class TestKlinesFetcher:
 
         # Mock the client to return data on first call per symbol, empty on subsequent calls
         call_count = 0
+
         def mock_get_klines_multiple(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -290,9 +290,7 @@ class TestKlinesFetcher:
         start_time = datetime(2022, 1, 1, tzinfo=timezone.utc)
         end_time = datetime(2022, 1, 1, 0, 15, tzinfo=timezone.utc)  # Match mock data range
 
-        results = self.fetcher.fetch_multiple_symbols(
-            symbols, "15m", start_time, end_time
-        )
+        results = self.fetcher.fetch_multiple_symbols(symbols, "15m", start_time, end_time)
 
         assert len(results) == 2
         assert "BTCUSDT" in results
@@ -348,9 +346,7 @@ class TestTradesFetcher:
         assert trades[1].trade_id == 28458
         assert trades[1].is_buyer_maker is False
 
-        self.mock_client.get_recent_trades.assert_called_with(
-            symbol="BTCUSDT", limit=1000
-        )
+        self.mock_client.get_recent_trades.assert_called_with(symbol="BTCUSDT", limit=1000)
 
     def test_fetch_historical_trades(self):
         """Test fetching historical trades."""
@@ -367,16 +363,12 @@ class TestTradesFetcher:
 
         self.mock_client.get_historical_trades.return_value = mock_trades_data
 
-        trades = self.fetcher.fetch_historical_trades(
-            "BTCUSDT", from_id=28457, limit=1000
-        )
+        trades = self.fetcher.fetch_historical_trades("BTCUSDT", from_id=28457, limit=1000)
 
         assert len(trades) == 1
         assert trades[0].trade_id == 28457
 
-        self.mock_client.get_historical_trades.assert_called_with(
-            symbol="BTCUSDT", from_id=28457, limit=1000
-        )
+        self.mock_client.get_historical_trades.assert_called_with(symbol="BTCUSDT", from_id=28457, limit=1000)
 
 
 class TestFundingRatesFetcher:
@@ -420,9 +412,7 @@ class TestFundingRatesFetcher:
         assert rates[0].mark_price == Decimal("50000.00000000")
         assert rates[1].funding_rate == Decimal("0.00015000")
 
-        self.mock_client.get_funding_rate.assert_called_with(
-            symbol="BTCUSDT", limit=1000
-        )
+        self.mock_client.get_funding_rate.assert_called_with(symbol="BTCUSDT", limit=1000)
 
     def test_fetch_current_funding_rates_single_symbol(self):
         """Test fetching current funding rates for single symbol."""

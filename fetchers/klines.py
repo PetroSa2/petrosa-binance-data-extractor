@@ -11,13 +11,9 @@ from fetchers.client import BinanceAPIError, BinanceClient
 from models.base import ExtractionMetadata
 from models.kline import KlineModel
 from utils.logger import get_logger
-from utils.time_utils import (
-    align_timestamp_to_interval,
-    find_time_gaps,
-    get_current_utc_time,
-    get_interval_timedelta,
-    validate_time_range,
-)
+from utils.time_utils import (align_timestamp_to_interval, find_time_gaps,
+                              get_current_utc_time, get_interval_timedelta,
+                              validate_time_range)
 
 logger = get_logger(__name__)
 
@@ -120,14 +116,10 @@ class KlinesFetcher:
                 chunk_klines = []
                 for kline_data in klines_data:
                     try:
-                        kline = KlineModel.from_binance_kline(
-                            kline_data, symbol, interval
-                        )
+                        kline = KlineModel.from_binance_kline(kline_data, symbol, interval)
                         chunk_klines.append(kline)
                     except (ValueError, TypeError) as e:
-                        logger.warning(
-                            "Failed to parse kline data: %s, data: %s", e, kline_data
-                        )
+                        logger.warning("Failed to parse kline data: %s, data: %s", e, kline_data)
                         continue
 
                 all_klines.extend(chunk_klines)
@@ -167,9 +159,7 @@ class KlinesFetcher:
         logger.info("Fetched %d klines for %s (%s)", len(all_klines), symbol, interval)
         return all_klines
 
-    def fetch_latest_klines(
-        self, symbol: str, interval: str, count: int = 100
-    ) -> List[KlineModel]:
+    def fetch_latest_klines(self, symbol: str, interval: str, count: int = 100) -> List[KlineModel]:
         """
         Fetch the most recent klines.
 
@@ -197,9 +187,7 @@ class KlinesFetcher:
                     logger.warning("Failed to parse kline data: %s", e)
                     continue
 
-            logger.info(
-                "Fetched %d latest klines for %s (%s)", len(klines), symbol, interval
-            )
+            logger.info("Fetched %d latest klines for %s (%s)", len(klines), symbol, interval)
             return klines
 
         except Exception as e:
@@ -292,9 +280,7 @@ class KlinesFetcher:
                 continue
 
         total_klines = sum(len(klines) for klines in results.values())
-        logger.info(
-            f"Fetched total of {total_klines} klines across {len(symbols)} symbols"
-        )
+        logger.info(f"Fetched total of {total_klines} klines across {len(symbols)} symbols")
 
         return results
 

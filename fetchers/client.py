@@ -27,9 +27,7 @@ logger = logging.getLogger(__name__)
 class BinanceAPIError(Exception):
     """Custom exception for Binance API errors."""
 
-    def __init__(
-        self, message: str, status_code: Optional[int] = None, response_data: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, message: str, status_code: Optional[int] = None, response_data: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.status_code = status_code
         self.response_data = response_data or {}
@@ -57,18 +55,14 @@ class BinanceClient:
             rate_limiter: Custom rate limiter instance
         """
         if not REQUESTS_AVAILABLE:
-            raise ImportError(
-                "requests library is required. Install with: pip install requests"
-            )
+            raise ImportError("requests library is required. Install with: pip install requests")
 
         self.api_key = api_key or constants.API_KEY
         self.api_secret = api_secret or constants.API_SECRET
         self.base_url = base_url or constants.BINANCE_API_URL
 
         # Set up rate limiter
-        self.rate_limiter = rate_limiter or RateLimiter(
-            max_calls=constants.API_RATE_LIMIT_PER_MINUTE, time_window=60
-        )
+        self.rate_limiter = rate_limiter or RateLimiter(max_calls=constants.API_RATE_LIMIT_PER_MINUTE, time_window=60)
 
         # Set up session with retry strategy
         self.session = requests.Session()
@@ -258,9 +252,7 @@ class BinanceClient:
 
         return self.get("/fapi/v1/trades", params)
 
-    def get_historical_trades(
-        self, symbol: str, from_id: Optional[int] = None, limit: int = 1000
-    ) -> List[Dict[str, Any]]:
+    def get_historical_trades(self, symbol: str, from_id: Optional[int] = None, limit: int = 1000) -> List[Dict[str, Any]]:
         """
         Get historical trades (requires API key).
 
@@ -282,9 +274,7 @@ class BinanceClient:
 
         return self.get("/fapi/v1/historicalTrades", params)
 
-    def get_funding_rate(
-        self, symbol: Optional[str] = None, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    def get_funding_rate(self, symbol: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
         """
         Get funding rate history.
 
@@ -302,9 +292,7 @@ class BinanceClient:
 
         return self.get("/fapi/v1/fundingRate", params)
 
-    def get_premium_index(
-        self, symbol: Optional[str] = None
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    def get_premium_index(self, symbol: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Get mark price and funding rate.
 

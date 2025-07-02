@@ -35,13 +35,11 @@ DEFAULT_SYMBOLS = [
     "LTCUSDT",
     "BCHUSDT",
     "XLMUSDT",
-    "XRPUSDT"
+    "XRPUSDT",
 ]
 
 # Time intervals supported by Binance
-SUPPORTED_INTERVALS = [
-    "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"
-]
+SUPPORTED_INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"]
 
 # Database URIs (pluggable)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/binance")
@@ -80,12 +78,8 @@ ENABLE_OTEL = os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes")
 
 # Service-specific OpenTelemetry names
 OTEL_SERVICE_NAME_KLINES = os.getenv("OTEL_SERVICE_NAME_KLINES", "petrosa-binance-extractor")
-OTEL_SERVICE_NAME_FUNDING = os.getenv(
-    "OTEL_SERVICE_NAME_FUNDING", "petrosa-binance-extractor"
-)
-OTEL_SERVICE_NAME_TRADES = os.getenv(
-    "OTEL_SERVICE_NAME_TRADES", "petrosa-binance-extractor"
-)
+OTEL_SERVICE_NAME_FUNDING = os.getenv("OTEL_SERVICE_NAME_FUNDING", "petrosa-binance-extractor")
+OTEL_SERVICE_NAME_TRADES = os.getenv("OTEL_SERVICE_NAME_TRADES", "petrosa-binance-extractor")
 
 # Kubernetes job settings
 K8S_NAMESPACE = os.getenv("K8S_NAMESPACE", "default")

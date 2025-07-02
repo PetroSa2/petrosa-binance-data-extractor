@@ -31,16 +31,36 @@ class TestBaseAdapter:
         with pytest.raises(TypeError):
             # Attempting to instantiate BaseAdapter directly should raise TypeError
             class DummyAdapter(BaseAdapter):
-                def connect(self): pass
-                def disconnect(self): pass
-                def write(self, model_instances, collection): pass
-                def write_batch(self, model_instances, collection, batch_size=1000): pass
-                def query_range(self, collection, start, end, symbol=None): pass
-                def query_latest(self, collection, symbol=None, limit=1): pass
-                def find_gaps(self, collection, start, end, interval_minutes, symbol=None): pass
-                def get_record_count(self, collection, start=None, end=None, symbol=None): pass
-                def ensure_indexes(self, collection): pass
-                def delete_range(self, collection, start, end, symbol=None): pass
+                def connect(self):
+                    pass
+
+                def disconnect(self):
+                    pass
+
+                def write(self, model_instances, collection):
+                    pass
+
+                def write_batch(self, model_instances, collection, batch_size=1000):
+                    pass
+
+                def query_range(self, collection, start, end, symbol=None):
+                    pass
+
+                def query_latest(self, collection, symbol=None, limit=1):
+                    pass
+
+                def find_gaps(self, collection, start, end, interval_minutes, symbol=None):
+                    pass
+
+                def get_record_count(self, collection, start=None, end=None, symbol=None):
+                    pass
+
+                def ensure_indexes(self, collection):
+                    pass
+
+                def delete_range(self, collection, start, end, symbol=None):
+                    pass
+
             BaseAdapter("test://connection")
 
     def test_context_manager_interface(self):
@@ -85,9 +105,7 @@ class TestBaseAdapter:
         assert hasattr(adapter, "__exit__")
 
 
-@pytest.mark.skipif(
-    not hasattr(MongoDBAdapter, "__init__"), reason="MongoDB dependencies not available"
-)
+@pytest.mark.skipif(not hasattr(MongoDBAdapter, "__init__"), reason="MongoDB dependencies not available")
 class TestMongoDBAdapter:
     """Test MongoDBAdapter functionality."""
 
@@ -204,9 +222,7 @@ class TestMongoDBAdapter:
         mock_collection.find.assert_called_once()
 
 
-@pytest.mark.skipif(
-    not hasattr(MySQLAdapter, "__init__"), reason="MySQL dependencies not available"
-)
+@pytest.mark.skipif(not hasattr(MySQLAdapter, "__init__"), reason="MySQL dependencies not available")
 class TestMySQLAdapter:
     """Test MySQLAdapter functionality."""
 
@@ -321,9 +337,7 @@ class MockAdapter(BaseAdapter):
         return len(model_instances)
 
     def write_batch(self, model_instances, collection, batch_size=1000):
-        self.operations.append(
-            ("write_batch", len(model_instances), collection, batch_size)
-        )
+        self.operations.append(("write_batch", len(model_instances), collection, batch_size))
         return len(model_instances)
 
     def query_range(self, collection, start, end, symbol=None):
@@ -335,9 +349,7 @@ class MockAdapter(BaseAdapter):
         return []
 
     def find_gaps(self, collection, start, end, interval_minutes, symbol=None):
-        self.operations.append(
-            ("find_gaps", collection, start, end, interval_minutes, symbol)
-        )
+        self.operations.append(("find_gaps", collection, start, end, interval_minutes, symbol))
         return []
 
     def get_record_count(self, collection, start=None, end=None, symbol=None):

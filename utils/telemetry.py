@@ -17,16 +17,16 @@ import constants
 # OpenTelemetry Core
 try:
     from opentelemetry import metrics, trace
-
     # Exporters
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import \
+        OTLPSpanExporter
     from opentelemetry.instrumentation.logging import LoggingInstrumentor
     from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
-
     # Auto-instrumentation
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
     from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-    from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
+    from opentelemetry.sdk.resources import (SERVICE_NAME, SERVICE_VERSION,
+                                             Resource)
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.semconv.resource import ResourceAttributes
@@ -41,7 +41,8 @@ try:
 
     # Resource detection
     try:
-        from opentelemetry.resourcedetector.gcp import GoogleCloudResourceDetector
+        from opentelemetry.resourcedetector.gcp import \
+            GoogleCloudResourceDetector
 
         GCP_AVAILABLE = True
     except ImportError:
@@ -49,11 +50,8 @@ try:
 
     try:
         from opentelemetry.resourcedetector.aws import (
-            AwsEc2ResourceDetector,
-            AwsEcsResourceDetector,
-            AwsEksResourceDetector,
-            AwsLambdaResourceDetector,
-        )
+            AwsEc2ResourceDetector, AwsEcsResourceDetector,
+            AwsEksResourceDetector, AwsLambdaResourceDetector)
 
         AWS_AVAILABLE = True
     except ImportError:
@@ -126,8 +124,7 @@ class TelemetryManager:
                 service_name or constants.OTEL_SERVICE_NAME,
                 extra={
                     "service_name": service_name or constants.OTEL_SERVICE_NAME,
-                    "service_version": service_version
-                    or constants.OTEL_SERVICE_VERSION,
+                    "service_version": service_version or constants.OTEL_SERVICE_VERSION,
                     "environment": environment or os.getenv("ENVIRONMENT", "unknown"),
                     "otel_endpoint": constants.OTEL_EXPORTER_OTLP_ENDPOINT or "default",
                     "auto_instrumentation": enable_auto_instrumentation,
@@ -137,9 +134,7 @@ class TelemetryManager:
             return True
 
         except ImportError as e:
-            self.logger.error(
-                "Failed to initialize OpenTelemetry: %s", str(e), exc_info=True
-            )
+            self.logger.error("Failed to initialize OpenTelemetry: %s", str(e), exc_info=True)
             return False
 
     def _create_resource(
@@ -169,21 +164,11 @@ class TelemetryManager:
         if os.getenv("KUBERNETES_SERVICE_HOST"):
             attributes.update(
                 {
-                    ResourceAttributes.K8S_CLUSTER_NAME: os.getenv(
-                        "K8S_CLUSTER_NAME", "unknown"
-                    ),
-                    ResourceAttributes.K8S_NAMESPACE_NAME: os.getenv(
-                        "K8S_NAMESPACE", "default"
-                    ),
-                    ResourceAttributes.K8S_POD_NAME: os.getenv(
-                        "K8S_POD_NAME", os.getenv("HOSTNAME", "unknown")
-                    ),
-                    ResourceAttributes.K8S_CONTAINER_NAME: os.getenv(
-                        "K8S_CONTAINER_NAME", "binance-extractor"
-                    ),
-                    ResourceAttributes.K8S_DEPLOYMENT_NAME: os.getenv(
-                        "K8S_DEPLOYMENT_NAME", "binance-extractor"
-                    ),
+                    ResourceAttributes.K8S_CLUSTER_NAME: os.getenv("K8S_CLUSTER_NAME", "unknown"),
+                    ResourceAttributes.K8S_NAMESPACE_NAME: os.getenv("K8S_NAMESPACE", "default"),
+                    ResourceAttributes.K8S_POD_NAME: os.getenv("K8S_POD_NAME", os.getenv("HOSTNAME", "unknown")),
+                    ResourceAttributes.K8S_CONTAINER_NAME: os.getenv("K8S_CONTAINER_NAME", "binance-extractor"),
+                    ResourceAttributes.K8S_DEPLOYMENT_NAME: os.getenv("K8S_DEPLOYMENT_NAME", "binance-extractor"),
                 }
             )
 
@@ -227,9 +212,7 @@ class TelemetryManager:
                 detected_resource = detector.detect()
                 resource = resource.merge(detected_resource)
             except ImportError as e:
-                self.logger.debug(
-                    "Resource detection failed for %s: %s", detector, str(e)
-                )
+                self.logger.debug("Resource detection failed for %s: %s", detector, str(e))
 
         return resource
 
@@ -266,9 +249,7 @@ class TelemetryManager:
             try:
                 # Create OTLP exporter with proper configuration
                 otlp_exporter = OTLPSpanExporter(
-                    endpoint=getattr(
-                        constants, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", None
-                    )
+                    endpoint=getattr(constants, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", None)
                     or constants.OTEL_EXPORTER_OTLP_ENDPOINT,
                     headers=headers,
                     insecure=not is_https,
@@ -294,16 +275,10 @@ class TelemetryManager:
                 try:
                     # Defensive: ensure start_as_current_span is a context manager
                     span_cm = test_tracer.start_as_current_span("exporter_test")
-                    if not (
-                        hasattr(span_cm, "__enter__") and hasattr(span_cm, "__exit__")
-                    ):
-                        raise TypeError(
-                            "start_as_current_span did not return a context manager"
-                        )
+                    if not (hasattr(span_cm, "__enter__") and hasattr(span_cm, "__exit__")):
+                        raise TypeError("start_as_current_span did not return a context manager")
                     # Defensive: ensure start_as_current_span is a context manager
-                    if not (
-                        hasattr(span_cm, "__enter__") and hasattr(span_cm, "__exit__")
-                    ):
+                    if not (hasattr(span_cm, "__enter__") and hasattr(span_cm, "__exit__")):
 
                         @contextmanager
                         def span_context_manager():
@@ -322,25 +297,15 @@ class TelemetryManager:
 
                     with context_manager as test_span:
                         test_span.set_attribute("test.connection", "otlp_exporter")
-                        self.logger.info(
-                            "Test span created for OTLP exporter validation"
-                        )
+                        self.logger.info("Test span created for OTLP exporter validation")
                 except (TypeError, AttributeError) as test_e:
-                    self.logger.warning(
-                        "Could not create test span for OTLP exporter: %s", str(test_e)
-                    )
+                    self.logger.warning("Could not create test span for OTLP exporter: %s", str(test_e))
 
             except RuntimeError as e:
-                self.logger.error(
-                    "✗ Failed to configure OTLP span exporter: %s", str(e)
-                )
-                self.logger.info(
-                    "Continuing with console tracing only (no remote export)"
-                )
+                self.logger.error("✗ Failed to configure OTLP span exporter: %s", str(e))
+                self.logger.info("Continuing with console tracing only (no remote export)")
         else:
-            self.logger.warning(
-                "OTEL_EXPORTER_OTLP_ENDPOINT not configured, tracing will be local only (no export)"
-            )
+            self.logger.warning("OTEL_EXPORTER_OTLP_ENDPOINT not configured, tracing will be local only (no export)")
 
         # Verify tracer provider is working
         test_tracer = self.tracer_provider.get_tracer("telemetry_test")
@@ -363,9 +328,7 @@ class TelemetryManager:
                     span_context.is_valid,
                 )
                 if span_context.trace_id != 0 and span_context.is_valid:
-                    self.logger.info(
-                        "✓ Tracer provider test successful - spans will be generated properly"
-                    )
+                    self.logger.info("✓ Tracer provider test successful - spans will be generated properly")
                 else:
                     self.logger.error(
                         "✗ Tracer provider test failed - trace_id=%s, span_id=%s, is_valid=%s",
@@ -378,9 +341,7 @@ class TelemetryManager:
 
     def _setup_metrics(self, _resource: Resource):
         """Setup metrics with OTLP exporter."""
-        self.logger.info(
-            "Skipping metrics setup temporarily to focus on tracing issues"
-        )
+        self.logger.info("Skipping metrics setup temporarily to focus on tracing issues")
         # Temporarily disable metrics to isolate tracing issues
         # Will re-enable once tracing is working properly
         return
@@ -424,9 +385,7 @@ class TelemetryManager:
         except ImportError as e:
             self.logger.warning("Failed to instrument logging: %s", str(e))
 
-        self.logger.info(
-            "Auto-instrumentation enabled for: %s", ", ".join(instrumentors)
-        )
+        self.logger.info("Auto-instrumentation enabled for: %s", ", ".join(instrumentors))
 
     def _parse_headers(self, headers_str: str) -> Dict[str, str]:
         """Parse OTLP headers string into dictionary."""

@@ -16,6 +16,7 @@ sys.path.insert(0, project_root)
 try:
     import constants
     from otel_init import setup_telemetry
+
     # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
     if not os.getenv("OTEL_NO_AUTO_INIT"):
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_FUNDING)
@@ -26,31 +27,23 @@ import constants
 from db import get_adapter
 from fetchers import BinanceClient, FundingRatesFetcher
 from models.funding_rate import FundingRateModel
-from utils.logger import get_logger, setup_logging, log_extraction_completion, log_extraction_start
+from utils.logger import (get_logger, log_extraction_completion,
+                          log_extraction_start, setup_logging)
 from utils.retry import exponential_backoff
-from utils.time_utils import (
-    format_duration,
-    get_current_utc_time,
-    parse_datetime_string,
-)
+from utils.time_utils import (format_duration, get_current_utc_time,
+                              parse_datetime_string)
 
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Extract funding rates from Binance Futures API"
-    )
+    parser = argparse.ArgumentParser(description="Extract funding rates from Binance Futures API")
 
     parser.add_argument("--symbol", type=str, help="Single trading symbol")
     parser.add_argument("--symbols", type=str, help="Comma-separated trading symbols")
     parser.add_argument("--start-date", type=str, help="Start date for historical data")
     parser.add_argument("--end-date", type=str, help="End date for historical data")
-    parser.add_argument(
-        "--limit", type=int, default=1000, help="Records limit per symbol"
-    )
-    parser.add_argument(
-        "--current-only", action="store_true", help="Fetch current rates only"
-    )
+    parser.add_argument("--limit", type=int, default=1000, help="Records limit per symbol")
+    parser.add_argument("--current-only", action="store_true", help="Fetch current rates only")
     parser.add_argument(
         "--db-adapter",
         type=str,
@@ -60,9 +53,7 @@ def parse_arguments():
     parser.add_argument("--db-uri", type=str, help="Database connection URI")
     parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE)
     parser.add_argument("--log-level", type=str, default=constants.LOG_LEVEL)
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Dry run without database writes"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Dry run without database writes")
 
     return parser.parse_args()
 
@@ -106,11 +97,7 @@ def main():
 
     try:
         # Initialize components
-        db_uri = args.db_uri or (
-            constants.MONGODB_URI
-            if args.db_adapter == "mongodb"
-            else constants.MYSQL_URI
-        )
+        db_uri = args.db_uri or (constants.MONGODB_URI if args.db_adapter == "mongodb" else constants.MYSQL_URI)
         db_adapter = get_adapter(args.db_adapter, db_uri)
         client = BinanceClient()
         fetcher = FundingRatesFetcher(client)
@@ -126,9 +113,7 @@ def main():
                     current_rates = fetcher.fetch_current_funding_rates(symbols)
 
                     if not args.dry_run and current_rates:
-                        written = db_adapter.write_batch(
-                            current_rates, collection_name, args.batch_size
-                        )
+                        written = db_adapter.write_batch(current_rates, collection_name, args.batch_size)
                         total_records += written
                         logger.info("Wrote %d current funding rates", written)
                     else:
@@ -148,22 +133,14 @@ def main():
 
                     try:
                         if start_date and end_date:
-                            rates = fetcher.fetch_funding_rates_batch(
-                                symbol, start_date, end_date
-                            )
+                            rates = fetcher.fetch_funding_rates_batch(symbol, start_date, end_date)
                         else:
-                            rates = fetcher.fetch_funding_rate_history(
-                                symbol, start_date, end_date, args.limit
-                            )
+                            rates = fetcher.fetch_funding_rate_history(symbol, start_date, end_date, args.limit)
 
                         if not args.dry_run and rates:
-                            written = db_adapter.write_batch(
-                                rates, collection_name, args.batch_size
-                            )
+                            written = db_adapter.write_batch(rates, collection_name, args.batch_size)
                             total_records += written
-                            logger.info(
-                                "Wrote %d funding rates for %s", written, symbol
-                            )
+                            logger.info("Wrote %d funding rates for %s", written, symbol)
                         else:
                             total_records += len(rates)
                             logger.info(

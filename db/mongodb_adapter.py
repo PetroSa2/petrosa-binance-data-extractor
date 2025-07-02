@@ -14,7 +14,8 @@ try:
     from pymongo import ASCENDING, DESCENDING, MongoClient
     from pymongo.collection import Collection
     from pymongo.database import Database
-    from pymongo.errors import BulkWriteError, ConnectionFailure, DuplicateKeyError
+    from pymongo.errors import (BulkWriteError, ConnectionFailure,
+                                DuplicateKeyError)
 
     PYMONGO_AVAILABLE = True
 except ImportError:
@@ -42,9 +43,7 @@ class MongoDBAdapter(BaseAdapter):
             **kwargs: Additional MongoDB client options
         """
         if not PYMONGO_AVAILABLE:
-            raise ImportError(
-                "pymongo is required for MongoDB adapter. Install with: pip install pymongo"
-            )
+            raise ImportError("pymongo is required for MongoDB adapter. Install with: pip install pymongo")
 
         connection_string = connection_string or constants.MONGODB_URI
         super().__init__(connection_string, **kwargs)
@@ -98,9 +97,7 @@ class MongoDBAdapter(BaseAdapter):
                 doc = instance.model_dump()
                 # Use timestamp as MongoDB _id for better performance and uniqueness
                 if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                    doc["_id"] = (
-                        f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
-                    )
+                    doc["_id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
                 documents.append(doc)
 
             # Use ordered=False for better performance with duplicates
@@ -114,28 +111,22 @@ class MongoDBAdapter(BaseAdapter):
         except BulkWriteError as e:
             # Count successful writes even if some failed
             successful_writes = e.details.get("nInserted", 0)
-            logger.warning("Bulk write error: %s", e.details.get('writeErrors', []))
+            logger.warning("Bulk write error: %s", e.details.get("writeErrors", []))
             return successful_writes
         except Exception as e:
-            raise DatabaseError(
-                f"Failed to write to MongoDB collection {collection}: {e}"
-            ) from e
+            raise DatabaseError(f"Failed to write to MongoDB collection {collection}: {e}") from e
 
-    def write_batch(
-        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
-    ) -> int:
+    def write_batch(self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000) -> int:
         """Write model instances in batches."""
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i:i + batch_size]
+            batch = model_instances[i : i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 
             if i + batch_size < len(model_instances):
-                logger.debug(
-                    "Written batch %d: %d records to %s", i // batch_size + 1, written, collection
-                )
+                logger.debug("Written batch %d: %d records to %s", i // batch_size + 1, written, collection)
 
         return total_written
 
@@ -167,9 +158,7 @@ class MongoDBAdapter(BaseAdapter):
         except Exception as e:
             raise DatabaseError(f"Failed to query range from {collection}: {e}") from e
 
-    def query_latest(
-        self, collection: str, symbol: Optional[str] = None, limit: int = 1
-    ) -> List[Dict[str, Any]]:
+    def query_latest(self, collection: str, symbol: Optional[str] = None, limit: int = 1) -> List[Dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -227,9 +216,7 @@ class MongoDBAdapter(BaseAdapter):
                 next_timestamp = timestamps[i + 1]
                 expected_next = current + expected_interval
 
-                if next_timestamp > expected_next + timedelta(
-                    minutes=1
-                ):  # Allow 1-minute tolerance
+                if next_timestamp > expected_next + timedelta(minutes=1):  # Allow 1-minute tolerance
                     gaps.append((expected_next, next_timestamp))
 
             # Check for gap at the end

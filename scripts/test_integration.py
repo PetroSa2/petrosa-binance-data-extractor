@@ -11,16 +11,12 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+
 def test_job_telemetry_setup():
     """Test that each job properly sets up telemetry."""
     print("🧪 Testing Job Telemetry Setup...")
 
-    jobs = [
-        "jobs.extract_klines_production",
-        "jobs.extract_klines",
-        "jobs.extract_funding",
-        "jobs.extract_trades"
-    ]
+    jobs = ["jobs.extract_klines_production", "jobs.extract_klines", "jobs.extract_funding", "jobs.extract_trades"]
 
     for job_module in jobs:
         try:
@@ -30,6 +26,7 @@ def test_job_telemetry_setup():
 
             # Check if constants are accessible (means telemetry setup worked)
             import constants
+
             klines_service = constants.OTEL_SERVICE_NAME_KLINES
             funding_service = constants.OTEL_SERVICE_NAME_FUNDING
             trades_service = constants.OTEL_SERVICE_NAME_TRADES
@@ -41,6 +38,7 @@ def test_job_telemetry_setup():
             return False
 
     return True
+
 
 def test_telemetry_functions():
     """Test telemetry-related functions."""
@@ -60,6 +58,7 @@ def test_telemetry_functions():
 
         # Test TelemetryManager
         from utils.telemetry import TelemetryManager
+
         manager = TelemetryManager()
         result = manager.initialize_telemetry(service_name="test-manager")
         print(f"✅ TelemetryManager.initialize_telemetry(): Returns {result}")
@@ -70,6 +69,7 @@ def test_telemetry_functions():
         print(f"❌ Telemetry functions failed: {e}")
         return False
 
+
 def test_environment_variables():
     """Test environment variable handling."""
     print("\n🌍 Testing Environment Variables...")
@@ -79,11 +79,11 @@ def test_environment_variables():
 
         # Test default values
         defaults = {
-            'OTEL_SERVICE_NAME_KLINES': constants.OTEL_SERVICE_NAME_KLINES,
-            'OTEL_SERVICE_NAME_FUNDING': constants.OTEL_SERVICE_NAME_FUNDING,
-            'OTEL_SERVICE_NAME_TRADES': constants.OTEL_SERVICE_NAME_TRADES,
-            'ENABLE_OTEL': constants.ENABLE_OTEL,
-            'OTEL_SERVICE_VERSION': constants.OTEL_SERVICE_VERSION
+            "OTEL_SERVICE_NAME_KLINES": constants.OTEL_SERVICE_NAME_KLINES,
+            "OTEL_SERVICE_NAME_FUNDING": constants.OTEL_SERVICE_NAME_FUNDING,
+            "OTEL_SERVICE_NAME_TRADES": constants.OTEL_SERVICE_NAME_TRADES,
+            "ENABLE_OTEL": constants.ENABLE_OTEL,
+            "OTEL_SERVICE_VERSION": constants.OTEL_SERVICE_VERSION,
         }
 
         for var_name, value in defaults.items():
@@ -96,15 +96,12 @@ def test_environment_variables():
         print(f"❌ Environment variables failed: {e}")
         return False
 
+
 def test_kubernetes_readiness():
     """Test Kubernetes deployment readiness."""
     print("\n☸️  Testing Kubernetes Readiness...")
 
-    k8s_files = [
-        'k8s/otel-config.yaml',
-        'k8s/klines-all-timeframes-cronjobs.yaml',
-        'scripts/deploy-otel.sh'
-    ]
+    k8s_files = ["k8s/otel-config.yaml", "k8s/klines-all-timeframes-cronjobs.yaml", "scripts/deploy-otel.sh"]
 
     all_ready = True
     for file_path in k8s_files:
@@ -116,6 +113,7 @@ def test_kubernetes_readiness():
             all_ready = False
 
     return all_ready
+
 
 def main():
     """Run all tests."""
@@ -151,6 +149,7 @@ def main():
         print("⚠️  Some integration tests failed.")
         print("Please review the errors above before deploying.")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

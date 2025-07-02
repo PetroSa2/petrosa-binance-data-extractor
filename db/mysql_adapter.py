@@ -10,27 +10,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from utils.time_utils import (
-    binance_interval_to_table_suffix,
-    ensure_timezone_aware,
-    table_suffix_to_binance_interval,
-)
+from utils.time_utils import (binance_interval_to_table_suffix,
+                              ensure_timezone_aware,
+                              table_suffix_to_binance_interval)
 
 try:
     import sqlalchemy as sa
-    from sqlalchemy import (
-        Boolean,
-        Column,
-        DateTime,
-        Index,
-        Integer,
-        MetaData,
-        Numeric,
-        String,
-        Table,
-        create_engine,
-        literal_column,
-    )
+    from sqlalchemy import (Boolean, Column, DateTime, Index, Integer,
+                            MetaData, Numeric, String, Table, create_engine,
+                            literal_column)
     from sqlalchemy.engine import Engine
     from sqlalchemy.exc import IntegrityError, SQLAlchemyError
     from sqlalchemy.sql import and_, delete, func, select
@@ -63,9 +51,7 @@ class MySQLAdapter(BaseAdapter):
             **kwargs: Additional SQLAlchemy engine options
         """
         if not SQLALCHEMY_AVAILABLE:
-            raise ImportError(
-                "SQLAlchemy and MySQL driver are required. Install with: pip"
-            )
+            raise ImportError("SQLAlchemy and MySQL driver are required. Install with: pip")
 
         connection_string = connection_string or constants.MYSQL_URI
         super().__init__(connection_string, **kwargs)
@@ -172,9 +158,7 @@ class MySQLAdapter(BaseAdapter):
             Column("total_records", Integer, nullable=False, default=0),
             Column("gaps_detected", Integer, nullable=False, default=0),
             Column("backfill_performed", Boolean, nullable=False, default=False),
-            Column(
-                "extraction_duration_seconds", Numeric(10, 3), nullable=False, default=0
-            ),
+            Column("extraction_duration_seconds", Numeric(10, 3), nullable=False, default=0),
             Column("extracted_at", DateTime, nullable=False),
             Index("idx_extraction_metadata_period_start", "period", "start_time"),
         )
@@ -252,9 +236,7 @@ class MySQLAdapter(BaseAdapter):
                 record = instance.model_dump()
                 # Create unique ID for MySQL
                 if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                    record["id"] = (
-                        f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
-                    )
+                    record["id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
                 records.append(record)
 
             # Insert records
@@ -277,21 +259,17 @@ class MySQLAdapter(BaseAdapter):
         except Exception as e:
             raise DatabaseError(f"Failed to write to MySQL table {collection}: {e}") from e
 
-    def write_batch(
-        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
-    ) -> int:
+    def write_batch(self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000) -> int:
         """Write model instances in batches."""
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i:i + batch_size]
+            batch = model_instances[i : i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 
             if i + batch_size < len(model_instances):
-                logger.debug(
-                    "Written batch %d: %d records to %s", i // batch_size + 1, written, collection
-                )
+                logger.debug("Written batch %d: %d records to %s", i // batch_size + 1, written, collection)
 
         return total_written
 
@@ -310,9 +288,7 @@ class MySQLAdapter(BaseAdapter):
             table = self._get_table(collection)
 
             # Build query
-            query = select(table).where(
-                and_(table.c.timestamp >= start, table.c.timestamp < end)
-            )
+            query = select(table).where(and_(table.c.timestamp >= start, table.c.timestamp < end))
 
             if symbol:
                 query = query.where(table.c.symbol == symbol)
@@ -327,9 +303,7 @@ class MySQLAdapter(BaseAdapter):
         except Exception as e:
             raise DatabaseError(f"Failed to query range from {collection}: {e}") from e
 
-    def query_latest(
-        self, collection: str, symbol: Optional[str] = None, limit: int = 1
-    ) -> List[Dict[str, Any]]:
+    def query_latest(self, collection: str, symbol: Optional[str] = None, limit: int = 1) -> List[Dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -412,7 +386,7 @@ class MySQLAdapter(BaseAdapter):
         try:
             table = self._get_table(collection)
 
-            query = select(func.count(literal_column('*'))).select_from(table)
+            query = select(func.count(literal_column("*"))).select_from(table)
 
             conditions = []
             if start:
