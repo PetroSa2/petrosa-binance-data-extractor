@@ -18,7 +18,12 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 - **[Namespace Configuration](docs/NAMESPACE_UPDATE.md)** - Kubernetes namespace setup and migration
 
 ### Post-Deployment
-- **[Deployment Complete Guide](docs/DEPLOYMENT_COMPLETE.md)** - Post-deployment summary and next steps, h1, and d1 timeframes
+- **[Deployment Complete Guide](docs/DEPLOYMENT_COMPLETE.md)** - Post-deployment summary and next steps
+- **[Versioning Guide](docs/VERSIONING_GUIDE.md)** - Automatic versioning and release management
+
+### Development & CI/CD
+- **[Test Implementation Guide](docs/TEST_IMPLEMENTATION_GUIDE.md)** - Testing strategies and best practices
+- **[OpenTelemetry Setup](docs/OTEL_INSTALLATION_GUIDE.md)** - Observability and monitoring setup
 - **🏃‍♂️ Parallel Processing**: Extract 20+ symbols simultaneously with optimized worker pools
 - **🎯 Zero Configuration**: Production system requires no manual start/end dates
 - **📊 Financial Market Standards**: Proper table naming conventions following financial industry standards
@@ -40,6 +45,7 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 - **📚 Comprehensive Documentation**: Operations guides, troubleshooting, and best practices
 - **🧪 Full Test Coverage**: Unit, integration, and end-to-end testing
 - **🔄 CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions
+- **🏷️ Automatic Versioning**: Semantic versioning with automatic tag creation and release management
 
 ## 📋 Project Structure
 
@@ -82,6 +88,7 @@ petrosa-binance-data-extractor/
 │   ├── validate-production.sh # Production validation
 │   ├── deploy-local.sh      # Local development deployment
 │   ├── build-multiarch.sh   # Multi-architecture Docker builds
+│   ├── create-release.sh    # 🆕 Manual version and release management
 │   └── encode_secrets.py    # Secret encoding for Kubernetes
 ├── Dockerfile               # Multi-stage container build
 ├── tests/                   # Comprehensive test suite
