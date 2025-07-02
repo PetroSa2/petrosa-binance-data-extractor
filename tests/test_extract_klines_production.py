@@ -16,6 +16,7 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+import constants
 from jobs.extract_klines_production import (
     ProductionKlinesExtractor,
     _main_impl,
@@ -469,7 +470,7 @@ class TestParseArguments:
             assert args.max_workers == 5
             assert args.lookback_hours == 24
             assert args.batch_size == 1000
-            assert args.db_adapter == "mysql"  # From environment variable DB_ADAPTER
+            assert args.db_adapter == constants.DB_ADAPTER  # Use actual default from constants
             assert args.db_uri is None
             assert args.log_level == "INFO"
             assert args.dry_run is False

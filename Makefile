@@ -77,8 +77,8 @@ run_pipeline: install-dev
 	@echo "2️⃣ Running type checking..."
 	$(MAKE) test_mypy
 	@echo ""
-	@echo "3️⃣ Running unit tests..."
-	$(MAKE) run_unit_tests
+	@echo "3️⃣ Running tests with coverage..."
+	$(MAKE) coverage
 	@echo ""
 	@echo "✅ Pipeline completed successfully!"
 
