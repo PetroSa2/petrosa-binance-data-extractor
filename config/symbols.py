@@ -55,7 +55,8 @@ def get_symbols_for_environment(environment: str = "production") -> List[str]:
     Returns:
         List of symbol strings
     """
-    if environment.lower() == "production":
+    env = str(environment).lower() if environment else ""
+    if env == "production":
         return PRODUCTION_SYMBOLS
     else:
         return DEVELOPMENT_SYMBOLS

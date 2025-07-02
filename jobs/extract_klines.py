@@ -307,6 +307,7 @@ def main():
     except ValueError as e:
         logger.error(f"Invalid date format: {e}")
         sys.exit(1)
+        return  # Prevent UnboundLocalError if sys.exit is patched in tests
 
     # Get symbols list
     symbols = get_symbols_list(args)
