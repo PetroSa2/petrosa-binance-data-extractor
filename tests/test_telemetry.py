@@ -344,18 +344,22 @@ class TestErrorHandling:
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
     @patch("utils.telemetry.constants.OTEL_EXPORTER_OTLP_ENDPOINT", new="https://test-endpoint.com")
-    @patch("utils.telemetry.OTLPSpanExporter")
-    def test_exporter_initialization_error(self, mock_otlp_exporter):
+    @patch("utils.telemetry.GRPCSpanExporter")
+    def test_exporter_initialization_error(self, mock_grpc_exporter):
         """Test handling of exporter initialization errors."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
         
-        mock_otlp_exporter.side_effect = RuntimeError("Exporter error")
+        mock_grpc_exporter.side_effect = RuntimeError("Exporter error")
         
-        with patch.object(manager.logger, "error") as mock_error:
-            # This should handle the error gracefully
-            manager._setup_tracing(mock_resource)
-            mock_error.assert_called()
+        with patch.dict(os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com"}):
+            with patch.object(telemetry.TelemetryManager.logger, "error") as mock_error:
+                # This should handle the error gracefully
+                manager._setup_tracing(mock_resource)
+                print(f"Mock error called: {mock_error.called}")
+                print(f"Mock error call count: {mock_error.call_count}")
+                print(f"Mock error call args: {mock_error.call_args_list}")
+                mock_error.assert_called()
 
 
 class TestEnvironmentVariables:

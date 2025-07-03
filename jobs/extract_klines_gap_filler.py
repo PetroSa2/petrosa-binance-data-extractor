@@ -22,14 +22,14 @@ import constants
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
+    from utils.telemetry import initialize_telemetry, get_tracer
 
-    # Only initialize OpenTelemetry if not already initialized by opentelemetry-instrument
+    # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES)
-
-    # Import tracing after setup
-    from utils.telemetry import get_tracer
+        initialize_telemetry(
+            service_name=constants.OTEL_SERVICE_NAME_KLINES,
+            environment="production"
+        )
 
     tracer = get_tracer(__name__)
 except ImportError:
