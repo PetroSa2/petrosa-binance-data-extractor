@@ -119,6 +119,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag-created: ${{ steps.create-tag.outputs.tag-created }}
+      latest-version-found: ${{ steps.version.outputs.latest-version-found }}
     
     steps:
     - name: Checkout code
@@ -138,9 +139,12 @@ jobs:
         # Get the latest version from git tags
         LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
         
+        echo "Latest version found: ${LATEST_VERSION}"
+        
         if [ -z "$LATEST_VERSION" ]; then
           # No version tags found, start with v1.0.0
           VERSION="v1.0.0"
+          echo "No previous version found, starting with: ${VERSION}"
         else
           # Extract major, minor, patch from semantic version
           if [[ "$LATEST_VERSION" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
@@ -148,34 +152,46 @@ jobs:
             MINOR="${BASH_REMATCH[2]}"
             PATCH="${BASH_REMATCH[3]}"
             
+            echo "Parsed version: MAJOR=${MAJOR}, MINOR=${MINOR}, PATCH=${PATCH}"
+            
             # Increment patch version for each deployment
             NEW_PATCH=$((PATCH + 1))
             VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+            echo "Incremented to: ${VERSION}"
           else
             # Fallback: if not semantic version, convert to v1.0.0
             VERSION="v1.0.0"
+            echo "Invalid version format, using: ${VERSION}"
           fi
         fi
         
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "Generated version: ${VERSION}"
+        echo "latest-version-found=${LATEST_VERSION}" >> $GITHUB_OUTPUT
+        echo "Final generated version: ${VERSION}"
     
     - name: Create and push tag
       id: create-tag
       run: |
         VERSION="${{ steps.version.outputs.version }}"
         
+        echo "Attempting to create tag: ${VERSION}"
+        
         # Check if tag already exists
-        if git tag "$VERSION" 2>/dev/null; then
-          echo "Tag $VERSION already exists, skipping tag creation"
+        if git rev-parse "$VERSION" >/dev/null 2>&1; then
+          echo "❌ Tag $VERSION already exists, skipping tag creation"
           echo "tag-created=false" >> $GITHUB_OUTPUT
         else
           # Create and push the tag
+          echo "Creating tag: $VERSION"
           git tag "$VERSION"
+          echo "Pushing tag: $VERSION"
           git push origin "$VERSION"
           echo "✅ Created and pushed tag: $VERSION"
           echo "tag-created=true" >> $GITHUB_OUTPUT
         fi
+        
+        echo "All existing tags:"
+        git tag --sort=-version:refname | head -10
 
   build-and-push:
     needs: [lint-and-test, security-scan, create-release]
@@ -199,16 +215,24 @@ jobs:
     - name: Determine version
       id: version
       run: |
+        echo "GitHub ref: ${{ github.ref }}"
+        echo "GitHub ref name: ${{ github.ref_name }}"
+        echo "Create-release version output: ${{ needs.create-release.outputs.version }}"
+        echo "Create-release tag-created output: ${{ needs.create-release.outputs.tag-created }}"
+        echo "Create-release latest-version-found output: ${{ needs.create-release.outputs.latest-version-found }}"
+        
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           # For tags, use the tag name (e.g., v1.0.0)
           VERSION="${{ github.ref_name }}"
+          echo "Using tag version: ${VERSION}"
         else
           # For main branch, use the version from create-release job
           VERSION="${{ needs.create-release.outputs.version }}"
+          echo "Using create-release version: ${VERSION}"
         fi
         
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "Using version: ${VERSION}"
+        echo "Final version for build: ${VERSION}"
     
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
