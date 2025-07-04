@@ -80,12 +80,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            # Database configuration from ConfigMap
-            - name: DB_ADAPTER
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: EXTRACTOR_DB_ADAPTER
             
             # Application configuration
             - name: LOG_LEVEL
