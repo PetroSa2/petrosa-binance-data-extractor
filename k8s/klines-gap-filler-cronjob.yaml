@@ -60,7 +60,7 @@ spec:
             - --max-workers=3
             - --db-adapter=mysql
             - --weekly-chunk-days=7
-            - --max-gap-size-days=30
+            - --max-gap-size-days=365
             
             # Environment variables from secrets and configmaps
             env:
