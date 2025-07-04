@@ -322,9 +322,23 @@ jobs:
         echo "Using image tag: ${IMAGE_TAG}"
         
         # Update the image tag in Kubernetes manifests
-        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|image: .*/petrosa-binance-extractor:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}|g"
+        # Replace VERSION_PLACEHOLDER with the actual version tag
+        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|VERSION_PLACEHOLDER|${IMAGE_TAG}|g"
         
         echo "Updated manifests with image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}"
+        
+        # Verify the changes
+        echo "Verifying image tag updates:"
+        grep -r "image:.*petrosa-binance-extractor" k8s/ || echo "No image references found"
+        
+        # Double-check that no VERSION_PLACEHOLDER remain
+        PLACEHOLDER_COUNT=$(grep -r "VERSION_PLACEHOLDER" k8s/ | wc -l || echo "0")
+        if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
+          echo "⚠️ Warning: Found $PLACEHOLDER_COUNT references to VERSION_PLACEHOLDER"
+          grep -r "VERSION_PLACEHOLDER" k8s/
+        else
+          echo "✅ All image references updated to versioned tag: ${IMAGE_TAG}"
+        fi
     
     - name: Deploy secrets (if not exists)
       run: |
@@ -395,6 +409,11 @@ jobs:
         kubectl get cronjob klines-gap-filler -n petrosa-apps -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].resources}' --insecure-skip-tls-verify 2>/dev/null || echo "Resource configuration not found"
         echo ""
         
+        # Show deployed image versions
+        echo "🐳 Deployed image versions:"
+        kubectl get cronjob -n petrosa-apps -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.jobTemplate.spec.template.spec.containers[0].image}{"\n"}{end}' --insecure-skip-tls-verify 2>/dev/null || echo "Could not retrieve image versions"
+        echo ""
+        
         # Show recent pods
         echo "📦 Recent pods:"
         kubectl get pods --sort-by=.metadata.creationTimestamp -n petrosa-apps --insecure-skip-tls-verify | tail -10 || echo "No pods found"
@@ -411,6 +430,9 @@ jobs:
     
     - name: Deployment summary
       run: |
+        # Get the version that was deployed
+        IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
+        
         echo "🎉 Deployment to MicroK8s completed successfully!"
         echo ""
         echo "📋 What was deployed:"
@@ -419,6 +441,11 @@ jobs:
         echo "  ✅ Regular klines extraction CronJobs (all timeframes)"
         echo "  ✅ Gap filler CronJob (daily at 2 AM UTC)"
         echo "  ✅ Secrets verified/created"
+        echo ""
+        echo "🏷️ Version Information:"
+        echo "  📦 Image Tag: ${IMAGE_TAG}"
+        echo "  🔄 Image Pull Policy: Always (ensures latest version)"
+        echo "  📅 Deployed at: $(date -u)"
         echo ""
         echo "📊 Monitor your deployment:"
         echo "  kubectl get all -l app=binance-extractor -n petrosa-apps"
@@ -436,6 +463,9 @@ jobs:
         echo "  3. Check that the image can pull successfully"
         echo "  4. Verify gap filler CronJob schedule (daily at 2 AM UTC)"
         echo "  5. Monitor gap filler job logs for retry behavior and success rates"
+        echo ""
+        echo "🔍 Verify deployed image version:"
+        echo "  kubectl get cronjob -n petrosa-apps -o jsonpath='{.items[*].spec.jobTemplate.spec.template.spec.containers[*].image}'"
 
   notify:
     needs: [build-and-push, deploy, create-release]
@@ -447,19 +477,23 @@ jobs:
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
         TAG_CREATED="${{ needs.create-release.outputs.tag-created }}"
+        IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
         
         if [ "${{ needs.deploy.result }}" == "success" ]; then
           echo "✅ Deployment successful!"
           echo "📦 Version: ${VERSION}"
+          echo "🐳 Image Tag: ${IMAGE_TAG}"
           if [ "$TAG_CREATED" == "true" ]; then
             echo "🏷️  New tag created: ${VERSION}"
           else
             echo "🏷️  Using existing tag: ${VERSION}"
           fi
+          echo "🚀 Deployed to MicroK8s with versioned image tag"
           # Add success notification logic here
         else
           echo "❌ Deployment failed!"
           echo "📦 Version: ${VERSION}"
+          echo "🐳 Image Tag: ${IMAGE_TAG}"
           # Add failure notification logic here
         fi
 
