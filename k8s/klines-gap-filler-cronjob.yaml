@@ -89,9 +89,23 @@ spec:
             
             # Application configuration
             - name: LOG_LEVEL
-              value: INFO
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: production
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: DB_ADAPTER
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
+            - name: API_KEY
                   
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
@@ -141,9 +155,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-            - name: OTEL_NO_AUTO_INIT
-              value: "1"
-            - name: API_KEY
                   
             # Kubernetes environment detection
             - name: K8S_NAMESPACE
