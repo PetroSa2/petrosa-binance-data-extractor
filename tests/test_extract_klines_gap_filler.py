@@ -192,7 +192,7 @@ class TestParseArguments:
             assert args.max_workers == 3
             assert args.batch_size == gap_filler.constants.DB_BATCH_SIZE
             assert args.weekly_chunk_days == 7
-            assert args.max_gap_size_days == 30
+            assert args.max_gap_size_days == 365
             assert args.db_adapter == gap_filler.constants.DB_ADAPTER
             assert args.log_level == gap_filler.constants.LOG_LEVEL
             assert args.dry_run is False
