@@ -40,6 +40,8 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           
@@ -214,6 +216,8 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           
@@ -321,6 +325,8 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           
@@ -428,6 +434,8 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           
@@ -600,6 +608,8 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           

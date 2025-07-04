@@ -127,6 +127,7 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-tags: true
     
     - name: Configure Git
       run: |
@@ -136,6 +137,21 @@ jobs:
     - name: Generate semantic version
       id: version
       run: |
+        echo "🔍 Debugging version generation..."
+        echo "Current directory: $(pwd)"
+        echo "Git status:"
+        git status --porcelain
+        echo ""
+        echo "All git tags:"
+        git tag --sort=-version:refname
+        echo ""
+        echo "Git remote info:"
+        git remote -v
+        echo ""
+        echo "Git log --oneline -5:"
+        git log --oneline -5
+        echo ""
+        
         # Get the latest version from git tags
         LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
         
@@ -146,6 +162,7 @@ jobs:
           VERSION="v1.0.0"
           echo "No previous version found, starting with: ${VERSION}"
         else
+          echo "Found existing version: ${LATEST_VERSION}"
           # Extract major, minor, patch from semantic version
           if [[ "$LATEST_VERSION" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             MAJOR="${BASH_REMATCH[1]}"
@@ -178,17 +195,18 @@ jobs:
         
         # Check if tag already exists
         if git rev-parse "$VERSION" >/dev/null 2>&1; then
-          echo "❌ Tag $VERSION already exists, skipping tag creation"
-          echo "tag-created=false" >> $GITHUB_OUTPUT
-        else
-          # Create and push the tag
-          echo "Creating tag: $VERSION"
-          git tag "$VERSION"
-          echo "Pushing tag: $VERSION"
-          git push origin "$VERSION"
-          echo "✅ Created and pushed tag: $VERSION"
-          echo "tag-created=true" >> $GITHUB_OUTPUT
+          echo "⚠️ Tag $VERSION already exists, deleting and recreating..."
+          git tag -d "$VERSION"
+          git push origin ":refs/tags/$VERSION" || echo "Tag deletion from remote failed (may not exist remotely)"
         fi
+        
+        # Create and push the tag
+        echo "Creating tag: $VERSION"
+        git tag "$VERSION"
+        echo "Pushing tag: $VERSION"
+        git push origin "$VERSION"
+        echo "✅ Created and pushed tag: $VERSION"
+        echo "tag-created=true" >> $GITHUB_OUTPUT
         
         echo "All existing tags:"
         git tag --sort=-version:refname | head -10
