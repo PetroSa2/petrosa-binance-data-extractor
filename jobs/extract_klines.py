@@ -31,10 +31,12 @@ except ImportError:
     pass
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
-from utils.logger import (log_extraction_completion, log_extraction_start,
-                          setup_logging)
-from utils.time_utils import (format_duration, get_current_utc_time,
-                              parse_datetime_string)
+from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
+from utils.time_utils import (
+    format_duration,
+    get_current_utc_time,
+    parse_datetime_string,
+)
 
 
 def parse_arguments():

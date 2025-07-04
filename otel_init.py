@@ -5,9 +5,9 @@ This script is designed to be called by opentelemetry-instrument to properly
 initialize OpenTelemetry before the main application starts.
 """
 
+import logging
 import os
 import sys
-import logging
 from typing import Optional
 
 # Configure logging
@@ -19,25 +19,26 @@ def setup_opentelemetry():
     try:
         # Import OpenTelemetry components
         from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+            OTLPSpanExporter as GRPCSpanExporter,
+        )
+        from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import (
             BatchSpanProcessor,
             ConsoleSpanExporter,
-            OTLPSpanExporter
         )
-        from opentelemetry.sdk.resources import Resource
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter as GRPCSpanExporter
-        
+
         # Create resource with service information
         resource = Resource.create({
             "service.name": "binance-data-extractor",
             "service.version": "1.0.0",
             "deployment.environment": os.getenv("ENVIRONMENT", "production")
         })
-        
+
         # Create tracer provider
         provider = TracerProvider(resource=resource)
-        
+
         # Add span processors based on environment
         if os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
             # Use OTLP exporter if endpoint is configured
@@ -51,18 +52,18 @@ def setup_opentelemetry():
             # Use console exporter for local development
             provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
             logger.info("Console exporter configured")
-        
+
         # Set the global tracer provider
         trace.set_tracer_provider(provider)
-        
+
         # Create a test tracer to verify setup
         test_tracer = trace.get_tracer("otel_init")
         with test_tracer.start_as_current_span("initialization_test") as span:
             span.set_attribute("init.success", True)
             logger.info("OpenTelemetry initialization successful")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"Failed to setup OpenTelemetry: {e}")
         return False
@@ -76,13 +77,13 @@ def setup_telemetry(service_name: Optional[str] = None, service_version: Optiona
         os.environ["OTEL_SERVICE_VERSION"] = service_version
     if environment:
         os.environ["ENVIRONMENT"] = environment
-    
+
     return setup_opentelemetry()
 
 def main():
     """Main entry point for OpenTelemetry initialization."""
     logger.info("Starting OpenTelemetry initialization...")
-    
+
     if setup_opentelemetry():
         logger.info("OpenTelemetry setup completed successfully")
         return 0

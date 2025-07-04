@@ -18,9 +18,7 @@ sys.path.insert(0, project_root)
 from db.base_adapter import BaseAdapter, DatabaseError
 from db.mongodb_adapter import MongoDBAdapter
 from db.mysql_adapter import MySQLAdapter
-from models.funding_rate import FundingRateModel
 from models.kline import KlineModel
-from models.trade import TradeModel
 
 
 class TestBaseAdapter:
@@ -299,12 +297,12 @@ class TestMongoDBAdapter:
         mock_mongo_client.return_value = mock_client
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
-        
+
         # Mock the cursor chain: find().sort()
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
         mock_cursor.__iter__.return_value = []  # Empty result
-        
+
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
         adapter.database = mock_database

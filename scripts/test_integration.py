@@ -28,9 +28,6 @@ def test_job_telemetry_setup():
             import constants
 
             klines_service = constants.OTEL_SERVICE_NAME_KLINES
-            funding_service = constants.OTEL_SERVICE_NAME_FUNDING
-            trades_service = constants.OTEL_SERVICE_NAME_TRADES
-
             print(f"   - Service names accessible: klines={klines_service}")
 
         except Exception as e:

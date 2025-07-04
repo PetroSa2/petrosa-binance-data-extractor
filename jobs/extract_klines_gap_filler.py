@@ -22,7 +22,7 @@ import constants
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from utils.telemetry import initialize_telemetry, get_tracer
+    from utils.telemetry import get_tracer, initialize_telemetry
 
     # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
@@ -38,12 +38,17 @@ from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
 from models.kline import KlineModel
-from utils.logger import (get_logger, log_extraction_completion,
-                          log_extraction_start, setup_logging)
-from utils.retry import exponential_backoff
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              format_duration, get_current_utc_time,
-                              get_interval_minutes, parse_datetime_string)
+from utils.logger import (
+    get_logger,
+    log_extraction_completion,
+    log_extraction_start,
+    setup_logging,
+)
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    format_duration,
+    get_current_utc_time,
+)
 
 
 def retry_with_backoff(
@@ -181,7 +186,7 @@ class GapFillerExtractor:
         max_workers: int = 3,
         batch_size: int = 1000,
         weekly_chunk_days: int = 7,
-        max_gap_size_days: int = 30,
+        max_gap_size_days: int = 365,
     ):
         self.symbols = symbols
         self.period = period

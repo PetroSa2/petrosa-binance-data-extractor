@@ -24,14 +24,11 @@ try:
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_FUNDING)
 except ImportError:
     pass
+
 from db import get_adapter
 from fetchers import BinanceClient, FundingRatesFetcher
-from models.funding_rate import FundingRateModel
-from utils.logger import (get_logger, log_extraction_completion,
-                          log_extraction_start, setup_logging)
-from utils.retry import exponential_backoff
-from utils.time_utils import (format_duration, get_current_utc_time,
-                              parse_datetime_string)
+from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
+from utils.time_utils import format_duration, parse_datetime_string
 
 
 def parse_arguments():

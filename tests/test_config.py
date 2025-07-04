@@ -12,10 +12,12 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import pytest
 
-from config.symbols import (DEVELOPMENT_SYMBOLS, PRODUCTION_SYMBOLS,
-                            get_symbols_for_environment)
+from config.symbols import (
+    DEVELOPMENT_SYMBOLS,
+    PRODUCTION_SYMBOLS,
+    get_symbols_for_environment,
+)
 
 
 class TestSymbolsConfig:
