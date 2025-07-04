@@ -665,7 +665,7 @@ Examples:
 
     parser.add_argument("--weekly-chunk-days", type=int, default=7, help="Number of days per weekly chunk (default: 7)")
 
-    parser.add_argument("--max-gap-size-days", type=int, default=30, help="Maximum gap size in days to process (default: 30)")
+    parser.add_argument("--max-gap-size-days", type=int, default=365, help="Maximum gap size in days to process (default: 365)")
 
     parser.add_argument(
         "--db-adapter",
