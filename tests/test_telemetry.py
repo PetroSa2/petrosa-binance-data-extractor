@@ -4,9 +4,9 @@ Tests for the telemetry module.
 
 import os
 import sys
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import contextlib
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,7 +39,7 @@ class TestTelemetryManager:
         """Test initialization when already initialized."""
         manager = telemetry.TelemetryManager()
         manager.initialized = True
-        
+
         with patch.object(manager.logger, "info") as mock_info:
             result = manager.initialize_telemetry()
             assert result is True
@@ -82,11 +82,11 @@ class TestTelemetryManager:
     def test_initialize_telemetry_import_error(self):
         """Test initialization with import error."""
         manager = telemetry.TelemetryManager()
-        
+
         with patch.object(manager, "_create_resource", side_effect=ImportError("test error")):
             with patch.object(manager.logger, "error") as mock_error:
                 result = manager.initialize_telemetry()
-                
+
                 assert result is False
                 assert manager.initialized is False
                 mock_error.assert_called()
@@ -100,9 +100,9 @@ class TestTelemetryManager:
         mock_resource_instance = Mock()
         mock_resource.create.return_value = mock_resource_instance
         mock_resource.return_value = mock_resource_instance
-        
+
         result = manager._create_resource("test-service", "1.0.0", "test-env")
-        
+
         assert result == mock_resource_instance
         mock_resource.create.assert_called()
 
@@ -115,7 +115,7 @@ class TestTelemetryManager:
         mock_resource_instance = Mock()
         mock_resource.create.return_value = mock_resource_instance
         mock_resource.return_value = mock_resource_instance
-        
+
         with patch.dict(os.environ, {
             "KUBERNETES_SERVICE_HOST": "test-host",
             "K8S_CLUSTER_NAME": "test-cluster",
@@ -125,7 +125,7 @@ class TestTelemetryManager:
             "K8S_DEPLOYMENT_NAME": "test-deployment"
         }):
             result = manager._create_resource()
-            
+
             assert result == mock_resource_instance
             mock_resource.create.assert_called()
 
@@ -138,10 +138,10 @@ class TestTelemetryManager:
         mock_resource_instance = Mock()
         mock_resource.create.return_value = mock_resource_instance
         mock_resource.return_value = mock_resource_instance
-        
+
         with patch("utils.telemetry.constants.OTEL_RESOURCE_ATTRIBUTES", "key1=value1,key2=value2"):
             result = manager._create_resource()
-            
+
             assert result == mock_resource_instance
             mock_resource.create.assert_called()
 
@@ -163,24 +163,24 @@ class TestTelemetryManager:
         """Test tracing setup."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
-        
+
         # Mock instances
         mock_provider_instance = Mock()
         mock_tracer_provider.return_value = mock_provider_instance
-        
+
         mock_otlp_exporter_instance = Mock()
         mock_otlp_exporter.return_value = mock_otlp_exporter_instance
-        
+
         mock_console_exporter_instance = Mock()
         mock_console_exporter.return_value = mock_console_exporter_instance
-        
+
         mock_processor_instance = Mock()
         mock_batch_processor.return_value = mock_processor_instance
-        
+
         mock_provider_instance.get_tracer.return_value = DummyContextManager()
-        
+
         manager._setup_tracing(mock_resource)
-        
+
         mock_tracer_provider.assert_called_with(resource=mock_resource)
         mock_trace.set_tracer_provider.assert_called_with(mock_provider_instance)
         mock_provider_instance.add_span_processor.assert_called()
@@ -217,9 +217,9 @@ class TestTelemetryManager:
         mock_logging_instr.return_value = mock_logging_instance
         mock_pymongo_instance = Mock()
         mock_pymongo_instr.return_value = mock_pymongo_instance
-        
+
         manager._setup_auto_instrumentation()
-        
+
         # Verify that instrument() was called on each instance
         mock_requests_instance.instrument.assert_called()
         mock_sqlalchemy_instance.instrument.assert_called()
@@ -243,20 +243,20 @@ class TestTelemetryManager:
     def test_parse_headers(self):
         """Test header parsing."""
         manager = telemetry.TelemetryManager()
-        
+
         # Test valid headers
         headers_str = "key1=value1,key2=value2"
         result = manager._parse_headers(headers_str)
         assert result == {"key1": "value1", "key2": "value2"}
-        
+
         # Test empty headers
         result = manager._parse_headers("")
         assert result == {}
-        
+
         # Test None headers
         result = manager._parse_headers(None)
         assert result == {}
-        
+
         # Test invalid format
         result = manager._parse_headers("invalid_format")
         assert result == {}
@@ -268,10 +268,10 @@ class TestTelemetryManager:
         manager = telemetry.TelemetryManager()
         mock_tracer = Mock()
         mock_trace.get_tracer.return_value = mock_tracer
-        
+
         manager.initialized = True
         result = manager.get_tracer("test-tracer")
-        
+
         assert result == mock_tracer
         mock_trace.get_tracer.assert_called_with("test-tracer")
 
@@ -282,10 +282,10 @@ class TestTelemetryManager:
         manager = telemetry.TelemetryManager()
         mock_meter = Mock()
         mock_metrics.get_meter.return_value = mock_meter
-        
+
         manager.initialized = True
         result = manager.get_meter("test-meter")
-        
+
         assert result == mock_meter
         mock_metrics.get_meter.assert_called_with("test-meter")
 
@@ -312,7 +312,7 @@ class TestCloudResourceDetectors:
         """Test GCP resource detector integration."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
-        
+
         with patch.object(manager, "_create_resource", return_value=mock_resource):
             # This should not raise an exception
             manager._create_resource()
@@ -322,7 +322,7 @@ class TestCloudResourceDetectors:
         """Test AWS resource detector integration."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
-        
+
         with patch.object(manager, "_create_resource", return_value=mock_resource):
             # This should not raise an exception
             manager._create_resource()
@@ -335,7 +335,7 @@ class TestErrorHandling:
     def test_resource_detector_import_error(self):
         """Test handling of resource detector import errors."""
         manager = telemetry.TelemetryManager()
-        
+
         with patch.object(manager.logger, "debug") as mock_debug:
             # This should not raise an exception
             manager._create_resource()
@@ -349,9 +349,9 @@ class TestErrorHandling:
         """Test handling of exporter initialization errors."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
-        
+
         mock_grpc_exporter.side_effect = RuntimeError("Exporter error")
-        
+
         with patch.dict(os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com"}):
             with patch.object(telemetry.TelemetryManager.logger, "error") as mock_error:
                 # This should handle the error gracefully
@@ -398,4 +398,4 @@ class TestEnvironmentVariables:
             mock_resource.create.assert_called()
 
 
- 
+

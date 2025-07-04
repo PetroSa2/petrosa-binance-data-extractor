@@ -7,8 +7,6 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime
-from typing import List
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -28,10 +26,8 @@ except ImportError:
     pass
 from db import get_adapter
 from fetchers import BinanceClient, TradesFetcher
-from utils.logger import (log_extraction_completion, log_extraction_start,
-                          setup_logging)
-from utils.time_utils import (format_duration, get_current_utc_time,
-                              parse_datetime_string)
+from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
+from utils.time_utils import format_duration
 
 
 def parse_arguments():

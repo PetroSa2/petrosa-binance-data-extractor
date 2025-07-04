@@ -19,7 +19,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent
@@ -113,8 +113,7 @@ class PipelineRunner:
 
                 return self._run_trades_job(trades_main, **kwargs)
             elif job_name == "gap-filler":
-                from jobs.extract_klines_gap_filler import \
-                    main as gap_filler_main
+                from jobs.extract_klines_gap_filler import main as gap_filler_main
 
                 return self._run_gap_filler_job(gap_filler_main, **kwargs)
         except ImportError as e:

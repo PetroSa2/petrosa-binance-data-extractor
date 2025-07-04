@@ -4,8 +4,8 @@ Unit tests for jobs/extract_klines_gap_filler.py
 """
 import os
 import sys
-from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, Mock, patch
+from datetime import datetime, timezone
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -137,12 +137,12 @@ class TestGapFillerExtractor:
     def test_process_symbol_gaps(self, mock_retry, mock_random, mock_sleep, mock_kline_model_cls, mock_klines_fetcher_cls):
         # Mock random.uniform to return a small value
         mock_random.return_value = 0.1
-        
+
         # Mock retry_with_backoff to just call the function directly
         def mock_retry_wrapper(func, *args, **kwargs):
             return func()
         mock_retry.side_effect = mock_retry_wrapper
-        
+
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         mock_binance_client = Mock()
         mock_db_adapter = Mock()

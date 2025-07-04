@@ -7,16 +7,13 @@ import os
 import sys
 from datetime import datetime, timezone
 from decimal import Decimal
-from unittest.mock import Mock
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import pytest
 
-from models.base import (BaseSymbolModel, BaseTimestampedModel,
-                         ExtractionMetadata)
+from models.base import BaseSymbolModel, BaseTimestampedModel, ExtractionMetadata
 from models.funding_rate import FundingRateModel
 from models.kline import KlineModel
 from models.trade import TradeModel

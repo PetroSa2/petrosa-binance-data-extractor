@@ -242,8 +242,7 @@ def retry_on_http_errors(max_retries: Optional[int] = None, base_delay: Optional
 
     # Try to import requests exceptions if available
     try:
-        from requests.exceptions import \
-            ConnectionError as RequestsConnectionError
+        from requests.exceptions import ConnectionError as RequestsConnectionError
         from requests.exceptions import RequestException, Timeout
 
         http_retryable_exceptions = http_retryable_exceptions + (

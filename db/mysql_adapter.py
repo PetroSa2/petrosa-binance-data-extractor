@@ -5,20 +5,32 @@ This module provides a MySQL/MariaDB implementation of the BaseAdapter interface
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              ensure_timezone_aware,
-                              table_suffix_to_binance_interval)
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    ensure_timezone_aware,
+    table_suffix_to_binance_interval,
+)
 
 try:
     import sqlalchemy as sa
-    from sqlalchemy import (Boolean, Column, DateTime, Index, Integer,
-                            MetaData, Numeric, String, Table, create_engine,
-                            literal_column)
+    from sqlalchemy import (
+        Boolean,
+        Column,
+        DateTime,
+        Index,
+        Integer,
+        MetaData,
+        Numeric,
+        String,
+        Table,
+        create_engine,
+        literal_column,
+    )
     from sqlalchemy.engine import Engine
     from sqlalchemy.exc import IntegrityError, SQLAlchemyError
     from sqlalchemy.sql import and_, delete, func, select
@@ -264,7 +276,7 @@ class MySQLAdapter(BaseAdapter):
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i : i + batch_size]
+            batch = model_instances[i:i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 

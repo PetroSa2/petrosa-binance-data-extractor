@@ -17,9 +17,13 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import constants
-from jobs.extract_klines_production import (ProductionKlinesExtractor,
-                                            _main_impl, main, parse_arguments,
-                                            retry_with_backoff)
+from jobs.extract_klines_production import (
+    ProductionKlinesExtractor,
+    _main_impl,
+    main,
+    parse_arguments,
+    retry_with_backoff,
+)
 from models.kline import KlineModel
 
 
@@ -693,7 +697,7 @@ class TestMainFunction:
             mock_span_context = Mock()
             mock_span_context.trace_id = 1234567890  # Must be int for format()
             mock_span.get_span_context.return_value = mock_span_context
-            
+
             # Create a proper context manager mock
             mock_context_manager = Mock()
             mock_context_manager.__enter__ = Mock(return_value=mock_span)

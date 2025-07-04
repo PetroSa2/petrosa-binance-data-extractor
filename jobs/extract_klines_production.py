@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 # Add project root to path (works for both local and container environments)
@@ -39,18 +39,22 @@ try:
 except ImportError:
     pass
 
-from utils.telemetry import get_tracer
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from models.kline import KlineModel
-from utils.logger import (get_logger, log_extraction_completion,
-                          log_extraction_start, setup_logging)
-from utils.retry import exponential_backoff
-from utils.time_utils import (binance_interval_to_table_suffix,
-                              ensure_timezone_aware, format_duration,
-                              get_current_utc_time, get_interval_minutes,
-                              parse_datetime_string)
+from utils.logger import (
+    get_logger,
+    log_extraction_completion,
+    log_extraction_start,
+    setup_logging,
+)
+from utils.telemetry import get_tracer
+from utils.time_utils import (
+    binance_interval_to_table_suffix,
+    ensure_timezone_aware,
+    format_duration,
+    get_current_utc_time,
+)
 
 
 def retry_with_backoff(func, max_retries=3, base_delay=1.0, max_delay=60.0, logger=None):
@@ -568,7 +572,7 @@ def main():
     try:
         # Use the module name instead of __name__ to get the correct tracer
         current_tracer = get_tracer("jobs.extract_klines_production")
-        
+
         if current_tracer:
             with current_tracer.start_as_current_span("klines_extraction_main") as span:
                 span.set_attribute("extraction.type", "klines_production")

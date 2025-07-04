@@ -11,9 +11,13 @@ from fetchers.client import BinanceAPIError, BinanceClient
 from models.base import ExtractionMetadata
 from models.kline import KlineModel
 from utils.logger import get_logger
-from utils.time_utils import (align_timestamp_to_interval, find_time_gaps,
-                              get_current_utc_time, get_interval_timedelta,
-                              validate_time_range)
+from utils.time_utils import (
+    align_timestamp_to_interval,
+    find_time_gaps,
+    get_current_utc_time,
+    get_interval_timedelta,
+    validate_time_range,
+)
 
 logger = get_logger(__name__)
 

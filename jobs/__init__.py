@@ -18,6 +18,6 @@ __author__ = "Petrosa Team"
 # from jobs.extract_klines_production import ProductionKlinesExtractor
 # from jobs.extract_klines_gap_filler import GapFillerExtractor
 
-__all__ = [
+__all__: list[str] = [
     # Empty list to avoid automatic imports
 ]

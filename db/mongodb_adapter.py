@@ -14,8 +14,7 @@ try:
     from pymongo import ASCENDING, DESCENDING, MongoClient
     from pymongo.collection import Collection
     from pymongo.database import Database
-    from pymongo.errors import (BulkWriteError, ConnectionFailure,
-                                DuplicateKeyError)
+    from pymongo.errors import BulkWriteError, ConnectionFailure, DuplicateKeyError
 
     PYMONGO_AVAILABLE = True
 except ImportError:
@@ -121,7 +120,7 @@ class MongoDBAdapter(BaseAdapter):
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i : i + batch_size]
+            batch = model_instances[i:i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 

@@ -5,9 +5,7 @@ Unit tests for jobs/extract_klines.py
 import os
 import sys
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock, patch
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
