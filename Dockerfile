@@ -31,7 +31,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # Production stage
-FROM python:3.11-slim as production
+FROM python:3.11-slim AS production
 
 # Build arguments
 ARG VERSION=dev
@@ -104,7 +104,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD ["python", "jobs/extract_klines.py", "--help"]
 
 # Development stage (for local development)
-FROM production as development
+FROM production AS development
 
 # Switch back to root for development tools
 USER root
@@ -129,7 +129,7 @@ EXPOSE 8888
 CMD ["python", "-c", "print('Development container ready. Use docker exec to run commands.')"]
 
 # Testing stage
-FROM development as testing
+FROM development AS testing
 
 # Copy test files
 COPY --chown=appuser:appuser tests/ tests/
@@ -144,10 +144,10 @@ USER appuser
 CMD ["pytest", "tests/", "-v", "--cov=.", "--cov-report=html"]
 
 # Production optimized stage
-FROM production as optimized
+FROM production AS optimized
 
 # Use alpine for smaller image size
-FROM python:3.11-alpine as alpine-builder
+FROM python:3.11-alpine AS alpine-builder
 
 # Build arguments
 ARG VERSION=dev
@@ -172,7 +172,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # Final alpine stage
-FROM python:3.11-alpine as alpine-production
+FROM python:3.11-alpine AS alpine-production
 
 # Build arguments
 ARG VERSION=dev

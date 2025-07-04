@@ -181,7 +181,7 @@ class GapFillerExtractor:
         max_workers: int = 3,
         batch_size: int = 1000,
         weekly_chunk_days: int = 7,
-        max_gap_size_days: int = 30,
+        max_gap_size_days: int = 365,
     ):
         self.symbols = symbols
         self.period = period

@@ -12,15 +12,12 @@ This package contains various data extraction jobs:
 __version__ = "2.0.0"
 __author__ = "Petrosa Team"
 
-# Import main job classes for easier access
-try:
-    from .extract_klines_gap_filler import GapFillerExtractor
-    from .extract_klines_production import ProductionKlinesExtractor
-except ImportError:
-    # Allow partial imports for testing
-    pass
+# Note: We don't import job classes here to avoid circular imports
+# when running modules with python -m jobs.extract_klines_production
+# Import them directly in your code when needed:
+# from jobs.extract_klines_production import ProductionKlinesExtractor
+# from jobs.extract_klines_gap_filler import GapFillerExtractor
 
 __all__ = [
-    "ProductionKlinesExtractor",
-    "GapFillerExtractor",
+    # Empty list to avoid automatic imports
 ]
