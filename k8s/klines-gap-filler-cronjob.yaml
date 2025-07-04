@@ -46,7 +46,7 @@ spec:
           containers:
           - name: klines-gap-filler
             # Production image with telemetry fixes
-            image: yurisa2/petrosa-binance-extractor:latest
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:

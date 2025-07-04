@@ -48,7 +48,7 @@ spec:
           containers:
           - name: klines-extractor
             # Production image with telemetry fixes
-            image: yurisa2/petrosa-binance-extractor:latest
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -223,7 +223,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:latest
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             
             command:
@@ -332,7 +332,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:latest
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             
             command:
@@ -441,7 +441,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:latest
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -615,7 +615,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:latest
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             
             command:
