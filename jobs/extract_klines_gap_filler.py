@@ -26,8 +26,10 @@ try:
 
     # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
+        # Use environment variable if available, otherwise fall back to constants
+        service_name = os.getenv("OTEL_SERVICE_NAME_KLINES", constants.OTEL_SERVICE_NAME_KLINES)
         initialize_telemetry(
-            service_name=constants.OTEL_SERVICE_NAME_KLINES,
+            service_name=service_name,
             environment="production"
         )
 
@@ -692,12 +694,25 @@ Examples:
 
 def main():
     """Main entry point."""
-    if tracer:
-        with tracer.start_as_current_span("klines_gap_filling_main") as span:
-            span.set_attribute("extraction.type", "klines_gap_filling")
-            span.set_attribute("service.name", "binance-klines-gap-filler")
+    # Use simple tracer approach like production job
+    try:
+        # Use the module name instead of __name__ to get the correct tracer
+        current_tracer = get_tracer("jobs.extract_klines_gap_filler")
+
+        if current_tracer:
+            with current_tracer.start_as_current_span("klines_gap_filling_main") as span:
+                span.set_attribute("extraction.type", "klines_gap_filling")
+                span.set_attribute("service.name", "binance-klines-gap-filler")
+                # Force span context to be active for logging
+                span_context = span.get_span_context()
+                if span_context.trace_id != 0:
+                    print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")
+                _main_impl()
+        else:
+            print("Tracer not available, running without tracing")
             _main_impl()
-    else:
+    except Exception as e:
+        print(f"Tracing setup failed: {e}, running without tracing")
         _main_impl()
 
 
