@@ -38,6 +38,9 @@ class NATSMessenger:
         """Connect to NATS server."""
         try:
             if self.client is None or self.client.is_closed:
+                # Ensure nats_url is not None before passing to nats.connect
+                if self.nats_url is None:
+                    raise ValueError("NATS URL is not configured")
                 self.client = await nats.connect(self.nats_url)
                 logger.info(f"Connected to NATS server at {self.nats_url}")
         except Exception as e:
@@ -80,6 +83,11 @@ class NATSMessenger:
         """
         if self.client is None or self.client.is_closed:
             await self.connect()
+
+        # Ensure client is connected before publishing
+        if self.client is None:
+            logger.error("Failed to connect to NATS server")
+            return
 
         message = {
             "event_type": "extraction_completed",
@@ -136,6 +144,11 @@ class NATSMessenger:
         """
         if self.client is None or self.client.is_closed:
             await self.connect()
+
+        # Ensure client is connected before publishing
+        if self.client is None:
+            logger.error("Failed to connect to NATS server")
+            return
 
         message = {
             "event_type": "batch_extraction_completed",
