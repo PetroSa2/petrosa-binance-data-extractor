@@ -32,6 +32,7 @@ except ImportError:
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
+from utils.messaging import publish_extraction_completion_sync
 from utils.time_utils import (
     format_duration,
     get_current_utc_time,
@@ -351,6 +352,23 @@ def main():
                     f"written={result['records_written']}, "
                     f"duration={format_duration(result['duration_seconds'])}"
                 )
+
+                # Send NATS message for symbol completion
+                if constants.NATS_ENABLED:
+                    try:
+                        publish_extraction_completion_sync(
+                            symbol=symbol,
+                            period=args.period,
+                            records_fetched=result["records_fetched"],
+                            records_written=result["records_written"],
+                            success=result["success"],
+                            duration_seconds=result["duration_seconds"],
+                            errors=result["errors"],
+                            gaps_found=result["gaps_found"],
+                            extraction_type="klines",
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to send NATS message for {symbol}: {e}")
 
         # Close resources
         fetcher.close()

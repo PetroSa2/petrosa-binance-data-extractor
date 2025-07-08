@@ -44,6 +44,7 @@ from utils.logger import (
     log_extraction_start,
     setup_logging,
 )
+from utils.messaging import publish_extraction_completion_sync
 from utils.telemetry import get_tracer
 from utils.time_utils import (
     binance_interval_to_table_suffix,
@@ -477,6 +478,24 @@ class GapFillerExtractor:
                     f"records_fetched={result['total_records_fetched']}, "
                     f"duration={result['duration']:.2f}s"
                 )
+
+                # Send NATS message for symbol completion
+                if constants.NATS_ENABLED:
+                    try:
+                        publish_extraction_completion_sync(
+                            symbol=symbol,
+                            period=self.period,
+                            records_fetched=result["total_records_fetched"],
+                            records_written=result["total_records_written"],
+                            success=result["success"],
+                            duration_seconds=result["duration"],
+                            errors=[result["error"]] if result["error"] else None,
+                            gaps_found=result["gaps_found"],
+                            gaps_filled=result["gaps_filled"],
+                            extraction_type="klines_gap_filling",
+                        )
+                    except Exception as e:
+                        self.logger.warning(f"Failed to send NATS message for {symbol}: {e}")
 
                 return result
 

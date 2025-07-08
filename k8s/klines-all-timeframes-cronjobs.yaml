@@ -143,6 +143,24 @@ spec:
                   key: OTEL_EXPORTER_OTLP_HEADERS
             - name: OTEL_NO_AUTO_INIT
               value: "1"
+            
+            # NATS messaging configuration from ConfigMap
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            
             - name: API_KEY
                   
             # Kubernetes environment detection
@@ -268,6 +286,24 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
+            
+            # NATS messaging configuration from ConfigMap
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             - name: API_KEY
@@ -486,6 +522,24 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
+            
+            # NATS messaging configuration from ConfigMap
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             - name: API_KEY
@@ -660,6 +714,24 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
+            
+            # NATS messaging configuration from ConfigMap
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             - name: API_KEY

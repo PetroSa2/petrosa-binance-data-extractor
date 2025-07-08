@@ -47,6 +47,12 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 - **🔄 CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions
 - **🏷️ Automatic Versioning**: Semantic versioning with automatic tag creation and release management
 
+### Real-Time Messaging
+- **📡 NATS Integration**: Real-time notifications when extraction actions complete
+- **🔔 Event-Driven Architecture**: Non-blocking messaging for monitoring and alerting
+- **📊 Performance Tracking**: Detailed metrics and timing information in messages
+- **🛡️ Fault Tolerant**: Messaging failures don't affect extraction operations
+
 ## 📋 Project Structure
 
 ```
@@ -141,8 +147,55 @@ petrosa-binance-data-extractor/
 | `LOG_LEVEL` | Logging level | No | "INFO" |
 | `DEFAULT_PERIOD` | Default extraction interval | No | "15m" |
 | `DB_BATCH_SIZE` | Database batch size | No | "1000" |
+| `NATS_ENABLED` | Enable NATS messaging | No | "true" |
+| `NATS_URL` | NATS server URL | No | "nats://localhost:4222" |
 
 ## 🚀 Usage
+
+### 📡 NATS Messaging (New!)
+
+The system now includes real-time NATS messaging for extraction completion events. When enabled, messages are sent to NATS whenever a kline extraction action completes.
+
+**Configuration:**
+```bash
+# Enable NATS messaging
+export NATS_ENABLED=true
+export NATS_URL=nats://localhost:4222
+
+# Optional: Custom subject prefix
+export NATS_SUBJECT_PREFIX=petrosa.binance.extraction
+```
+
+**Message Subjects:**
+- `binance.extraction.klines.{symbol}.{period}` - Single symbol completion
+- `binance.extraction.klines_gap_filling.{symbol}.{period}` - Gap filling completion
+- `binance.extraction.klines.batch.{period}` - Batch completion
+
+**Example Message:**
+```json
+{
+  "event_type": "extraction_completed",
+  "symbol": "BTCUSDT",
+  "period": "15m",
+  "success": true,
+  "metrics": {
+    "records_fetched": 150,
+    "records_written": 150,
+    "duration_seconds": 3.5
+  }
+}
+```
+
+**Testing:**
+```bash
+# Test NATS messaging
+python scripts/test_nats_messaging.py
+
+# Run unit tests
+python -m pytest tests/test_messaging.py -v
+```
+
+For detailed documentation, see [NATS Messaging Guide](docs/NATS_MESSAGING.md).
 
 ### 🎯 Unified Pipeline Runner (New!)
 

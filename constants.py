@@ -91,3 +91,12 @@ ALLOW_DUPLICATE_TIMESTAMPS = False
 
 # Timezone settings
 TIMEZONE = "UTC"
+
+# NATS messaging settings
+NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
+NATS_ENABLED = os.getenv("NATS_ENABLED", "true").lower() in ("true", "1", "yes")
+NATS_SUBJECT_PREFIX = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
+
+# Service-specific NATS subject prefixes
+NATS_SUBJECT_PREFIX_PRODUCTION = os.getenv("NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production")
+NATS_SUBJECT_PREFIX_GAP_FILLER = os.getenv("NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler")
