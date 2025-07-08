@@ -99,11 +99,7 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: ENABLE_OTEL
-            - name: OTEL_SERVICE_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: OTEL_SERVICE_NAME
+
             - name: OTEL_SERVICE_VERSION
               valueFrom:
                 configMapKeyRef:
@@ -550,11 +546,7 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: ENABLE_OTEL
-            - name: OTEL_SERVICE_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: OTEL_SERVICE_NAME
+
             - name: OTEL_SERVICE_VERSION
               valueFrom:
                 configMapKeyRef:

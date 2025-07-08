@@ -65,7 +65,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = "json"  # json or text
 
 # OpenTelemetry settings
-OTEL_SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "binance-extractor")
+OTEL_SERVICE_NAME = "binance-extractor"
 OTEL_SERVICE_VERSION = os.getenv("OTEL_SERVICE_VERSION", "2.0.0")
 OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 OTEL_EXPORTER_OTLP_HEADERS = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
@@ -77,9 +77,9 @@ OTEL_PROPAGATORS = os.getenv("OTEL_PROPAGATORS", "tracecontext,baggage")
 ENABLE_OTEL = os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes")
 
 # Service-specific OpenTelemetry names
-OTEL_SERVICE_NAME_KLINES = os.getenv("OTEL_SERVICE_NAME_KLINES", "petrosa-binance-extractor")
-OTEL_SERVICE_NAME_FUNDING = os.getenv("OTEL_SERVICE_NAME_FUNDING", "petrosa-binance-extractor")
-OTEL_SERVICE_NAME_TRADES = os.getenv("OTEL_SERVICE_NAME_TRADES", "petrosa-binance-extractor")
+OTEL_SERVICE_NAME_KLINES = "petrosa-binance-extractor"
+OTEL_SERVICE_NAME_FUNDING = "petrosa-binance-extractor"
+OTEL_SERVICE_NAME_TRADES = "petrosa-binance-extractor"
 
 # Kubernetes job settings
 K8S_NAMESPACE = os.getenv("K8S_NAMESPACE", "default")
