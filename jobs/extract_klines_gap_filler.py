@@ -44,6 +44,7 @@ from utils.logger import (
     log_extraction_start,
     setup_logging,
 )
+from utils.messaging import publish_extraction_completion_sync
 from utils.telemetry import get_tracer
 from utils.time_utils import (
     binance_interval_to_table_suffix,
@@ -478,6 +479,24 @@ class GapFillerExtractor:
                     f"duration={result['duration']:.2f}s"
                 )
 
+                # Send NATS message for symbol completion
+                if constants.NATS_ENABLED:
+                    try:
+                        publish_extraction_completion_sync(
+                            symbol=symbol,
+                            period=self.period,
+                            records_fetched=result["total_records_fetched"],
+                            records_written=result["total_records_written"],
+                            success=result["success"],
+                            duration_seconds=result["duration"],
+                            errors=[result["error"]] if result["error"] else None,
+                            gaps_found=result["gaps_found"],
+                            gaps_filled=result["gaps_filled"],
+                            extraction_type="klines_gap_filling",
+                        )
+                    except Exception as e:
+                        self.logger.warning(f"Failed to send NATS message for {symbol}: {e}")
+
                 return result
 
             finally:
@@ -504,13 +523,18 @@ class GapFillerExtractor:
 
     def run_gap_filling(self) -> Dict:
         """Run the gap detection and filling process."""
-        if tracer:
-            with tracer.start_as_current_span("klines_gap_filling_run") as span:
-                span.set_attribute("extraction.period", self.period)
-                span.set_attribute("extraction.symbols_count", len(self.symbols))
-                span.set_attribute("extraction.max_workers", self.max_workers)
+        try:
+            current_tracer = get_tracer("jobs.extract_klines_gap_filler")
+            if current_tracer:
+                with current_tracer.start_as_current_span("klines_gap_filling_run") as span:
+                    span.set_attribute("extraction.period", self.period)
+                    span.set_attribute("extraction.symbols_count", len(self.symbols))
+                    span.set_attribute("extraction.max_workers", self.max_workers)
+                    return self._run_gap_filling_impl()
+            else:
                 return self._run_gap_filling_impl()
-        else:
+        except Exception as e:
+            self.logger.warning(f"Tracing setup failed: {e}, running without tracing")
             return self._run_gap_filling_impl()
 
     def _run_gap_filling_impl(self) -> Dict:
