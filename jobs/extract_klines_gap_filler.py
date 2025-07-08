@@ -523,13 +523,18 @@ class GapFillerExtractor:
 
     def run_gap_filling(self) -> Dict:
         """Run the gap detection and filling process."""
-        if tracer:
-            with tracer.start_as_current_span("klines_gap_filling_run") as span:
-                span.set_attribute("extraction.period", self.period)
-                span.set_attribute("extraction.symbols_count", len(self.symbols))
-                span.set_attribute("extraction.max_workers", self.max_workers)
+        try:
+            current_tracer = get_tracer("jobs.extract_klines_gap_filler")
+            if current_tracer:
+                with current_tracer.start_as_current_span("klines_gap_filling_run") as span:
+                    span.set_attribute("extraction.period", self.period)
+                    span.set_attribute("extraction.symbols_count", len(self.symbols))
+                    span.set_attribute("extraction.max_workers", self.max_workers)
+                    return self._run_gap_filling_impl()
+            else:
                 return self._run_gap_filling_impl()
-        else:
+        except Exception as e:
+            self.logger.warning(f"Tracing setup failed: {e}, running without tracing")
             return self._run_gap_filling_impl()
 
     def _run_gap_filling_impl(self) -> Dict:
