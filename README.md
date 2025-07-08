@@ -470,13 +470,7 @@ kubectl apply -f k8s/klines-gap-filler-cronjob.yaml
 Deploy all timeframes (m5, m15, m30, h1, d1) with a single command:
 
 ```bash
-# 1. Create required secrets
-kubectl create secret generic binance-api-secret -n petrosa-apps \
-  --from-literal=api-key=YOUR_API_KEY \
-  --from-literal=api-secret=YOUR_API_SECRET
-
-kubectl create secret generic database-secret -n petrosa-apps \
-  --from-literal=mysql-uri="mysql://user:pass@host:3306/database"
+# 1. Deploy all timeframes
 
 # 2. Deploy all timeframes
 ./scripts/deploy-production.sh

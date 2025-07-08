@@ -128,8 +128,7 @@ Namespace: petrosa-apps
 │   ├── binance-klines-d1-production
 │   └── klines-gap-filler
 ├── Secrets
-│   ├── binance-api-secret
-│   └── database-secret
+│   └── klines-gap-filler-secret
 ├── Service Accounts
 │   └── binance-extractor
 └── RBAC
