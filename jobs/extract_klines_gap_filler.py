@@ -22,7 +22,7 @@ import constants
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from utils.telemetry import get_tracer, initialize_telemetry
+    from utils.telemetry import initialize_telemetry
 
     # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
@@ -32,10 +32,8 @@ try:
             service_name=service_name,
             environment="production"
         )
-
-    tracer = get_tracer(__name__)
 except ImportError:
-    tracer = None
+    pass
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
@@ -46,6 +44,7 @@ from utils.logger import (
     log_extraction_start,
     setup_logging,
 )
+from utils.telemetry import get_tracer
 from utils.time_utils import (
     binance_interval_to_table_suffix,
     format_duration,
