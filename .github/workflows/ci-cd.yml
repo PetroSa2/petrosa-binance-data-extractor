@@ -340,27 +340,7 @@ jobs:
           echo "✅ All image references updated to versioned tag: ${IMAGE_TAG}"
         fi
     
-    - name: Deploy secrets (if not exists)
-      run: |
-        # Check if secrets exist, create them if they don't
-        if ! kubectl get secret binance-api-secret -n petrosa-apps --insecure-skip-tls-verify >/dev/null 2>&1; then
-          echo "⚠️ binance-api-secret not found. Creating with CI secrets..."
-          kubectl create secret generic binance-api-secret -n petrosa-apps \
-            --from-literal=api-key="${{ secrets.BINANCE_API_KEY }}" \
-            --from-literal=api-secret="${{ secrets.BINANCE_SECRET_KEY }}" \
-            --insecure-skip-tls-verify
-        else
-          echo "✅ binance-api-secret already exists"
-        fi
-        
-        if ! kubectl get secret database-secret -n petrosa-apps --insecure-skip-tls-verify >/dev/null 2>&1; then
-          echo "⚠️ database-secret not found. Creating with CI secrets..."
-          kubectl create secret generic database-secret -n petrosa-apps \
-            --from-literal=mysql-uri="${{ secrets.POSTGRES_CONNECTION_STRING }}" \
-            --insecure-skip-tls-verify
-        else
-          echo "✅ database-secret already exists"
-        fi
+
     
     - name: Apply Kubernetes manifests
       run: |

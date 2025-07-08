@@ -56,29 +56,6 @@ else
     print_success "Namespace 'petrosa-apps' already exists"
 fi
 
-# Check if secrets exist
-print_status "Checking required secrets..."
-SECRETS_MISSING=false
-
-if ! kubectl get secret binance-api-secret -n petrosa-apps &> /dev/null; then
-    print_warning "Secret 'binance-api-secret' not found!"
-    echo "  Create it with: kubectl create secret generic binance-api-secret -n petrosa-apps --from-literal=api-key=YOUR_API_KEY --from-literal=api-secret=YOUR_API_SECRET"
-    SECRETS_MISSING=true
-fi
-
-if ! kubectl get secret database-secret -n petrosa-apps &> /dev/null; then
-    print_warning "Secret 'database-secret' not found!"
-    echo "  Create it with: kubectl create secret generic database-secret -n petrosa-apps --from-literal=mysql-uri=YOUR_MYSQL_URI"
-    SECRETS_MISSING=true
-fi
-
-if [ "$SECRETS_MISSING" = true ]; then
-    print_error "Please create the missing secrets before proceeding."
-    exit 1
-fi
-
-print_success "All required secrets are present"
-
 # Deploy all timeframes
 print_status "Deploying all timeframes CronJobs (m5, m15, m30, h1, d1)..."
 kubectl apply -f k8s/klines-all-timeframes-cronjobs.yaml

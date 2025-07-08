@@ -91,17 +91,6 @@ kubectl get namespace petrosa-apps
 # Load environment variables
 export $(grep -v '^#' .env.production | xargs)
 
-# Create Binance API secret
-kubectl create secret generic binance-api-secret \
-    --from-literal=api-key="$BINANCE_API_KEY" \
-    --from-literal=api-secret="$BINANCE_SECRET_KEY" \
-    --namespace=petrosa-apps
-
-# Create database secret
-kubectl create secret generic database-secret \
-    --from-literal=mysql-uri="$POSTGRES_CONNECTION_STRING" \
-    --namespace=petrosa-apps
-
 # Verify secrets
 kubectl get secrets -n petrosa-apps
 ```
@@ -256,7 +245,7 @@ kubectl describe pod -l app=binance-extractor -n petrosa-apps
 kubectl get secrets -n petrosa-apps
 
 # Check secret content (base64 encoded)
-kubectl get secret binance-api-secret -n petrosa-apps -o jsonpath='{.data.api-key}' | base64 -d
+kubectl get secret petrosa-sensitive-credentials -n petrosa-apps -o jsonpath='{.data.MYSQL_URI}' | base64 -d
 ```
 
 #### 3. Resource Constraints

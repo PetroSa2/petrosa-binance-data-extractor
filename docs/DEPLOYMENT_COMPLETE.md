@@ -35,8 +35,6 @@ kubectl get cronjob klines-gap-filler -n petrosa-apps
 kubectl get secrets -n petrosa-apps
 
 # Expected secrets:
-# - binance-api-secret
-# - database-secret
 ```
 
 ### 4. **Image Pull Status**
