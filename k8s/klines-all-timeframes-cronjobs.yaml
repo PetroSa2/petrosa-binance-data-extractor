@@ -151,13 +151,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            - name: NATS_SUBJECT_PREFIX
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: NATS_SUBJECT_PREFIX_PRODUCTION
-            
-            - name: API_KEY
                   
             # Kubernetes environment detection
             - name: K8S_NAMESPACE
@@ -294,15 +287,9 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            - name: NATS_SUBJECT_PREFIX
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: NATS_SUBJECT_PREFIX_PRODUCTION
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
             
             resources:
               requests:
@@ -411,7 +398,6 @@ spec:
                   key: DB_ADAPTER
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
             
             resources:
               requests:
@@ -530,16 +516,10 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            - name: NATS_SUBJECT_PREFIX
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: NATS_SUBJECT_PREFIX_PRODUCTION
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
-                  
+            
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
@@ -718,15 +698,10 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            - name: NATS_SUBJECT_PREFIX
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
             
             resources:
               requests:

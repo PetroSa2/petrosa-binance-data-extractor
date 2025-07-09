@@ -108,8 +108,7 @@ spec:
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
-                  
+            
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
@@ -298,8 +297,7 @@ spec:
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
-                  
+            
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
@@ -488,8 +486,7 @@ spec:
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
-                  
+            
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
@@ -678,8 +675,7 @@ spec:
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
-                  
+            
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
@@ -868,8 +864,7 @@ spec:
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            - name: API_KEY
-                  
+            
             # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
