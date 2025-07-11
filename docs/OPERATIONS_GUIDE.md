@@ -10,43 +10,43 @@ This guide covers the daily operations, monitoring, and troubleshooting for the 
 
 ```bash
 # 1. Check overall system status
-kubectl get all -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
 
 # 2. Verify CronJob status
-kubectl get cronjobs -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
 
 # 3. Check recent job executions
-kubectl get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
+kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
 
 # 4. Review error logs from last 24 hours
-kubectl logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i error
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i error
 ```
 
 ### Afternoon Monitoring (2 PM)
 
 ```bash
 # 1. Check resource usage
-kubectl top pods -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml top pods -n petrosa-apps
 
 # 2. Verify gap filler execution (runs at 2 AM UTC)
-kubectl logs -l job-name=klines-gap-filler -n petrosa-apps --since=12h
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l job-name=klines-gap-filler -n petrosa-apps --since=12h
 
 # 3. Monitor API rate limiting
-kubectl logs -l app=binance-extractor -n petrosa-apps --since=6h | grep -i "rate limit\|429"
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=6h | grep -i "rate limit\|429"
 ```
 
 ### Evening Review (6 PM)
 
 ```bash
 # 1. Check daily data extraction summary
-kubectl logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i "extracted\|processed"
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i "extracted\|processed"
 
 # 2. Verify database connectivity
-kubectl exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
 import os
 from db.mysql_adapter import MySQLAdapter
 try:
-    adapter = MySQLAdapter(os.environ['POSTGRES_CONNECTION_STRING'])
+    adapter = MySQLAdapter(os.environ['MYSQL_URI'])
     adapter.connect()
     print('Database connection: OK')
 except Exception as e:
@@ -60,47 +60,47 @@ except Exception as e:
 
 ```bash
 # Overall cluster health
-kubectl get nodes
-kubectl get pods -n petrosa-apps -o wide
+kubectl --kubeconfig=k8s/kubeconfig.yaml get nodes
+kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -o wide
 
 # Resource usage
-kubectl top nodes
-kubectl top pods -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml top nodes
+kubectl --kubeconfig=k8s/kubeconfig.yaml top pods -n petrosa-apps
 
 # Namespace events
-kubectl get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
+kubectl --kubeconfig=k8s/kubeconfig.yaml get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
 ```
 
 ### CronJob Monitoring
 
 ```bash
 # Check all CronJobs
-kubectl get cronjobs -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
 
 # Detailed CronJob information
-kubectl describe cronjob binance-klines-m15-production -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe cronjob binance-klines-m15-production -n petrosa-apps
 
 # Recent job executions
-kubectl get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp | tail -10
+kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp | tail -10
 
 # Job logs
-kubectl logs job/binance-klines-m15-production-1234567890 -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs job/binance-klines-m15-production-1234567890 -n petrosa-apps
 ```
 
 ### Gap Filler Monitoring
 
 ```bash
 # Check gap filler status
-kubectl get cronjob klines-gap-filler -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjob klines-gap-filler -n petrosa-apps
 
 # Recent gap filler executions
-kubectl get jobs -l job-name=klines-gap-filler -n petrosa-apps --sort-by=.metadata.creationTimestamp
+kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -l job-name=klines-gap-filler -n petrosa-apps --sort-by=.metadata.creationTimestamp
 
 # Gap filler logs
-kubectl logs -l job-name=klines-gap-filler -n petrosa-apps --tail=100
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l job-name=klines-gap-filler -n petrosa-apps --tail=100
 
 # Gap filler details
-kubectl describe cronjob klines-gap-filler -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe cronjob klines-gap-filler -n petrosa-apps
 ```
 
 ## 🚨 Troubleshooting
@@ -111,13 +111,13 @@ kubectl describe cronjob klines-gap-filler -n petrosa-apps
 
 ```bash
 # Check CronJob controller
-kubectl get events -n petrosa-apps | grep -i cronjob
+kubectl --kubeconfig=k8s/kubeconfig.yaml get events -n petrosa-apps | grep -i cronjob
 
 # Verify timezone
-kubectl describe cronjob -n petrosa-apps | grep -i schedule
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe cronjob -n petrosa-apps | grep -i schedule
 
 # Check for resource constraints
-kubectl describe cronjob -n petrosa-apps | grep -A 10 "Events:"
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe cronjob -n petrosa-apps | grep -A 10 "Events:"
 ```
 
 **Solutions:**
@@ -129,13 +129,13 @@ kubectl describe cronjob -n petrosa-apps | grep -A 10 "Events:"
 
 ```bash
 # Check job status
-kubectl get jobs -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps
 
 # View job details
-kubectl describe job <job-name> -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe job <job-name> -n petrosa-apps
 
 # Check pod logs
-kubectl logs job/<job-name> -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs job/<job-name> -n petrosa-apps
 ```
 
 **Common Causes:**
@@ -148,7 +148,7 @@ kubectl logs job/<job-name> -n petrosa-apps
 
 ```bash
 # Check image pull status
-kubectl describe pod -l app=binance-extractor -n petrosa-apps | grep -A 5 "Events:"
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod -l app=binance-extractor -n petrosa-apps | grep -A 5 "Events:"
 
 # Verify image availability
 docker pull your-username/petrosa-binance-extractor:latest
@@ -163,11 +163,11 @@ docker pull your-username/petrosa-binance-extractor:latest
 
 ```bash
 # Test database connectivity
-kubectl exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
 import os
 from db.mysql_adapter import MySQLAdapter
 try:
-    adapter = MySQLAdapter(os.environ['POSTGRES_CONNECTION_STRING'])
+    adapter = MySQLAdapter(os.environ['MYSQL_URI'])
     adapter.connect()
     print('Database connection successful')
 except Exception as e:
@@ -186,63 +186,23 @@ except Exception as e:
 
 ```bash
 # Monitor CPU and memory usage
-kubectl top pods -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml top pods -n petrosa-apps
 
 # Check for resource pressure
-kubectl describe nodes | grep -A 5 "Conditions:"
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe nodes | grep -A 5 "Conditions:"
 
 # Monitor storage usage
-kubectl exec -it deployment/binance-extractor -n petrosa-apps -- df -h
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- df -h
 ```
 
 ### API Performance
 
 ```bash
-# Check API response times
-kubectl logs -l app=binance-extractor -n petrosa-apps | grep -i "response time\|duration"
+# Monitor API response times
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=1h | grep -i "api\|request"
 
-# Monitor rate limiting
-kubectl logs -l app=binance-extractor -n petrosa-apps | grep -i "rate limit\|429\|retry"
-```
-
-### Data Quality
-
-```bash
-# Check data extraction volumes
-kubectl logs -l app=binance-extractor -n petrosa-apps | grep -i "extracted\|processed\|records"
-
-# Monitor data gaps
-kubectl logs -l job-name=klines-gap-filler -n petrosa-apps | grep -i "gap\|missing"
-```
-
-## 🔄 Maintenance Tasks
-
-### Weekly Tasks
-
-```bash
-# 1. Review resource usage trends
-kubectl top pods -n petrosa-apps --sort-by=cpu
-kubectl top pods -n petrosa-apps --sort-by=memory
-
-# 2. Check for outdated images
-kubectl get pods -n petrosa-apps -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\n' | sort | uniq
-
-# 3. Review error patterns
-kubectl logs -l app=binance-extractor -n petrosa-apps --since=168h | grep -i error | sort | uniq -c | sort -nr
-```
-
-### Monthly Tasks
-
-```bash
-# 1. Security updates
-kubectl get pods -n petrosa-apps -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\n' | sort | uniq
-
-# 2. Performance review
-kubectl top pods -n petrosa-apps --sort-by=cpu | head -10
-kubectl top pods -n petrosa-apps --sort-by=memory | head -10
-
-# 3. Capacity planning
-kubectl describe nodes | grep -A 10 "Allocated resources"
+# Check rate limiting
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=1h | grep -i "429\|rate limit"
 ```
 
 ## 🚨 Emergency Procedures
@@ -252,10 +212,10 @@ kubectl describe nodes | grep -A 10 "Allocated resources"
 1. **Immediate Actions**:
    ```bash
    # Check system status
-   kubectl get all -n petrosa-apps
+   kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
    
    # Check recent events
-   kubectl get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
+   kubectl --kubeconfig=k8s/kubeconfig.yaml get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
    ```
 
 2. **Escalation**:
@@ -268,10 +228,10 @@ kubectl describe nodes | grep -A 10 "Allocated resources"
 1. **Assessment**:
    ```bash
    # Check database connectivity
-   kubectl exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
+   kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
    import os
    from db.mysql_adapter import MySQLAdapter
-   adapter = MySQLAdapter(os.environ['POSTGRES_CONNECTION_STRING'])
+   adapter = MySQLAdapter(os.environ['MYSQL_URI'])
    adapter.connect()
    # Add data verification logic
    "
@@ -304,13 +264,13 @@ echo "=== Daily Operations Summary ==="
 echo "Date: $(date)"
 echo ""
 echo "=== System Status ==="
-kubectl get all -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
 echo ""
 echo "=== Recent Jobs ==="
-kubectl get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp | tail -5
+kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp | tail -5
 echo ""
 echo "=== Error Summary ==="
-kubectl logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i error | wc -l
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i error | wc -l
 ```
 
 ### Weekly Reports
@@ -323,7 +283,6 @@ kubectl logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i erro
 
 ## 📚 Related Documentation
 
-- [Production Readiness](PRODUCTION_READINESS.md) - Pre-deployment checklist
-- [Deployment Complete](DEPLOYMENT_COMPLETE.md) - Post-deployment verification
-- [Local Deployment](LOCAL_DEPLOY.md) - Local development setup
-- [CI/CD Pipeline](CI_CD_PIPELINE_RESULTS.md) - Automated deployment results
+- [Production Readiness](docs/PRODUCTION_READINESS.md) - Pre-deployment checklist
+- [Deployment Complete](docs/DEPLOYMENT_COMPLETE.md) - Post-deployment verification
+- [Local Deployment](docs/LOCAL_DEPLOY.md) - Local development setup

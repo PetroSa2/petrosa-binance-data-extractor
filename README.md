@@ -6,7 +6,19 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 
 ### Enterprise-Grade Production System
 - **🔄 Fully Automated Extraction**: Production extractor with auto-detection of last timestamp and gap-filling
-- **⏰ Multi-Timeframe Support**: Simultaneous extraction across m5, m## 📚 Documen## 📚 Quick References## Production Guides
+- **⏰ Multi-Timeframe Support**: Simultaneous extraction across m5, m## 📚 Documen## 📚 Quick References
+
+### 🚀 Getting Started
+- **[Repository Setup Guide](docs/REPOSITORY_SETUP_GUIDE.md)** - Complete setup and configuration guide
+- **[Quick Reference Card](docs/QUICK_REFERENCE.md)** - Essential commands and troubleshooting
+
+### 🔧 Common Issues & Solutions
+- **Cluster Connection**: `export KUBECONFIG=k8s/kubeconfig.yaml`
+- **Port Forwarding**: `kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 4222:4222 &`
+- **Certificate Issues**: Use `--insecure-skip-tls-verify` flag
+- **MicroK8s Issues**: `microk8s start` and `microk8s status`
+
+### Production Guides
 - **[Production Readiness Checklist](docs/PRODUCTION_READINESS.md)** - Complete pre-deployment validation
 - **[Operations Guide](docs/OPERATIONS_GUIDE.md)** - Day-to-day operations, monitoring, and troubleshooting
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
