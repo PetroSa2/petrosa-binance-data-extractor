@@ -6,7 +6,7 @@ This guide helps you deploy the Petrosa Binance Data Extractor to your local Mic
 
 1. **MicroK8s** is installed and running
 2. **Docker** is installed and running
-3. **kubectl** is configured to access your MicroK8s cluster
+3. **kubectl** is installed
 4. **Environment variables** are set in `.env` file
 
 ## Quick Deployment
@@ -15,7 +15,7 @@ This guide helps you deploy the Petrosa Binance Data Extractor to your local Mic
 
 ```bash
 # Run the automated deployment script
-./deploy-local.sh
+./scripts/setup-dev.sh
 ```
 
 ### Option 2: Manual Step-by-Step
@@ -26,8 +26,9 @@ This guide helps you deploy the Petrosa Binance Data Extractor to your local Mic
 # Check MicroK8s status
 microk8s status
 
-# Check kubectl connection
-kubectl cluster-info --insecure-skip-tls-verify
+# Check kubectl connection (using repo kubeconfig)
+export KUBECONFIG=k8s/kubeconfig.yaml
+kubectl get nodes
 
 # Check Docker
 docker info
@@ -50,9 +51,27 @@ docker build -t petrosa-binance-extractor:local .
 docker save petrosa-binance-extractor:local | microk8s ctr image import -
 ```
 
-#### 4. Create Namespace and Secrets
+#### 4. Create Namespace (if needed)
 
 ```bash
-# Create namespace
-kubectl create namespace petrosa-apps --dry-run=client -o yaml | kubectl apply -f - --insecure-skip-tls-verify
+# Create namespace (using repo kubeconfig)
+kubectl --kubeconfig=k8s/kubeconfig.yaml create namespace petrosa-apps --dry-run=client -o yaml | kubectl --kubeconfig=k8s/kubeconfig.yaml apply -f -
 ```
+
+#### 5. Deploy Application
+
+```bash
+# Deploy using provided manifests
+kubectl --kubeconfig=k8s/kubeconfig.yaml apply -f k8s/
+```
+
+#### 6. Port Forwarding Example
+
+```bash
+# Port forward NATS
+kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 4222:4222 &
+```
+
+## References
+- See `docs/REPOSITORY_SETUP_GUIDE.md` for full setup and troubleshooting
+- See `docs/QUICK_REFERENCE.md` for common commands

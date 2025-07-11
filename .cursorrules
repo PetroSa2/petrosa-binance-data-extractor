@@ -1,0 +1,36 @@
+# Cursor AI Rules for Petrosa Binance Data Extractor
+
+## Repository Context
+This is a Kubernetes-based cryptocurrency data extraction system using MicroK8s cluster.
+
+## Key Files to Reference
+- `docs/REPOSITORY_SETUP_GUIDE.md` - Complete setup and troubleshooting guide
+- `docs/QUICK_REFERENCE.md` - Essential commands and common issues
+- `k8s/kubeconfig.yaml` - Local MicroK8s cluster configuration
+
+## Prerequisites & Installation
+- **MicroK8s**: Install with `sudo snap install microk8s --classic` (Linux) or `brew install microk8s` (macOS)
+- **kubectl**: Install with `sudo snap install kubectl --classic` or `brew install kubectl`
+- **Docker**: Required for building and running containers
+
+## Common Issues & Solutions
+When users encounter connection issues:
+1. **AWS SSO errors**: This repo uses local MicroK8s, not AWS EKS
+2. **kubectl connection**: Use `export KUBECONFIG=k8s/kubeconfig.yaml`
+3. **Port forwarding**: Use `kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward`
+4. **Certificate issues**: Add `--insecure-skip-tls-verify` flag
+5. **MicroK8s not found**: Install with `sudo snap install microk8s --classic`
+
+## Development Workflow
+1. Install MicroK8s: `sudo snap install microk8s --classic`
+2. Set kubeconfig: `export KUBECONFIG=k8s/kubeconfig.yaml`
+3. Start MicroK8s: `microk8s start`
+4. Deploy locally: `./scripts/deploy-local.sh`
+5. Port forward services as needed
+
+## Always Reference
+- Check `docs/REPOSITORY_SETUP_GUIDE.md` for detailed setup instructions
+- Check `docs/QUICK_REFERENCE.md` for common commands and troubleshooting
+- Use `k8s/kubeconfig.yaml` for cluster connection
+- This is a MicroK8s setup, not AWS EKS
+- If MicroK8s is not installed, guide users to install it first 
