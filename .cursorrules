@@ -33,4 +33,9 @@ When users encounter connection issues:
 - Check `docs/QUICK_REFERENCE.md` for common commands and troubleshooting
 - Use `k8s/kubeconfig.yaml` for remote cluster connection
 - This is a remote MicroK8s setup, not AWS EKS
-- If MicroK8s is not installed, guide users to install it first 
+- You do NOT need to install MicroK8s locally to use this repo. Only install MicroK8s if you want to run a local cluster for testing. For normal use, just install kubectl and use the provided kubeconfig to connect to the remote cluster.
+
+## Kubernetes Secrets & ConfigMaps
+- **ALWAYS use the existing Kubernetes secret `petrosa-sensitive-credentials` for credentials**
+- **ALWAYS use the existing configmap `petrosa-common-config` for configuration**
+- **NEVER create new secrets/configmaps or change their names** 
