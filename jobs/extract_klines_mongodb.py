@@ -12,7 +12,7 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,7 +33,7 @@ except ImportError:
 
 from db.mongodb_adapter import MongoDBAdapter
 from fetchers import BinanceClient, KlinesFetcher
-from models.kline import Kline
+from models.kline import KlineModel
 from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
 from utils.messaging import publish_extraction_completion_sync
 from utils.time_utils import (
@@ -231,13 +231,19 @@ def extract_klines_for_symbol(
                 logger.info(f"Last timestamp for {symbol}: {last_timestamp}")
                 
                 # Start from next interval
-                start_date = last_timestamp + timedelta(minutes=int(period[:-1]) if period.endswith('m') else 
-                                                      timedelta(hours=int(period[:-1])) if period.endswith('h') else
-                                                      timedelta(days=int(period[:-1])))
+                if period.endswith('m'):
+                    start_date = last_timestamp + timedelta(minutes=int(period[:-1]))
+                elif period.endswith('h'):
+                    start_date = last_timestamp + timedelta(hours=int(period[:-1]))
+                elif period.endswith('d'):
+                    start_date = last_timestamp + timedelta(days=int(period[:-1]))
+                else:
+                    # Default to minutes
+                    start_date = last_timestamp + timedelta(minutes=1)
 
         # Fetch klines data
         logger.info(f"Fetching klines for {symbol} from {start_date} to {end_date}")
-        klines_data = fetcher.fetch_klines(
+        kline_models = fetcher.fetch_klines(
             symbol=symbol,
             interval=period,
             start_time=start_date,
@@ -245,7 +251,7 @@ def extract_klines_for_symbol(
             limit=args.limit
         )
 
-        if not klines_data:
+        if not kline_models:
             logger.warning(f"No klines data found for {symbol}")
             return {
                 "symbol": symbol,
@@ -254,30 +260,14 @@ def extract_klines_for_symbol(
                 "status": "no_data"
             }
 
-        # Convert to Kline models
-        kline_models = []
-        for kline_data in klines_data:
-            try:
-                kline = Kline.from_binance_kline(kline_data, symbol)
-                kline_models.append(kline)
-            except Exception as e:
-                logger.error(f"Error parsing kline data for {symbol}: {e}")
-                continue
-
-        if not kline_models:
-            logger.warning(f"No valid kline models created for {symbol}")
-            return {
-                "symbol": symbol,
-                "records_written": 0,
-                "duration": time.time() - symbol_start_time,
-                "status": "no_valid_data"
-            }
-
         # Write to database in batches
         total_written = 0
         if not args.dry_run:
+            # Cast to List[BaseModel] for type compatibility
+            from pydantic import BaseModel
+            kline_models_cast: List[BaseModel] = kline_models  # type: ignore
             total_written = db_adapter.write_batch(
-                kline_models, 
+                kline_models_cast, 
                 collection_name, 
                 batch_size=args.batch_size
             )
