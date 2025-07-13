@@ -1,0 +1,396 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petrosa-common-config
+  namespace: petrosa-apps
+data:
+  # MongoDB extraction settings
+  MONGODB_URI: "mongodb+srv://yurisa2:Fokalove99@petrosa.gynnmi6.mongodb.net/"
+  DB_ADAPTER: "mongodb"
+  DB_BATCH_SIZE: "500"  # Reduced for memory constraints
+  MAX_RETRIES: "3"
+  RETRY_BACKOFF_SECONDS: "2"
+  
+  # Memory-optimized settings
+  LOG_LEVEL: "INFO"
+  API_RATE_LIMIT_PER_MINUTE: "600"  # Reduced to avoid overwhelming
+  REQUEST_DELAY_SECONDS: "0.2"
+  
+  # Default symbols for extraction
+  DEFAULT_SYMBOLS: "BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,DOTUSDT"
+  
+  # Extraction intervals
+  SUPPORTED_INTERVALS: "1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d"
+  DEFAULT_PERIOD: "15m"
+  
+  # Time settings
+  DEFAULT_START_DATE: "2023-01-01T00:00:00Z"
+  TIMEZONE: "UTC"
+  
+  # OpenTelemetry settings
+  OTEL_SERVICE_NAME: "petrosa-binance-extractor"
+  OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
+  ENABLE_OTEL: "true"
+  
+  # NATS messaging (optional)
+  NATS_ENABLED: "false"
+  
+---
+# MongoDB Klines Extraction - 5-minute intervals
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m5-mongodb-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: mongodb
+    interval: 5m
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: mongodb
+            interval: 5m
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            command: ["python", "jobs/extract_klines_mongodb.py"]
+            args:
+            - "--period=5m"
+            - "--incremental"
+            - "--batch-size=500"
+            - "--log-level=INFO"
+            env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_ADAPTER
+            - name: DB_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_BATCH_SIZE
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "400Mi"  # Within 512MB constraint
+                cpu: "500m"
+            imagePullPolicy: Always
+
+---
+# MongoDB Klines Extraction - 15-minute intervals
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m15-mongodb-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: mongodb
+    interval: 15m
+spec:
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: mongodb
+            interval: 15m
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            command: ["python", "jobs/extract_klines_mongodb.py"]
+            args:
+            - "--period=15m"
+            - "--incremental"
+            - "--batch-size=500"
+            - "--log-level=INFO"
+            env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_ADAPTER
+            - name: DB_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_BATCH_SIZE
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "400Mi"
+                cpu: "500m"
+            imagePullPolicy: Always
+
+---
+# MongoDB Klines Extraction - 30-minute intervals
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m30-mongodb-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: mongodb
+    interval: 30m
+spec:
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: mongodb
+            interval: 30m
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            command: ["python", "jobs/extract_klines_mongodb.py"]
+            args:
+            - "--period=30m"
+            - "--incremental"
+            - "--batch-size=500"
+            - "--log-level=INFO"
+            env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_ADAPTER
+            - name: DB_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_BATCH_SIZE
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "400Mi"
+                cpu: "500m"
+            imagePullPolicy: Always
+
+---
+# MongoDB Klines Extraction - 1-hour intervals
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-h1-mongodb-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: mongodb
+    interval: 1h
+spec:
+  schedule: "0 * * * *"  # Every hour
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: mongodb
+            interval: 1h
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            command: ["python", "jobs/extract_klines_mongodb.py"]
+            args:
+            - "--period=1h"
+            - "--incremental"
+            - "--batch-size=500"
+            - "--log-level=INFO"
+            env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_ADAPTER
+            - name: DB_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_BATCH_SIZE
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "400Mi"
+                cpu: "500m"
+            imagePullPolicy: Always
+
+---
+# MongoDB Klines Extraction - Daily intervals
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-d1-mongodb-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: mongodb
+    interval: 1d
+spec:
+  schedule: "0 0 * * *"  # Daily at midnight UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: mongodb
+            interval: 1d
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            command: ["python", "jobs/extract_klines_mongodb.py"]
+            args:
+            - "--period=1d"
+            - "--incremental"
+            - "--batch-size=500"
+            - "--log-level=INFO"
+            env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_ADAPTER
+            - name: DB_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_BATCH_SIZE
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "400Mi"
+                cpu: "500m"
+            imagePullPolicy: Always 
