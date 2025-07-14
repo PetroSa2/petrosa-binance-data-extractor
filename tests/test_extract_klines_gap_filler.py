@@ -130,7 +130,7 @@ class TestGapFillerExtractor:
         mock_db_adapter.find_gaps.assert_called()
 
     @patch("jobs.extract_klines_gap_filler.KlinesFetcher")
-    @patch("jobs.extract_klines_gap_filler.KlineModel")
+    @patch("models.kline.KlineModel")
     @patch("time.sleep")  # Ensure sleep is mocked
     @patch("random.uniform")  # Mock random delays
     @patch("jobs.extract_klines_gap_filler.retry_with_backoff")  # Mock retry logic
