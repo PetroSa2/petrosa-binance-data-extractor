@@ -9,14 +9,11 @@ metadata:
     interval: m5
     version: production
 spec:
-  # Run every 5 minutes
   schedule: "*/5 * * * *"
   
-  # Keep last 3 successful and 1 failed job for debugging
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   
-  # Don't run concurrent jobs to avoid conflicts
   concurrencyPolicy: Forbid
   
   jobTemplate:
@@ -26,13 +23,10 @@ spec:
         component: klines-extractor
         interval: m5
     spec:
-      # Retry failed jobs up to 2 times
       backoffLimit: 2
       
-      # Allow 5 minutes for job to complete (5m timeframe)
       activeDeadlineSeconds: 300
       
-      # Clean up completed jobs after 30 minutes
       ttlSecondsAfterFinished: 1800
       
       template:
@@ -47,7 +41,6 @@ spec:
           
           containers:
           - name: klines-extractor
-            # Production image with telemetry fixes
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
@@ -84,13 +77,10 @@ spec:
                   name: petrosa-common-config
                   key: EXTRACTOR_DB_ADAPTER
             
-            # Application configuration
             - name: LOG_LEVEL
               value: INFO
             - name: ENVIRONMENT
               value: production
-                  
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -136,8 +126,6 @@ spec:
                   key: OTEL_EXPORTER_OTLP_HEADERS
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -149,7 +137,6 @@ spec:
                   name: petrosa-common-config
                   key: NATS_ENABLED
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -165,7 +152,6 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             
-            # Resource limits (higher for 5m due to frequency)
             resources:
               requests:
                 memory: "512Mi"
@@ -174,7 +160,6 @@ spec:
                 memory: "1Gi"
                 cpu: "800m"
             
-            # Security context
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
@@ -196,7 +181,6 @@ metadata:
     interval: m15
     version: production
 spec:
-  # Run every 15 minutes at minute 2 (to avoid conflict with 5m)
   schedule: "2 */15 * * *"
   
   successfulJobsHistoryLimit: 3
@@ -211,7 +195,6 @@ spec:
         interval: m15
     spec:
       backoffLimit: 2
-      # 10 minutes for job completion
       activeDeadlineSeconds: 600
       ttlSecondsAfterFinished: 3600
       
@@ -273,7 +256,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -317,7 +299,6 @@ metadata:
     interval: m30
     version: production
 spec:
-  # Run every 30 minutes at minute 5 (to avoid conflicts)
   schedule: "5 */30 * * *"
   
   successfulJobsHistoryLimit: 3
@@ -332,7 +313,6 @@ spec:
         interval: m30
     spec:
       backoffLimit: 2
-      # 15 minutes for job completion
       activeDeadlineSeconds: 900
       ttlSecondsAfterFinished: 3600
       
@@ -425,7 +405,6 @@ metadata:
     interval: h1
     version: production
 spec:
-  # Run every hour at minute 10 (to avoid conflicts with other jobs)
   schedule: "10 * * * *"
   
   successfulJobsHistoryLimit: 3
@@ -440,7 +419,6 @@ spec:
         interval: h1
     spec:
       backoffLimit: 2
-      # 20 minutes for job completion
       activeDeadlineSeconds: 1200
       ttlSecondsAfterFinished: 3600
       
@@ -502,7 +480,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -516,8 +493,6 @@ spec:
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -562,7 +537,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -607,7 +581,6 @@ metadata:
     interval: d1
     version: production
 spec:
-  # Run daily at 00:15 UTC (to avoid conflicts)
   schedule: "15 0 * * *"
   
   successfulJobsHistoryLimit: 5  # Keep more history for daily jobs
@@ -622,7 +595,6 @@ spec:
         interval: d1
     spec:
       backoffLimit: 3  # More retries for daily jobs
-      # 40 minutes for daily job completion
       activeDeadlineSeconds: 2400
       ttlSecondsAfterFinished: 7200  # Keep for 2 hours
       
@@ -684,7 +656,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:

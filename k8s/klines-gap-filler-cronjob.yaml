@@ -9,7 +9,6 @@ metadata:
     interval: m5
     version: production
 spec:
-  # Run daily at 2:00 AM UTC
   schedule: "0 2 * * *"
   
   successfulJobsHistoryLimit: 2
@@ -71,7 +70,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            # Application configuration
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -88,7 +86,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -103,7 +100,6 @@ spec:
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -147,7 +143,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -192,7 +187,6 @@ metadata:
     interval: m15
     version: production
 spec:
-  # Run daily at 2:15 AM UTC
   schedule: "15 2 * * *"
   
   successfulJobsHistoryLimit: 2
@@ -255,7 +249,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             
-            # Application configuration
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -272,7 +265,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -287,7 +279,6 @@ spec:
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -331,7 +322,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -376,7 +366,6 @@ metadata:
     interval: m30
     version: production
 spec:
-  # Run daily at 2:30 AM UTC
   schedule: "30 2 * * *"
   
   successfulJobsHistoryLimit: 2
@@ -439,7 +428,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             
-            # Application configuration
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -456,7 +444,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -471,7 +458,6 @@ spec:
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -515,7 +501,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -560,7 +545,6 @@ metadata:
     interval: h1
     version: production
 spec:
-  # Run daily at 2:45 AM UTC
   schedule: "45 2 * * *"
   
   successfulJobsHistoryLimit: 2
@@ -623,7 +607,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             
-            # Application configuration
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -640,7 +623,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -655,7 +637,6 @@ spec:
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -699,7 +680,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -744,7 +724,6 @@ metadata:
     interval: d1
     version: production
 spec:
-  # Run daily at 3:00 AM UTC
   schedule: "0 3 * * *"
   
   successfulJobsHistoryLimit: 2
@@ -807,7 +786,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
             
-            # Application configuration
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -824,7 +802,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
             
-            # NATS messaging configuration from ConfigMap
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -839,7 +816,6 @@ spec:
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -883,7 +859,6 @@ spec:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
                   
-            # Kubernetes environment detection
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
