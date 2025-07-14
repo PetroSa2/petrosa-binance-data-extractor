@@ -38,4 +38,9 @@ When users encounter connection issues:
 ## Kubernetes Secrets & ConfigMaps
 - **ALWAYS use the existing Kubernetes secret `petrosa-sensitive-credentials` for credentials**
 - **ALWAYS use the existing configmap `petrosa-common-config` for configuration**
-- **NEVER create new secrets/configmaps or change their names** 
+- **NEVER create new secrets/configmaps or change their names**
+
+## GitHub CLI Commands
+- **When running `gh` commands, always dump output to a file in `/tmp` and then read the file**
+- **Example**: `gh api repos/owner/repo/releases > /tmp/releases.json && cat /tmp/releases.json`
+- **This ensures reliable output capture and avoids CLI interaction issues** 
