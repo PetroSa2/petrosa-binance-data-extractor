@@ -4,37 +4,30 @@ metadata:
   name: petrosa-common-config
   namespace: petrosa-apps
 data:
-  # MongoDB extraction settings
   MONGODB_URI: "mongodb+srv://yurisa2:Fokalove99@petrosa.gynnmi6.mongodb.net/"
   DB_ADAPTER: "mongodb"
   DB_BATCH_SIZE: "500"  # Reduced for memory constraints
   MAX_RETRIES: "3"
   RETRY_BACKOFF_SECONDS: "2"
   
-  # Memory-optimized settings
   LOG_LEVEL: "INFO"
   API_RATE_LIMIT_PER_MINUTE: "600"  # Reduced to avoid overwhelming
   REQUEST_DELAY_SECONDS: "0.2"
   
-  # Extraction intervals
   SUPPORTED_INTERVALS: "1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d"
   DEFAULT_PERIOD: "15m"
   DEFAULT_SYMBOLS: "BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,DOTUSDT,LINKUSDT,LTCUSDT,BCHUSDT,XLMUSDT,XRPUSDT"
   
-  # Time settings
   DEFAULT_START_DATE: "2023-01-01T00:00:00Z"
   TIMEZONE: "UTC"
   
-  # OpenTelemetry settings
   OTEL_SERVICE_NAME: "petrosa-binance-extractor"
   OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
   ENABLE_OTEL: "true"
   
-  # NATS messaging (optional)
   NATS_ENABLED: "false"
   
 ---
-# MongoDB Klines Extraction - 5-minute intervals
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -98,7 +91,6 @@ spec:
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               value: production
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -153,7 +145,6 @@ spec:
             imagePullPolicy: Always
 
 ---
-# MongoDB Klines Extraction - 15-minute intervals
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -217,7 +208,6 @@ spec:
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               value: production
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -272,7 +262,6 @@ spec:
             imagePullPolicy: Always
 
 ---
-# MongoDB Klines Extraction - 30-minute intervals
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -336,7 +325,6 @@ spec:
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               value: production
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -391,7 +379,6 @@ spec:
             imagePullPolicy: Always
 
 ---
-# MongoDB Klines Extraction - 1-hour intervals
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -455,7 +442,6 @@ spec:
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               value: production
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -510,7 +496,6 @@ spec:
             imagePullPolicy: Always
 
 ---
-# MongoDB Klines Extraction - Daily intervals
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -574,7 +559,6 @@ spec:
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               value: production
-            # OpenTelemetry configuration from ConfigMap
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
