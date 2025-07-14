@@ -5,7 +5,7 @@ metadata:
   name: petrosa-common-config
   namespace: petrosa-apps
 data:
-  MONGODB_URI: "mongodb+srv://yurisa2:Fokalove99@petrosa.gynnmi6.mongodb.net/"
+
   DB_ADAPTER: "mongodb"
   DB_BATCH_SIZE: "500"  # Reduced for memory constraints
   MAX_RETRIES: "3"
@@ -58,7 +58,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -174,7 +174,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -290,7 +290,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -406,7 +406,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -522,7 +522,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
