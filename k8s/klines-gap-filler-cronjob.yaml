@@ -174,7 +174,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -353,7 +352,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -532,7 +530,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -711,7 +708,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
