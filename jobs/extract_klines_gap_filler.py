@@ -17,23 +17,17 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# Import constants first
 import constants
 
 # Initialize OpenTelemetry as early as possible
 try:
     from utils.telemetry import initialize_telemetry
-
-    # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        # Use environment variable if available, otherwise fall back to constants
         service_name = os.getenv("OTEL_SERVICE_NAME_KLINES", constants.OTEL_SERVICE_NAME_KLINES)
-        initialize_telemetry(
-            service_name=service_name,
-            environment="production"
-        )
+        initialize_telemetry(service_name=service_name, environment="production")
 except ImportError:
     pass
+
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
