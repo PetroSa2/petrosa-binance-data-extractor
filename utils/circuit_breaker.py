@@ -26,7 +26,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: int = 60,
-        expected_exception: type = Exception,
+        expected_exception: type[BaseException] = Exception,
         name: str = "circuit_breaker"
     ):
         """
@@ -45,7 +45,7 @@ class CircuitBreaker:
         
         # State tracking
         self.failure_count = 0
-        self.last_failure_time = 0
+        self.last_failure_time: float = 0.0
         self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
         
         # Statistics
