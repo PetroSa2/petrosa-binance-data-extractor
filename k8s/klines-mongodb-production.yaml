@@ -32,7 +32,7 @@ data:
   
   # NATS messaging (optional)
   NATS_ENABLED: "false"
-
+  
 ---
 # MongoDB Klines Extraction - 5-minute intervals
 apiVersion: batch/v1

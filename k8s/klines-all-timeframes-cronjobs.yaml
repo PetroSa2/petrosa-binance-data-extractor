@@ -62,7 +62,6 @@ spec:
             - --max-workers=15
             - --db-adapter=mysql
             
-            # Environment variables from secrets and configmaps
             env:
             # Binance API credentials
             - name: BINANCE_API_KEY
