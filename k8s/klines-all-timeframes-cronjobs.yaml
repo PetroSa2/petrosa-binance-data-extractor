@@ -76,7 +76,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: EXTRACTOR_DB_ADAPTER
-            
             - name: LOG_LEVEL
               value: INFO
             - name: ENVIRONMENT
@@ -135,7 +134,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -253,7 +251,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -264,7 +261,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
@@ -475,7 +471,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -486,7 +481,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             - name: ENABLE_OTEL
@@ -531,7 +525,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -649,7 +642,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -660,7 +652,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
             
