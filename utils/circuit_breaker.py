@@ -8,7 +8,7 @@ when database operations are experiencing issues.
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List
 
 logger = logging.getLogger(__name__)
 
