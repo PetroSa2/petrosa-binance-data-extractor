@@ -9,7 +9,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import nats
 from nats.aio.client import Client as NATSClient
