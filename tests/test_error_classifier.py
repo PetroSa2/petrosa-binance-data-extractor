@@ -41,7 +41,6 @@ class TestErrorClassification:
             Exception("MongoDB connection pool exhausted"),  # Updated to be MongoDB-specific
             Exception("Server selection timeout"),
             Exception("Network timeout"),
-            Exception("Socket timeout"),
             Exception("Read timeout"),
             Exception("Write timeout"),
         ]
@@ -137,7 +136,7 @@ class TestErrorClassification:
             Exception("TLS handshake"),
             Exception("Connection aborted"),
             Exception("Connection reset"),
-            Exception("Socket timeout"),
+            Exception("Socket timeout"),  # This should be NETWORK_ERROR
             Exception("Network unreachable"),
         ]
         
