@@ -40,6 +40,8 @@ except ImportError:
     SQLALCHEMY_AVAILABLE = False
 
 import constants
+from utils.circuit_breaker import DatabaseCircuitBreaker
+from utils.error_classifier import classify_database_error, should_retry_operation
 
 from .base_adapter import BaseAdapter, DatabaseError
 
@@ -73,11 +75,21 @@ class MySQLAdapter(BaseAdapter):
         self.metadata = MetaData()
         self.tables: Dict[str, Table] = {}
 
+        # Circuit breaker for reliability
+        self.circuit_breaker = DatabaseCircuitBreaker("mysql")
+
         # Engine options
         self.engine_options = {
             "pool_pre_ping": True,
-            "pool_recycle": 3600,
-            "connect_args": {"charset": "utf8mb4"},
+            "pool_recycle": 1800,  # Reduced for shared instances
+            "pool_size": 5,  # Conservative for shared resources
+            "max_overflow": 10,  # Limited overflow
+            "pool_timeout": 30,  # Timeout for connection acquisition
+            "connect_args": {
+                "charset": "utf8mb4",
+                "autocommit": False,  # Explicit transaction control
+                "sql_mode": "STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
+            },
             **kwargs,
         }
 
@@ -232,44 +244,57 @@ class MySQLAdapter(BaseAdapter):
             raise DatabaseError(f"Unknown collection: {collection}")
 
     def write(self, model_instances: List[BaseModel], collection: str) -> int:
-        """Write model instances to MySQL table."""
+        """Write model instances to MySQL table with circuit breaker protection."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
 
         if not model_instances:
             return 0
 
-        try:
-            table = self._get_table(collection)
+        def _write_operation():
+            try:
+                table = self._get_table(collection)
 
-            # Convert models to dictionaries
-            records = []
-            for instance in model_instances:
-                record = instance.model_dump()
-                # Create unique ID for MySQL
-                if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                    record["id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
-                records.append(record)
+                # Convert models to dictionaries
+                records = []
+                for instance in model_instances:
+                    record = instance.model_dump()
+                    # Create unique ID for MySQL
+                    if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
+                        record["id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
+                    records.append(record)
 
-            # Insert records
-            engine = self._ensure_connected()
-            with engine.connect() as conn:
-                trans = conn.begin()
-                try:
-                    # Use INSERT IGNORE to handle duplicates
-                    stmt = table.insert().prefix_with("IGNORE")
-                    result = conn.execute(stmt, records)
-                    trans.commit()
-                    return result.rowcount
-                except Exception:
-                    trans.rollback()
-                    raise
+                # Insert records
+                engine = self._ensure_connected()
+                with engine.connect() as conn:
+                    trans = conn.begin()
+                    try:
+                        # Use INSERT IGNORE to handle duplicates
+                        stmt = table.insert().prefix_with("IGNORE")
+                        result = conn.execute(stmt, records)
+                        trans.commit()
+                        return result.rowcount
+                    except Exception:
+                        trans.rollback()
+                        raise
 
-        except IntegrityError:
-            logger.warning("Duplicate records found when writing to %s", collection)
-            return 0
-        except Exception as e:
-            raise DatabaseError(f"Failed to write to MySQL table {collection}: {e}") from e
+            except IntegrityError:
+                logger.warning("Duplicate records found when writing to %s", collection)
+                return 0
+            except Exception as e:
+                # Classify error and determine retry strategy
+                error_classification = classify_database_error(e)
+                should_retry, retry_strategy = should_retry_operation(e)
+                
+                logger.warning(f"MySQL write error ({error_classification}): {e}")
+                
+                if not should_retry:
+                    raise DatabaseError(f"Non-retryable error in MySQL write: {e}") from e
+                else:
+                    raise e
+
+        # Use circuit breaker for write operation
+        return self.circuit_breaker.call(_write_operation)
 
     def write_batch(self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000) -> int:
         """Write model instances in batches."""

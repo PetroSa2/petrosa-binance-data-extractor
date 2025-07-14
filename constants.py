@@ -51,6 +51,29 @@ DB_ADAPTER = os.getenv("DB_ADAPTER", "mongodb")  # mongodb, mysql, postgresql
 DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "1000"))
 DB_CONNECTION_TIMEOUT = int(os.getenv("DB_CONNECTION_TIMEOUT", "30"))
 
+# Database-specific configurations for shared/free tier environments
+MYSQL_SHARED_INSTANCE_CONFIG = {
+    "pool_size": 5,
+    "max_overflow": 10,
+    "pool_recycle": 1800,
+    "pool_timeout": 30,
+    "batch_size": 500,  # Reduced for shared resources
+}
+
+MONGODB_ATLAS_FREE_TIER_CONFIG = {
+    "max_pool_size": 5,
+    "min_pool_size": 1,
+    "max_idle_time_ms": 30000,
+    "batch_size": 200,  # Conservative for storage limits
+    "connection_timeout_ms": 5000,
+}
+
+# Adaptive batch sizing settings
+ADAPTIVE_BATCH_ENABLED = os.getenv("ADAPTIVE_BATCH_ENABLED", "true").lower() in ("true", "1", "yes")
+MIN_BATCH_SIZE = int(os.getenv("MIN_BATCH_SIZE", "100"))
+MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "2000"))
+SUCCESS_RATE_THRESHOLD = float(os.getenv("SUCCESS_RATE_THRESHOLD", "0.95"))
+
 # API rate limiting
 API_RATE_LIMIT_PER_MINUTE = 1200  # Binance limit
 API_WEIGHT_LIMIT_PER_MINUTE = 2400  # Binance limit
