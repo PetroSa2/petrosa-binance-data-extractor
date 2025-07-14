@@ -6,6 +6,7 @@ on:
 
 jobs:
   create-release:
+    name: Create Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,7 +22,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-    - name: Generate semantic version
+    - name: Generate Semantic Version
       id: version
       run: |
         LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
@@ -40,7 +41,7 @@ jobs:
         fi
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
         echo "Final generated version: ${VERSION}"
-    - name: Create and push tag
+    - name: Create and Push Tag
       id: create-tag
       run: |
         VERSION="${{ steps.version.outputs.version }}"
@@ -52,6 +53,7 @@ jobs:
         git push origin "$VERSION"
 
   build-and-push:
+    name: Build & Push
     needs: create-release
     runs-on: ubuntu-latest
     permissions:
@@ -62,7 +64,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Determine version
+    - name: Determine Version
       id: version
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
@@ -80,7 +82,7 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: Extract metadata
+    - name: Extract Docker Metadata
       id: meta
       uses: docker/metadata-action@v5
       with:
@@ -88,7 +90,7 @@ jobs:
         tags: |
           type=raw,value=${{ steps.version.outputs.version }}
           type=raw,value=latest
-    - name: Build and push Docker image
+    - name: Build and Push Docker Image
       id: build
       uses: docker/build-push-action@v5
       with:
@@ -105,6 +107,7 @@ jobs:
           BUILD_DATE=${{ steps.meta.outputs.date }}
 
   deploy:
+    name: Deploy to Kubernetes
     needs: [build-and-push, create-release]
     runs-on: ubuntu-latest
     environment: production
@@ -122,14 +125,14 @@ jobs:
         chmod 600 $HOME/.kube/config
         kubectl cluster-info --insecure-skip-tls-verify
         kubectl get nodes --insecure-skip-tls-verify
-    - name: Update image tags in manifests
+    - name: Update Image Tags in Manifests
       run: |
         IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
         find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|VERSION_PLACEHOLDER|${IMAGE_TAG}|g"
-    - name: Apply Kubernetes manifests
+    - name: Apply Kubernetes Manifests
       run: |
         kubectl apply -f k8s/ --recursive --insecure-skip-tls-verify
-    - name: Deployment summary
+    - name: Deployment Summary
       run: |
         IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
         echo "🎉 Deployment to MicroK8s completed successfully!"
@@ -137,11 +140,12 @@ jobs:
         echo "  ✅ Kubernetes manifests applied to MicroK8s cluster"
 
   notify:
+    name: notify
     needs: [build-and-push, deploy, create-release]
     runs-on: ubuntu-latest
     if: always()
     steps:
-    - name: Notify deployment status
+    - name: Notify Deployment Status
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
         TAG_CREATED="${{ needs.create-release.outputs.tag-created }}"
@@ -163,10 +167,11 @@ jobs:
         fi
 
   cleanup:
+    name: cleanup
     needs: [build-and-push]
     runs-on: ubuntu-latest
     if: always()
     steps:
-    - name: Clean up old images
+    - name: Clean Up Old Images
       run: |
         echo "Cleaning up old Docker images..." 
