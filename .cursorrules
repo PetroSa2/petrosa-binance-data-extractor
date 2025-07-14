@@ -9,9 +9,16 @@ This is a Kubernetes-based cryptocurrency data extraction system using a remote 
 - `k8s/kubeconfig.yaml` - Remote MicroK8s cluster configuration
 
 ## Prerequisites & Installation
-- **MicroK8s**: Install with `sudo snap install microk8s --classic` (Linux) or `brew install microk8s` (macOS)
+- **Python**: 3.8+ required
 - **kubectl**: Install with `sudo snap install kubectl --classic` or `brew install kubectl`
 - **Docker**: Required for building and running containers
+- **MicroK8s**: Only needed for local testing - install with `sudo snap install microk8s --classic` (Linux) or `brew install microk8s` (macOS)
+
+## Development Workflow
+1. Set kubeconfig: `export KUBECONFIG=k8s/kubeconfig.yaml`
+2. Connect to remote MicroK8s cluster
+3. Deploy to remote cluster: `./scripts/deploy-local.sh`
+4. Port forward services as needed
 
 ## Common Issues & Solutions
 When users encounter connection issues:
@@ -21,21 +28,7 @@ When users encounter connection issues:
 4. **Certificate issues**: Add `--insecure-skip-tls-verify` flag
 5. **MicroK8s not found**: Install with `sudo snap install microk8s --classic`
 
-## Development Workflow
-1. Install MicroK8s: `sudo snap install microk8s --classic`
-2. Set kubeconfig: `export KUBECONFIG=k8s/kubeconfig.yaml`
-3. Connect to remote MicroK8s cluster
-4. Deploy to remote cluster: `./scripts/deploy-local.sh`
-5. Port forward services as needed
-
-## Always Reference
-- Check `docs/REPOSITORY_SETUP_GUIDE.md` for detailed setup instructions
-- Check `docs/QUICK_REFERENCE.md` for common commands and troubleshooting
-- Use `k8s/kubeconfig.yaml` for remote cluster connection
-- This is a remote MicroK8s setup, not AWS EKS
-- You do NOT need to install MicroK8s locally to use this repo. Only install MicroK8s if you want to run a local cluster for testing. For normal use, just install kubectl and use the provided kubeconfig to connect to the remote cluster.
-
-## Kubernetes Secrets & ConfigMaps
+## Kubernetes Configuration Rules
 - **ALWAYS use the existing Kubernetes secret `petrosa-sensitive-credentials` for credentials**
 - **ALWAYS use the existing configmap `petrosa-common-config` for configuration**
 - **NEVER create new secrets/configmaps or change their names**
@@ -57,4 +50,31 @@ When users encounter connection issues:
   7. If pipeline fails, fix issues and repeat steps 1-6
   8. **STOP ONLY WHEN CI/CD GHA PIPELINE IS WORKING**
 - **Never merge to main until pipeline passes**
-- **Always use file-based approach for GitHub CLI: `gh command > /tmp/file.json && cat /tmp/file.json`** 
+- **Always use file-based approach for GitHub CLI: `gh command > /tmp/file.json && cat /tmp/file.json`**
+
+## Code Style & Error Handling
+- Follow PEP 8 for Python code formatting
+- Use type hints where possible
+- Implement proper error handling with try/catch blocks
+- Add logging for debugging and monitoring
+- Use descriptive variable and function names
+
+## CRITICAL: ALWAYS FOLLOW THESE RULES
+- **BEFORE making any changes**: Check `docs/REPOSITORY_SETUP_GUIDE.md` and `docs/QUICK_REFERENCE.md`
+- **WHEN suggesting kubectl commands**: Always include `--kubeconfig=k8s/kubeconfig.yaml`
+- **WHEN dealing with credentials**: ONLY use existing secret `petrosa-sensitive-credentials`
+- **WHEN dealing with configuration**: ONLY use existing configmap `petrosa-common-config`
+- **WHEN running GitHub CLI**: ALWAYS use file-based approach: `gh command > /tmp/file.json && cat /tmp/file.json`
+- **WHEN fixing CI/CD issues**: Continue until GitHub Actions pipeline passes
+- **WHEN writing Python code**: Follow PEP 8, use type hints, add proper error handling
+- **NEVER suggest AWS EKS commands** - this is a MicroK8s setup
+- **NEVER create new Kubernetes secrets/configmaps** - use existing ones only
+
+## AUTOMATED DOCUMENTATION CHECK
+- **BEFORE responding to ANY request**: Automatically read and reference `docs/REPOSITORY_SETUP_GUIDE.md` and `docs/QUICK_REFERENCE.md`
+- **ALWAYS start responses by checking these files first** if the request involves:
+  - Kubernetes deployment/configuration
+  - Cluster connection issues
+  - Development setup
+  - Troubleshooting
+  - CI/CD pipeline issues 
