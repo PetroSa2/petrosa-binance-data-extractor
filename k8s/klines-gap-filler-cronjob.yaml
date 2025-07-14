@@ -85,7 +85,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -96,10 +95,8 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -142,7 +139,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -247,7 +243,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -263,7 +258,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -274,10 +268,8 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -320,7 +312,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -425,7 +416,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -441,7 +431,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -452,10 +441,8 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -498,7 +485,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -603,7 +589,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -619,7 +604,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -630,10 +614,8 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -676,7 +658,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -781,7 +762,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            
             - name: LOG_LEVEL
               valueFrom:
                 secretKeyRef:
@@ -797,7 +777,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: DB_ADAPTER
-            
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
@@ -808,10 +787,8 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-            
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -854,7 +831,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: OTEL_EXPORTER_OTLP_HEADERS
-                  
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
