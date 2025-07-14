@@ -59,12 +59,18 @@ spec:
             component: klines-extractor
             database: mongodb
             interval: 5m
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "-m", "jobs.extract_klines_production"]
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_production
             args:
             - "--period=5m"
             - "--max-workers=15"
@@ -90,6 +96,53 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
+            - name: ENVIRONMENT
+              value: production
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
             resources:
               requests:
                 memory: "256Mi"
@@ -125,12 +178,18 @@ spec:
             component: klines-extractor
             database: mongodb
             interval: 15m
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "-m", "jobs.extract_klines_production"]
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_production
             args:
             - "--period=15m"
             - "--max-workers=15"
@@ -156,6 +215,53 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
+            - name: ENVIRONMENT
+              value: production
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
             resources:
               requests:
                 memory: "256Mi"
@@ -191,12 +297,18 @@ spec:
             component: klines-extractor
             database: mongodb
             interval: 30m
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "-m", "jobs.extract_klines_production"]
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_production
             args:
             - "--period=30m"
             - "--max-workers=15"
@@ -222,6 +334,53 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
+            - name: ENVIRONMENT
+              value: production
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
             resources:
               requests:
                 memory: "256Mi"
@@ -257,12 +416,18 @@ spec:
             component: klines-extractor
             database: mongodb
             interval: 1h
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "-m", "jobs.extract_klines_production"]
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_production
             args:
             - "--period=1h"
             - "--max-workers=15"
@@ -288,6 +453,53 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
+            - name: ENVIRONMENT
+              value: production
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
             resources:
               requests:
                 memory: "256Mi"
@@ -323,12 +535,18 @@ spec:
             component: klines-extractor
             database: mongodb
             interval: 1d
+          annotations:
+            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "-m", "jobs.extract_klines_production"]
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_production
             args:
             - "--period=1d"
             - "--max-workers=15"
@@ -354,6 +572,53 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
+            - name: ENVIRONMENT
+              value: production
+            # OpenTelemetry configuration from ConfigMap
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
             resources:
               requests:
                 memory: "256Mi"
