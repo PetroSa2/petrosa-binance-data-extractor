@@ -63,7 +63,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            image: yurisa2/petrosa-binance-extractor:v1.0.18
             command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=5m"
@@ -129,7 +129,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            image: yurisa2/petrosa-binance-extractor:v1.0.18
             command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=15m"
@@ -195,7 +195,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            image: yurisa2/petrosa-binance-extractor:v1.0.18
             command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=30m"
@@ -261,7 +261,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            image: yurisa2/petrosa-binance-extractor:v1.0.18
             command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=1h"
@@ -327,7 +327,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            image: yurisa2/petrosa-binance-extractor:v1.0.18
             command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=1d"
