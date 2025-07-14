@@ -63,7 +63,6 @@ spec:
             - --db-adapter=mysql
             
             env:
-            # Binance API credentials
             - name: BINANCE_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -79,7 +78,6 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: MYSQL_URI
-            # Database configuration from ConfigMap
             - name: DB_ADAPTER
               valueFrom:
                 configMapKeyRef:
