@@ -38,7 +38,7 @@ spec:
           
           containers:
           - name: klines-gap-filler
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -211,7 +211,7 @@ spec:
           
           containers:
           - name: klines-gap-filler
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -384,7 +384,7 @@ spec:
           
           containers:
           - name: klines-gap-filler
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -557,7 +557,7 @@ spec:
           
           containers:
           - name: klines-gap-filler
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -730,7 +730,7 @@ spec:
           
           containers:
           - name: klines-gap-filler
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
