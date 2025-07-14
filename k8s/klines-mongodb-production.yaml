@@ -143,7 +143,6 @@ spec:
                 memory: "400Mi"  # Within 512MB constraint
                 cpu: "500m"
             imagePullPolicy: Always
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -260,7 +259,6 @@ spec:
                 memory: "400Mi"
                 cpu: "500m"
             imagePullPolicy: Always
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -377,7 +375,6 @@ spec:
                 memory: "400Mi"
                 cpu: "500m"
             imagePullPolicy: Always
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -494,7 +491,6 @@ spec:
                 memory: "400Mi"
                 cpu: "500m"
             imagePullPolicy: Always
-
 ---
 apiVersion: batch/v1
 kind: CronJob

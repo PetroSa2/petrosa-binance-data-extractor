@@ -86,7 +86,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: ENABLE_OTEL
-
             - name: OTEL_SERVICE_VERSION
               valueFrom:
                 configMapKeyRef:
@@ -168,7 +167,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -286,7 +284,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -392,7 +389,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -498,7 +494,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: ENABLE_OTEL
-
             - name: OTEL_SERVICE_VERSION
               valueFrom:
                 configMapKeyRef:
@@ -568,7 +563,6 @@ spec:
               capabilities:
                 drop:
                 - ALL
-
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -666,7 +660,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
-
             
             - name: OTEL_NO_AUTO_INIT
               value: "1"
