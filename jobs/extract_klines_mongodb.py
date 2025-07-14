@@ -12,7 +12,7 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence
+from typing import List
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,7 +30,6 @@ except ImportError:
 
 from db.mongodb_adapter import MongoDBAdapter
 from fetchers import BinanceClient, KlinesFetcher
-from models.kline import KlineModel
 from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
 from utils.messaging import publish_extraction_completion_sync
 from utils.time_utils import (
@@ -148,23 +147,23 @@ def get_mongodb_connection_string(args) -> str:
     """Get MongoDB connection string."""
     if args.mongodb_uri:
         return args.mongodb_uri
-    
+
     # Try to get from Kubernetes secret
     try:
         import subprocess
         result = subprocess.run([
-            "kubectl", "get", "secret", "petrosa-sensitive-credentials", 
+            "kubectl", "get", "secret", "petrosa-sensitive-credentials",
             "-n", "petrosa-apps", "-o", "jsonpath='{.data.mongodb-connection-string}'",
             "--insecure-skip-tls-verify"
         ], capture_output=True, text=True, check=True)
-        
+
         if result.stdout.strip():
             import base64
             connection_string = base64.b64decode(result.stdout.strip().strip("'")).decode()
             return connection_string
     except Exception as e:
         print(f"Warning: Could not get MongoDB connection from Kubernetes secret: {e}")
-    
+
     return constants.MONGODB_URI
 
 
@@ -172,11 +171,11 @@ def create_timeseries_collection(db_adapter: MongoDBAdapter, collection_name: st
     """Create MongoDB timeseries collection with proper indexes."""
     try:
         db = db_adapter._get_database()
-        
+
         # Check if collection exists
         if collection_name in db.list_collection_names():
             return
-        
+
         # Create timeseries collection
         db.create_collection(
             collection_name,
@@ -186,14 +185,14 @@ def create_timeseries_collection(db_adapter: MongoDBAdapter, collection_name: st
                 "granularity": "minutes" if period in ["1m", "3m", "5m", "15m", "30m"] else "hours"
             }
         )
-        
+
         # Create indexes for efficient querying
         collection = db[collection_name]
         collection.create_index([("symbol", 1), ("timestamp", 1)], unique=True)
         collection.create_index([("timestamp", 1)])
-        
+
         print(f"Created timeseries collection: {collection_name}")
-        
+
     except Exception as e:
         print(f"Warning: Could not create timeseries collection {collection_name}: {e}")
 
@@ -226,7 +225,7 @@ def extract_klines_for_symbol(
             if latest_records:
                 last_timestamp = latest_records[0]["timestamp"]
                 logger.info(f"Last timestamp for {symbol}: {last_timestamp}")
-                
+
                 # Start from next interval
                 if period.endswith('m'):
                     start_date = last_timestamp + timedelta(minutes=int(period[:-1]))
@@ -264,8 +263,8 @@ def extract_klines_for_symbol(
             from pydantic import BaseModel
             kline_models_cast: List[BaseModel] = kline_models  # type: ignore
             total_written = db_adapter.write_batch(
-                kline_models_cast, 
-                collection_name, 
+                kline_models_cast,
+                collection_name,
                 batch_size=args.batch_size
             )
             logger.info(f"Written {total_written} records for {symbol} to {collection_name}")
@@ -297,31 +296,31 @@ def extract_klines_for_symbol(
 def main():
     """Main entry point for MongoDB klines extraction."""
     args = parse_arguments()
-    
+
     # Setup logging
     logger = setup_logging(level=args.log_level)
-    
+
     # Get symbols list
     symbols = get_symbols_list(args)
-    
+
     # Parse dates
     start_date = parse_datetime_string(args.start_date)
     end_date = parse_datetime_string(args.end_date) if args.end_date else get_current_utc_time()
-    
+
     # Get MongoDB connection string
     mongodb_uri = get_mongodb_connection_string(args)
-    
+
     # Initialize MongoDB adapter
     db_adapter = MongoDBAdapter(
         connection_string=mongodb_uri,
         database_name=args.database_name,
         max_pool_size=10  # Reduced for memory constraints
     )
-    
+
     # Initialize Binance client and fetcher
     client = BinanceClient()
     fetcher = KlinesFetcher(client)
-    
+
     # Log extraction start
     log_extraction_start(
         symbols=symbols,
@@ -330,15 +329,15 @@ def main():
         end_date=end_date,
         logger=logger
     )
-    
+
     extraction_start_time = time.time()
     total_records_written = 0
     results = []
-    
+
     try:
         # Connect to database
         db_adapter.connect()
-        
+
         # Extract klines for each symbol
         for symbol in symbols:
             result = extract_klines_for_symbol(
@@ -351,57 +350,39 @@ def main():
                 args=args,
                 logger=logger
             )
-            
             results.append(result)
             total_records_written += result["records_written"]
-            
-            # Small delay between symbols to avoid overwhelming the API
-            time.sleep(0.5)
-        
-        # Log completion
-        total_duration = time.time() - extraction_start_time
+
+        # Log extraction completion
+        extraction_duration = time.time() - extraction_start_time
         log_extraction_completion(
-            total_records_written=total_records_written,
-            duration=total_duration,
+            total_records=total_records_written,
+            duration_seconds=extraction_duration,
             logger=logger
         )
-        
+
         # Publish completion message
-        try:
-            publish_extraction_completion_sync(
-                symbols=symbols,
-                period=args.period,
-                records_written=total_records_written,
-                duration=total_duration,
-                status="success"
-            )
-        except Exception as e:
-            logger.warning(f"Failed to publish completion message: {e}")
-        
-        # Print summary
-        print(f"\n📊 Extraction Summary:")
-        print(f"   Symbols processed: {len(symbols)}")
-        print(f"   Total records written: {total_records_written}")
-        print(f"   Duration: {format_duration(total_duration)}")
-        print(f"   Database: MongoDB timeseries collections")
-        
-        for result in results:
-            status_emoji = "✅" if result["status"] == "success" else "❌"
-            print(f"   {status_emoji} {result['symbol']}: {result['records_written']} records")
-        
-        return 0
-        
+        publish_extraction_completion_sync(
+            extractor_type="klines_mongodb",
+            total_records=total_records_written,
+            duration_seconds=extraction_duration,
+            symbols=symbols,
+            period=args.period
+        )
+
+        logger.info(f"Extraction completed: {total_records_written} records in {format_duration(extraction_duration)}")
+
     except Exception as e:
         logger.error(f"Extraction failed: {e}")
-        return 1
-        
+        sys.exit(1)
+
     finally:
-        # Cleanup
-        try:
-            db_adapter.disconnect()
-        except Exception as e:
-            logger.warning(f"Error disconnecting from database: {e}")
+        # Clean up
+        fetcher.close()
+        db_adapter.close()
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":
-    sys.exit(main()) # Updated for MongoDB extraction
+    main()

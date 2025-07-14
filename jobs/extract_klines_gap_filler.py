@@ -31,7 +31,6 @@ except ImportError:
 from db import get_adapter
 from fetchers import BinanceClient, KlinesFetcher
 from models.base import BaseModel
-from models.kline import KlineModel
 from utils.logger import (
     get_logger,
     log_extraction_completion,
@@ -666,7 +665,9 @@ Examples:
     parser.add_argument(
         "--period",
         type=str,
-        choices=["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"],
+        choices=[
+            "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"
+        ],
         default=constants.DEFAULT_PERIOD,
         help="Kline interval (default: 15m)",
     )
