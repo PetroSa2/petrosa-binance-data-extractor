@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
+import decimal
+
 try:
     from pymongo import ASCENDING, DESCENDING, MongoClient
     from pymongo.collection import Collection
@@ -21,6 +23,9 @@ except ImportError:
     PYMONGO_AVAILABLE = False
 
 import constants
+from utils.circuit_breaker import DatabaseCircuitBreaker
+from utils.error_classifier import classify_database_error, should_retry_operation
+
 from db.base_adapter import BaseAdapter, DatabaseError
 
 logger = logging.getLogger(__name__)
@@ -32,6 +37,18 @@ class MongoDBAdapter(BaseAdapter):
 
     Provides efficient storage and querying for time-series data using MongoDB.
     """
+
+    @staticmethod
+    def _convert_decimals(obj):
+        """Recursively convert Decimal objects to float in dicts/lists."""
+        if isinstance(obj, list):
+            return [MongoDBAdapter._convert_decimals(item) for item in obj]
+        elif isinstance(obj, dict):
+            return {k: MongoDBAdapter._convert_decimals(v) for k, v in obj.items()}
+        elif isinstance(obj, decimal.Decimal):
+            return float(obj)
+        else:
+            return obj
 
     def __init__(self, connection_string: Optional[str] = None, **kwargs):
         """
@@ -52,11 +69,19 @@ class MongoDBAdapter(BaseAdapter):
         self.database: Optional[Database] = None
         self.database_name = kwargs.get("database_name", "binance")
 
+        # Circuit breaker for reliability
+        self.circuit_breaker = DatabaseCircuitBreaker("mongodb")
+
         # Connection options
         self.client_options = {
-            "serverSelectionTimeoutMS": constants.DB_CONNECTION_TIMEOUT * 1000,
-            "connectTimeoutMS": constants.DB_CONNECTION_TIMEOUT * 1000,
-            "maxPoolSize": kwargs.get("max_pool_size", 100),
+            "serverSelectionTimeoutMS": 5000,  # Faster timeout
+            "connectTimeoutMS": 5000,
+            "maxPoolSize": kwargs.get("max_pool_size", 5),  # Conservative for free tier
+            "minPoolSize": 1,
+            "maxIdleTimeMS": 30000,  # Close idle connections quickly
+            "waitQueueTimeoutMS": 10000,  # Timeout for connection acquisition
+            "retryWrites": True,
+            "retryReads": True,
             **kwargs,
         }
 
@@ -80,40 +105,54 @@ class MongoDBAdapter(BaseAdapter):
             logger.info("Disconnected from MongoDB")
 
     def write(self, model_instances: List[BaseModel], collection: str) -> int:
-        """Write model instances to MongoDB collection."""
+        """Write model instances to MongoDB collection with circuit breaker protection."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
 
         if not model_instances:
             return 0
 
-        try:
-            db = self._get_database()
-            coll: Collection = db[collection]
-            documents = []
+        def _write_operation():
+            try:
+                db = self._get_database()
+                coll: Collection = db[collection]
+                documents = []
 
-            for instance in model_instances:
-                doc = instance.model_dump()
-                # Use timestamp as MongoDB _id for better performance and uniqueness
-                if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                    doc["_id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
-                documents.append(doc)
+                for instance in model_instances:
+                    doc = instance.model_dump()
+                    # Use timestamp as MongoDB _id for better performance and uniqueness
+                    if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
+                        doc["_id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
+                    doc = MongoDBAdapter._convert_decimals(doc)
+                    documents.append(doc)
 
-            # Use ordered=False for better performance with duplicates
-            result = coll.insert_many(documents, ordered=False)
-            return len(result.inserted_ids)
+                # Use ordered=False for better performance with duplicates
+                result = coll.insert_many(documents, ordered=False)
+                return len(result.inserted_ids)
 
-        except DuplicateKeyError:
-            # Handle duplicates gracefully
-            logger.warning("Duplicate records found when writing to %s", collection)
-            return 0
-        except BulkWriteError as e:
-            # Count successful writes even if some failed
-            successful_writes = e.details.get("nInserted", 0)
-            logger.warning("Bulk write error: %s", e.details.get("writeErrors", []))
-            return successful_writes
-        except Exception as e:
-            raise DatabaseError(f"Failed to write to MongoDB collection {collection}: {e}") from e
+            except DuplicateKeyError:
+                # Handle duplicates gracefully
+                logger.warning("Duplicate records found when writing to %s", collection)
+                return 0
+            except BulkWriteError as e:
+                # Count successful writes even if some failed
+                successful_writes = e.details.get("nInserted", 0)
+                logger.warning("Bulk write error: %s", e.details.get("writeErrors", []))
+                return successful_writes
+            except Exception as e:
+                # Classify error and determine retry strategy
+                error_classification = classify_database_error(e)
+                should_retry, retry_strategy = should_retry_operation(e)
+                
+                logger.warning(f"MongoDB write error ({error_classification}): {e}")
+                
+                if not should_retry:
+                    raise DatabaseError(f"Non-retryable error in MongoDB write: {e}") from e
+                else:
+                    raise e
+
+        # Use circuit breaker for write operation
+        return self.circuit_breaker.call(_write_operation)
 
     def write_batch(self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000) -> int:
         """Write model instances in batches."""
