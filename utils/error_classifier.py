@@ -6,8 +6,8 @@ appropriate retry strategies and handling for different types of errors.
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
 import re
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

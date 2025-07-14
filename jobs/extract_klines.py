@@ -35,6 +35,7 @@ from utils.time_utils import (
     format_duration,
     get_current_utc_time,
     parse_datetime_string,
+    binance_interval_to_table_suffix,
 )
 
 
@@ -182,8 +183,6 @@ def extract_klines_for_symbol(
 
     try:
         # Get collection name with proper financial market naming
-        from utils.time_utils import binance_interval_to_table_suffix
-
         table_suffix = binance_interval_to_table_suffix(period)
         collection_name = f"klines_{table_suffix}"
 
