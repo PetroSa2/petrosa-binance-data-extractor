@@ -23,19 +23,13 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# Import constants first
 import constants
 
 # Initialize OpenTelemetry as early as possible
 try:
     from utils.telemetry import initialize_telemetry
-
-    # Initialize telemetry if not already done
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        initialize_telemetry(
-            service_name=constants.OTEL_SERVICE_NAME_KLINES,
-            environment="production"
-        )
+        initialize_telemetry(service_name=constants.OTEL_SERVICE_NAME_KLINES, environment="production")
 except ImportError:
     pass
 
