@@ -16,12 +16,10 @@ data:
   API_RATE_LIMIT_PER_MINUTE: "600"  # Reduced to avoid overwhelming
   REQUEST_DELAY_SECONDS: "0.2"
   
-  # Default symbols for extraction
-  DEFAULT_SYMBOLS: "BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,DOTUSDT"
-  
   # Extraction intervals
   SUPPORTED_INTERVALS: "1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d"
   DEFAULT_PERIOD: "15m"
+  DEFAULT_SYMBOLS: "BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,DOTUSDT,LINKUSDT,LTCUSDT,BCHUSDT,XLMUSDT,XRPUSDT"
   
   # Time settings
   DEFAULT_START_DATE: "2023-01-01T00:00:00Z"
@@ -65,13 +63,12 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "jobs/extract_klines_mongodb.py"]
+            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=5m"
-            - "--incremental"
-            - "--batch-size=500"
-            - "--log-level=INFO"
+            - "--max-workers=15"
+            - "--db-adapter=mongodb"
             env:
             - name: MONGODB_URI
               valueFrom:
@@ -93,11 +90,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
@@ -137,13 +129,12 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "jobs/extract_klines_mongodb.py"]
+            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=15m"
-            - "--incremental"
-            - "--batch-size=500"
-            - "--log-level=INFO"
+            - "--max-workers=15"
+            - "--db-adapter=mongodb"
             env:
             - name: MONGODB_URI
               valueFrom:
@@ -165,11 +156,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
@@ -209,13 +195,12 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "jobs/extract_klines_mongodb.py"]
+            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=30m"
-            - "--incremental"
-            - "--batch-size=500"
-            - "--log-level=INFO"
+            - "--max-workers=15"
+            - "--db-adapter=mongodb"
             env:
             - name: MONGODB_URI
               valueFrom:
@@ -237,11 +222,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
@@ -281,13 +261,12 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "jobs/extract_klines_mongodb.py"]
+            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=1h"
-            - "--incremental"
-            - "--batch-size=500"
-            - "--log-level=INFO"
+            - "--max-workers=15"
+            - "--db-adapter=mongodb"
             env:
             - name: MONGODB_URI
               valueFrom:
@@ -309,11 +288,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
@@ -353,13 +327,12 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-            command: ["python", "jobs/extract_klines_mongodb.py"]
+            image: yurisa2/petrosa-binance-extractor:v1.0.17
+            command: ["python", "-m", "jobs.extract_klines_production"]
             args:
             - "--period=1d"
-            - "--incremental"
-            - "--batch-size=500"
-            - "--log-level=INFO"
+            - "--max-workers=15"
+            - "--db-adapter=mongodb"
             env:
             - name: MONGODB_URI
               valueFrom:
@@ -381,11 +354,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: LOG_LEVEL
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
