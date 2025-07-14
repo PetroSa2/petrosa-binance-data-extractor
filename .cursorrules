@@ -38,4 +38,23 @@ When users encounter connection issues:
 ## Kubernetes Secrets & ConfigMaps
 - **ALWAYS use the existing Kubernetes secret `petrosa-sensitive-credentials` for credentials**
 - **ALWAYS use the existing configmap `petrosa-common-config` for configuration**
-- **NEVER create new secrets/configmaps or change their names** 
+- **NEVER create new secrets/configmaps or change their names**
+
+## GitHub CLI Commands
+- **When running `gh` commands, always dump output to a file in `/tmp` and then read the file**
+- **Example**: `gh api repos/owner/repo/releases > /tmp/releases.json && cat /tmp/releases.json`
+- **This ensures reliable output capture and avoids CLI interaction issues**
+
+## CI/CD Pipeline Fix Process
+- **WHEN FIXING PIPELINE ISSUES: Continue until CI/CD on GitHub Actions is working**
+- **Process**: 
+  1. Run all tests locally first: `python -m pytest tests/ -v --cov=. --cov-report=term --tb=short`
+  2. Fix any local test failures
+  3. Fix linting errors: `flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics`
+  4. Commit and push changes to a feature branch
+  5. Create PR to trigger CI/CD pipeline
+  6. Monitor pipeline status: `gh run list --json status,conclusion,url,createdAt`
+  7. If pipeline fails, fix issues and repeat steps 1-6
+  8. **STOP ONLY WHEN CI/CD GHA PIPELINE IS WORKING**
+- **Never merge to main until pipeline passes**
+- **Always use file-based approach for GitHub CLI: `gh command > /tmp/file.json && cat /tmp/file.json`** 
