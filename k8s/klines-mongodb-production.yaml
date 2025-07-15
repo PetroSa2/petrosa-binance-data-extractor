@@ -226,8 +226,8 @@ spec:
                   key: MONGODB_URI
             - name: LOG_LEVEL
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
