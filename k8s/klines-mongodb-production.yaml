@@ -69,7 +69,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: petrosa-common-config
-                  key: EXTRACTOR_DB_ADAPTER
+                  key: DB_ADAPTER
             - name: LOG_LEVEL
               value: INFO
             - name: ENVIRONMENT
