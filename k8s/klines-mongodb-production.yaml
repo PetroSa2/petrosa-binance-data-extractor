@@ -56,7 +56,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -172,7 +172,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -288,7 +288,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -404,7 +404,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python
@@ -520,7 +520,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             command:
             - opentelemetry-instrument
             - python

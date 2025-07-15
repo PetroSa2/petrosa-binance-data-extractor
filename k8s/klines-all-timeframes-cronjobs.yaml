@@ -38,7 +38,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -203,7 +203,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             
             command:
@@ -318,7 +318,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             
             command:
@@ -423,7 +423,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             
             command:
@@ -594,7 +594,7 @@ spec:
           
           containers:
           - name: klines-extractor
-            image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             
             command:
