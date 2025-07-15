@@ -1,28 +1,4 @@
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: petrosa-common-config
-  namespace: petrosa-apps
-data:
-  DB_ADAPTER: "mongodb"
-  DB_BATCH_SIZE: "500"
-  MAX_RETRIES: "3"
-  RETRY_BACKOFF_SECONDS: "2"
-  LOG_LEVEL: "INFO"
-  API_RATE_LIMIT_PER_MINUTE: "600"
-  REQUEST_DELAY_SECONDS: "0.2"
-  SUPPORTED_INTERVALS: "1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d"
-  DEFAULT_PERIOD: "15m"
-  DEFAULT_SYMBOLS: >
-    "BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,DOTUSDT,LINKUSDT,LTCUSDT,BCHUSDT,XLMUSDT,XRPUSDT"
-  DEFAULT_START_DATE: "2023-01-01T00:00:00Z"
-  TIMEZONE: "UTC"
-  OTEL_SERVICE_NAME: "petrosa-binance-extractor"
-  OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
-  ENABLE_OTEL: "true"
-  NATS_ENABLED: "false"
----
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -33,111 +9,154 @@ metadata:
     component: klines-extractor
     database: mongodb
     interval: 5m
+    version: production
 spec:
   schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 2
   jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: mongodb
+        interval: 5m
     spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 1800
       template:
         metadata:
           labels:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-            interval: 5m
           annotations:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
-            - name: klines-extractor
-              image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-              command:
-                - opentelemetry-instrument
-                - python
-                - -m
-                - jobs.extract_klines_production
-              args:
-                - "--period=5m"
-                - "--max-workers=15"
-                - "--db-adapter=mongodb"
-              env:
-                - name: MONGODB_URI
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: mongodb-connection-string
-                - name: DB_ADAPTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_ADAPTER
-                - name: DB_BATCH_SIZE
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_BATCH_SIZE
-                - name: LOG_LEVEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: LOG_LEVEL
-                - name: ENVIRONMENT
-                  value: production
-                - name: ENABLE_OTEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: ENABLE_OTEL
-                - name: OTEL_SERVICE_VERSION
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_SERVICE_VERSION
-                - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_EXPORTER_OTLP_ENDPOINT
-                - name: OTEL_RESOURCE_ATTRIBUTES
-                  value: "service.name=binance-extractor,service.version=2.0.0"
-                - name: OTEL_METRICS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_METRICS_EXPORTER
-                - name: OTEL_TRACES_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_TRACES_EXPORTER
-                - name: OTEL_LOGS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_LOGS_EXPORTER
-                - name: OTEL_PROPAGATORS
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_PROPAGATORS
-                - name: OTEL_EXPORTER_OTLP_HEADERS
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: OTEL_EXPORTER_OTLP_HEADERS
-                - name: OTEL_NO_AUTO_INIT
-                  value: "1"
-              resources:
-                requests:
-                  memory: "256Mi"
-                  cpu: "100m"
-                limits:
-                  memory: "400Mi"
-                  cpu: "500m"
-              imagePullPolicy: Always
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: Always
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_mongodb
+            args:
+            - --period=5m
+            - --max-workers=15
+            - --db-adapter=mongodb
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MONGODB_URI
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: EXTRACTOR_DB_ADAPTER
+            - name: LOG_LEVEL
+              value: INFO
+            - name: ENVIRONMENT
+              value: production
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-m5-mongodb-production"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "300m"
+              limits:
+                memory: "1Gi"
+                cpu: "800m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -149,111 +168,104 @@ metadata:
     component: klines-extractor
     database: mongodb
     interval: 15m
+    version: production
 spec:
-  schedule: "*/15 * * * *"  # Every 15 minutes
+  schedule: "2 */15 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 2
   jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: mongodb
+        interval: 15m
     spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 3600
       template:
         metadata:
           labels:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-            interval: 15m
           annotations:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
-            - name: klines-extractor
-              image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-              command:
-                - opentelemetry-instrument
-                - python
-                - -m
-                - jobs.extract_klines_production
-              args:
-                - "--period=15m"
-                - "--max-workers=15"
-                - "--db-adapter=mongodb"
-              env:
-                - name: MONGODB_URI
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: mongodb-connection-string
-                - name: DB_ADAPTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_ADAPTER
-                - name: DB_BATCH_SIZE
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_BATCH_SIZE
-                - name: LOG_LEVEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: LOG_LEVEL
-                - name: ENVIRONMENT
-                  value: production
-                - name: ENABLE_OTEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: ENABLE_OTEL
-                - name: OTEL_SERVICE_VERSION
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_SERVICE_VERSION
-                - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_EXPORTER_OTLP_ENDPOINT
-                - name: OTEL_RESOURCE_ATTRIBUTES
-                  value: "service.name=binance-extractor,service.version=2.0.0"
-                - name: OTEL_METRICS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_METRICS_EXPORTER
-                - name: OTEL_TRACES_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_TRACES_EXPORTER
-                - name: OTEL_LOGS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_LOGS_EXPORTER
-                - name: OTEL_PROPAGATORS
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_PROPAGATORS
-                - name: OTEL_EXPORTER_OTLP_HEADERS
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: OTEL_EXPORTER_OTLP_HEADERS
-                - name: OTEL_NO_AUTO_INIT
-                  value: "1"
-              resources:
-                requests:
-                  memory: "256Mi"
-                  cpu: "100m"
-                limits:
-                  memory: "400Mi"
-                  cpu: "500m"
-              imagePullPolicy: Always
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: IfNotPresent
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_mongodb
+            args:
+            - --period=15m
+            - --max-workers=12
+            - --db-adapter=mongodb
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MONGODB_URI
+            - name: LOG_LEVEL
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: DB_ADAPTER
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
+            resources:
+              requests:
+                memory: "384Mi"
+                cpu: "250m"
+              limits:
+                memory: "768Mi"
+                cpu: "600m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -265,111 +277,94 @@ metadata:
     component: klines-extractor
     database: mongodb
     interval: 30m
+    version: production
 spec:
-  schedule: "*/30 * * * *"  # Every 30 minutes
+  schedule: "5 */30 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 2
   jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: mongodb
+        interval: 30m
     spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      ttlSecondsAfterFinished: 3600
       template:
         metadata:
           labels:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-            interval: 30m
           annotations:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
-            - name: klines-extractor
-              image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-              command:
-                - opentelemetry-instrument
-                - python
-                - -m
-                - jobs.extract_klines_production
-              args:
-                - "--period=30m"
-                - "--max-workers=15"
-                - "--db-adapter=mongodb"
-              env:
-                - name: MONGODB_URI
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: mongodb-connection-string
-                - name: DB_ADAPTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_ADAPTER
-                - name: DB_BATCH_SIZE
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_BATCH_SIZE
-                - name: LOG_LEVEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: LOG_LEVEL
-                - name: ENVIRONMENT
-                  value: production
-                - name: ENABLE_OTEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: ENABLE_OTEL
-                - name: OTEL_SERVICE_VERSION
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_SERVICE_VERSION
-                - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_EXPORTER_OTLP_ENDPOINT
-                - name: OTEL_RESOURCE_ATTRIBUTES
-                  value: "service.name=binance-extractor,service.version=2.0.0"
-                - name: OTEL_METRICS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_METRICS_EXPORTER
-                - name: OTEL_TRACES_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_TRACES_EXPORTER
-                - name: OTEL_LOGS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_LOGS_EXPORTER
-                - name: OTEL_PROPAGATORS
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_PROPAGATORS
-                - name: OTEL_EXPORTER_OTLP_HEADERS
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: OTEL_EXPORTER_OTLP_HEADERS
-                - name: OTEL_NO_AUTO_INIT
-                  value: "1"
-              resources:
-                requests:
-                  memory: "256Mi"
-                  cpu: "100m"
-                limits:
-                  memory: "400Mi"
-                  cpu: "500m"
-              imagePullPolicy: Always
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: IfNotPresent
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_mongodb
+            args:
+            - --period=30m
+            - --max-workers=10
+            - --db-adapter=mongodb
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MONGODB_URI
+            - name: LOG_LEVEL
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: DB_ADAPTER
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -381,111 +376,160 @@ metadata:
     component: klines-extractor
     database: mongodb
     interval: 1h
+    version: production
 spec:
-  schedule: "0 * * * *"  # Every hour
+  schedule: "10 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 2
   jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: mongodb
+        interval: 1h
     spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1200
+      ttlSecondsAfterFinished: 3600
       template:
         metadata:
           labels:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-            interval: 1h
           annotations:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
-            - name: klines-extractor
-              image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-              command:
-                - opentelemetry-instrument
-                - python
-                - -m
-                - jobs.extract_klines_production
-              args:
-                - "--period=1h"
-                - "--max-workers=15"
-                - "--db-adapter=mongodb"
-              env:
-                - name: MONGODB_URI
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: mongodb-connection-string
-                - name: DB_ADAPTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_ADAPTER
-                - name: DB_BATCH_SIZE
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_BATCH_SIZE
-                - name: LOG_LEVEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: LOG_LEVEL
-                - name: ENVIRONMENT
-                  value: production
-                - name: ENABLE_OTEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: ENABLE_OTEL
-                - name: OTEL_SERVICE_VERSION
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_SERVICE_VERSION
-                - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_EXPORTER_OTLP_ENDPOINT
-                - name: OTEL_RESOURCE_ATTRIBUTES
-                  value: "service.name=binance-extractor,service.version=2.0.0"
-                - name: OTEL_METRICS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_METRICS_EXPORTER
-                - name: OTEL_TRACES_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_TRACES_EXPORTER
-                - name: OTEL_LOGS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_LOGS_EXPORTER
-                - name: OTEL_PROPAGATORS
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_PROPAGATORS
-                - name: OTEL_EXPORTER_OTLP_HEADERS
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: OTEL_EXPORTER_OTLP_HEADERS
-                - name: OTEL_NO_AUTO_INIT
-                  value: "1"
-              resources:
-                requests:
-                  memory: "256Mi"
-                  cpu: "100m"
-                limits:
-                  memory: "400Mi"
-                  cpu: "500m"
-              imagePullPolicy: Always
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: Always
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_mongodb
+            args:
+            - --period=1h
+            - --max-workers=8
+            - --db-adapter=mongodb
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MONGODB_URI
+            - name: LOG_LEVEL
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: DB_ADAPTER
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-extractor,service.version=2.0.0"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-h1-mongodb-production"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -497,108 +541,101 @@ metadata:
     component: klines-extractor
     database: mongodb
     interval: 1d
+    version: production
 spec:
-  schedule: "0 0 * * *"  # Daily at midnight UTC
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 2
+  schedule: "15 0 * * *"
+  successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
   jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: mongodb
+        interval: 1d
     spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 2400
+      ttlSecondsAfterFinished: 7200
       template:
         metadata:
           labels:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-            interval: 1d
           annotations:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
-            - name: klines-extractor
-              image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
-              command:
-                - opentelemetry-instrument
-                - python
-                - -m
-                - jobs.extract_klines_production
-              args:
-                - "--period=1d"
-                - "--max-workers=15"
-                - "--db-adapter=mongodb"
-              env:
-                - name: MONGODB_URI
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: mongodb-connection-string
-                - name: DB_ADAPTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_ADAPTER
-                - name: DB_BATCH_SIZE
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: DB_BATCH_SIZE
-                - name: LOG_LEVEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: LOG_LEVEL
-                - name: ENVIRONMENT
-                  value: production
-                - name: ENABLE_OTEL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: ENABLE_OTEL
-                - name: OTEL_SERVICE_VERSION
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_SERVICE_VERSION
-                - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_EXPORTER_OTLP_ENDPOINT
-                - name: OTEL_RESOURCE_ATTRIBUTES
-                  value: "service.name=binance-extractor,service.version=2.0.0"
-                - name: OTEL_METRICS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_METRICS_EXPORTER
-                - name: OTEL_TRACES_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_TRACES_EXPORTER
-                - name: OTEL_LOGS_EXPORTER
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_LOGS_EXPORTER
-                - name: OTEL_PROPAGATORS
-                  valueFrom:
-                    configMapKeyRef:
-                      name: petrosa-common-config
-                      key: OTEL_PROPAGATORS
-                - name: OTEL_EXPORTER_OTLP_HEADERS
-                  valueFrom:
-                    secretKeyRef:
-                      name: petrosa-sensitive-credentials
-                      key: OTEL_EXPORTER_OTLP_HEADERS
-                - name: OTEL_NO_AUTO_INIT
-                  value: "1"
-              resources:
-                requests:
-                  memory: "256Mi"
-                  cpu: "100m"
-                limits:
-                  memory: "400Mi"
-                  cpu: "500m"
-              imagePullPolicy: Always
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: IfNotPresent
+            command:
+            - opentelemetry-instrument
+            - python
+            - -m
+            - jobs.extract_klines_mongodb
+            args:
+            - --period=1d
+            - --max-workers=6
+            - --db-adapter=mongodb
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: MONGODB_URI
+            - name: LOG_LEVEL
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: ENVIRONMENT
+            - name: DB_ADAPTER
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: DB_ADAPTER
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: OTEL_NO_AUTO_INIT
+              value: "1"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL 
