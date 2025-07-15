@@ -24,11 +24,8 @@ spec:
         interval: m5
     spec:
       backoffLimit: 2
-      
       activeDeadlineSeconds: 300
-      
       ttlSecondsAfterFinished: 1800
-      
       template:
         metadata:
           labels:

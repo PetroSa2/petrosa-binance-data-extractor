@@ -25,7 +25,6 @@ spec:
       backoffLimit: 1
       activeDeadlineSeconds: 21600
       ttlSecondsAfterFinished: 86400
-      
       template:
         metadata:
           labels:
@@ -35,7 +34,6 @@ spec:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
-          
           containers:
           - name: klines-gap-filler
             image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:VERSION_PLACEHOLDER

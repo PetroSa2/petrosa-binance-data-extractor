@@ -21,11 +21,9 @@ data:
 
   DEFAULT_START_DATE: "2023-01-01T00:00:00Z"
   TIMEZONE: "UTC"
-
   OTEL_SERVICE_NAME: "petrosa-binance-extractor"
   OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
   ENABLE_OTEL: "true"
-
   NATS_ENABLED: "false"
 ---
 apiVersion: batch/v1
