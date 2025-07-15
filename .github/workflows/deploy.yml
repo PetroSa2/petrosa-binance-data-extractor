@@ -59,6 +59,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
