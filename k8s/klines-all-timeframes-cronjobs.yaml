@@ -10,12 +10,9 @@ metadata:
     version: production
 spec:
   schedule: "*/5 * * * *"
-  
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
-  
   concurrencyPolicy: Forbid
-  
   jobTemplate:
     metadata:
       labels:
@@ -35,23 +32,19 @@ spec:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
-          
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
-            
             command:
             - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
-            
             args:
             - --period=5m
             - --max-workers=15
             - --db-adapter=mysql
-            
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -145,7 +138,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            
             resources:
               requests:
                 memory: "512Mi"
@@ -153,7 +145,6 @@ spec:
               limits:
                 memory: "1Gi"
                 cpu: "800m"
-            
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
@@ -175,11 +166,9 @@ metadata:
     version: production
 spec:
   schedule: "2 */15 * * *"
-  
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  
   jobTemplate:
     metadata:
       labels:
@@ -190,7 +179,6 @@ spec:
       backoffLimit: 2
       activeDeadlineSeconds: 600
       ttlSecondsAfterFinished: 3600
-      
       template:
         metadata:
           labels:
@@ -200,23 +188,19 @@ spec:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
-          
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
-            
             command:
             - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
-            
             args:
             - --period=15m
             - --max-workers=12
             - --db-adapter=mysql
-            
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -260,7 +244,6 @@ spec:
                   key: NATS_ENABLED
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             resources:
               requests:
                 memory: "384Mi"
@@ -268,7 +251,6 @@ spec:
               limits:
                 memory: "768Mi"
                 cpu: "600m"
-            
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
@@ -290,11 +272,9 @@ metadata:
     version: production
 spec:
   schedule: "5 */30 * * *"
-  
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  
   jobTemplate:
     metadata:
       labels:
@@ -305,7 +285,6 @@ spec:
       backoffLimit: 2
       activeDeadlineSeconds: 900
       ttlSecondsAfterFinished: 3600
-      
       template:
         metadata:
           labels:
@@ -315,23 +294,19 @@ spec:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
-          
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
-            
             command:
             - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
-            
             args:
             - --period=30m
             - --max-workers=10
             - --db-adapter=mysql
-            
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -365,7 +340,6 @@ spec:
                   key: DB_ADAPTER
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             resources:
               requests:
                 memory: "256Mi"
@@ -373,7 +347,6 @@ spec:
               limits:
                 memory: "512Mi"
                 cpu: "500m"
-            
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
@@ -395,11 +368,9 @@ metadata:
     version: production
 spec:
   schedule: "10 * * * *"
-  
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
-  
   jobTemplate:
     metadata:
       labels:
@@ -410,7 +381,6 @@ spec:
       backoffLimit: 2
       activeDeadlineSeconds: 1200
       ttlSecondsAfterFinished: 3600
-      
       template:
         metadata:
           labels:
@@ -420,23 +390,19 @@ spec:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
-          
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
-            
             command:
             - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
-            
             args:
             - --period=1h
             - --max-workers=8
             - --db-adapter=mysql
-            
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -536,7 +502,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            
             resources:
               requests:
                 memory: "256Mi"
@@ -544,7 +509,6 @@ spec:
               limits:
                 memory: "512Mi"
                 cpu: "500m"
-            
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
@@ -566,11 +530,9 @@ metadata:
     version: production
 spec:
   schedule: "15 0 * * *"
-  
   successfulJobsHistoryLimit: 5  # Keep more history for daily jobs
   failedJobsHistoryLimit: 2
   concurrencyPolicy: Forbid
-  
   jobTemplate:
     metadata:
       labels:
@@ -581,7 +543,6 @@ spec:
       backoffLimit: 3  # More retries for daily jobs
       activeDeadlineSeconds: 2400
       ttlSecondsAfterFinished: 7200  # Keep for 2 hours
-      
       template:
         metadata:
           labels:
@@ -591,23 +552,19 @@ spec:
             instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
-          
           containers:
           - name: klines-extractor
             image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
-            
             command:
             - opentelemetry-instrument
             - python
             - -m
             - jobs.extract_klines_production
-            
             args:
             - --period=1d
             - --max-workers=6
             - --db-adapter=mysql
-            
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -651,7 +608,6 @@ spec:
                   key: NATS_ENABLED
             - name: OTEL_NO_AUTO_INIT
               value: "1"
-            
             resources:
               requests:
                 memory: "256Mi"
@@ -659,7 +615,6 @@ spec:
               limits:
                 memory: "512Mi"
                 cpu: "500m"
-            
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
