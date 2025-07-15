@@ -236,8 +236,8 @@ spec:
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: DB_ADAPTER
             - name: NATS_URL
               valueFrom:
