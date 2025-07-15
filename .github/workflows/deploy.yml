@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -69,12 +71,9 @@ jobs:
     - name: Determine Version
       id: version
       run: |
-        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          VERSION="${{ github.ref_name }}"
-        else
-          VERSION="${{ needs.create-release.outputs.version }}"
-        fi
+        VERSION="${{ needs.create-release.outputs.version }}"
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Using version: ${VERSION}"
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
     - name: Set up Docker Buildx
