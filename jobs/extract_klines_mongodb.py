@@ -323,11 +323,12 @@ def main():
 
     # Log extraction start
     log_extraction_start(
+        log=logger,
+        extractor_type="klines_mongodb",
         symbols=symbols,
         period=args.period,
-        start_date=start_date,
-        end_date=end_date,
-        logger=logger
+        start_date=start_date.isoformat(),
+        backfill=args.backfill,
     )
 
     extraction_start_time = time.time()
@@ -356,9 +357,10 @@ def main():
         # Log extraction completion
         extraction_duration = time.time() - extraction_start_time
         log_extraction_completion(
+            log=logger,
+            extractor_type="klines_mongodb",
             total_records=total_records_written,
             duration_seconds=extraction_duration,
-            logger=logger
         )
 
         # Publish completion message
