@@ -67,12 +67,20 @@ class MongoDBAdapter(BaseAdapter):
         # MongoDB specific settings
         self.client: Optional[MongoClient] = None
         self.database: Optional[Database] = None
+        
+        # Extract database name from connection string or use default
         self.database_name = kwargs.get("database_name", "binance")
+        if "/" in connection_string and connection_string.split("/")[-1]:
+            # Extract database name from connection string
+            db_name = connection_string.split("/")[-1].split("?")[0]
+            if db_name:
+                self.database_name = db_name
 
         # Circuit breaker for reliability
         self.circuit_breaker = DatabaseCircuitBreaker("mongodb")
 
-        # Connection options
+        # Connection options (remove database_name from client options)
+        client_kwargs = {k: v for k, v in kwargs.items() if k != "database_name"}
         self.client_options = {
             "serverSelectionTimeoutMS": 5000,  # Faster timeout
             "connectTimeoutMS": 5000,
@@ -82,7 +90,7 @@ class MongoDBAdapter(BaseAdapter):
             "waitQueueTimeoutMS": 10000,  # Timeout for connection acquisition
             "retryWrites": True,
             "retryReads": True,
-            **kwargs,
+            **client_kwargs,
         }
 
     def connect(self) -> None:

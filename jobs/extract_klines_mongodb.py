@@ -313,7 +313,6 @@ def main():
     # Initialize MongoDB adapter
     db_adapter = MongoDBAdapter(
         connection_string=mongodb_uri,
-        database_name=args.database_name,
         max_pool_size=10  # Reduced for memory constraints
     )
 
@@ -381,7 +380,7 @@ def main():
     finally:
         # Clean up
         fetcher.close()
-        db_adapter.close()
+        db_adapter.disconnect()
 
     sys.exit(0)
 
