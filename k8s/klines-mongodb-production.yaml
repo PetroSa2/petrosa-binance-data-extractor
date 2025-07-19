@@ -58,7 +58,8 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
@@ -230,7 +231,8 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
@@ -402,7 +404,8 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
@@ -574,7 +577,8 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
@@ -746,7 +750,8 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET
+            - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
