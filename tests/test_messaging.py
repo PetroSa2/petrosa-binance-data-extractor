@@ -82,7 +82,7 @@ class TestNATSMessenger:
         # Verify the message was published
         mock_client.publish.assert_called_once()
         call_args = mock_client.publish.call_args
-        assert call_args[0][0] == "binance.extraction.klines.BTCUSDT.15m"
+        assert call_args[0][0] == "binance.extraction.gap-filler.klines.BTCUSDT.15m"
         
         # Verify message content
         message_data = json.loads(call_args[0][1].decode())
@@ -121,7 +121,7 @@ class TestNATSMessenger:
         # Verify the message was published
         mock_client.publish.assert_called_once()
         call_args = mock_client.publish.call_args
-        assert call_args[0][0] == "binance.extraction.klines.batch.15m"
+        assert call_args[0][0] == "binance.extraction.gap-filler.klines.batch.15m"
         
         # Verify message content
         message_data = json.loads(call_args[0][1].decode())
