@@ -148,22 +148,7 @@ def get_mongodb_connection_string(args) -> str:
     if args.mongodb_uri:
         return args.mongodb_uri
 
-    # Try to get from Kubernetes secret
-    try:
-        import subprocess
-        result = subprocess.run([
-            "kubectl", "get", "secret", "petrosa-sensitive-credentials",
-            "-n", "petrosa-apps", "-o", "jsonpath='{.data.mongodb-connection-string}'",
-            "--insecure-skip-tls-verify"
-        ], capture_output=True, text=True, check=True)
-
-        if result.stdout.strip():
-            import base64
-            connection_string = base64.b64decode(result.stdout.strip().strip("'")).decode()
-            return connection_string
-    except Exception as e:
-        print(f"Warning: Could not get MongoDB connection from Kubernetes secret: {e}")
-
+    # Use environment variable directly (no need for kubectl in container)
     return constants.MONGODB_URI
 
 
@@ -312,8 +297,7 @@ def main():
 
     # Initialize MongoDB adapter
     db_adapter = MongoDBAdapter(
-        connection_string=mongodb_uri,
-        max_pool_size=10  # Reduced for memory constraints
+        connection_string=mongodb_uri
     )
 
     # Initialize Binance client and fetcher
