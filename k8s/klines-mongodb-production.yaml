@@ -58,12 +58,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET
-            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET            - name: MONGODB_URI
               valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: MONGODB_URI
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
             - name: DB_ADAPTER
               valueFrom:
                 configMapKeyRef:
@@ -231,12 +230,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET
-            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET            - name: MONGODB_URI
               valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: MONGODB_URI
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
             - name: DB_ADAPTER
               valueFrom:
                 configMapKeyRef:
@@ -404,12 +402,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET
-            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET            - name: MONGODB_URI
               valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: MONGODB_URI
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
             - name: DB_ADAPTER
               valueFrom:
                 configMapKeyRef:
@@ -577,12 +574,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET
-            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET            - name: MONGODB_URI
               valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: MONGODB_URI
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
             - name: DB_ADAPTER
               valueFrom:
                 configMapKeyRef:
@@ -750,12 +746,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: BINANCE_API_SECRET
-            - name: MONGODB_URI
+                  key: BINANCE_API_SECRET            - name: MONGODB_URI
               valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: MONGODB_URI
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
             - name: DB_ADAPTER
               valueFrom:
                 configMapKeyRef:
