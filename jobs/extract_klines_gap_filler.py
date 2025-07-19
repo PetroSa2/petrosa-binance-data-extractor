@@ -486,6 +486,7 @@ class GapFillerExtractor:
                             gaps_found=result["gaps_found"],
                             gaps_filled=result["gaps_filled"],
                             extraction_type="klines_gap_filling",
+                            use_gap_filler_prefix=True,
                         )
                     except Exception as e:
                         self.logger.warning(f"Failed to send NATS message for {symbol}: {e}")

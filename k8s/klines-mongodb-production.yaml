@@ -127,6 +127,21 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -285,6 +300,21 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -443,6 +473,21 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -601,6 +646,21 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -759,6 +819,21 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
             - name: K8S_NAMESPACE
               valueFrom:
                 fieldRef:
