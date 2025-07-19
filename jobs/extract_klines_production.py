@@ -404,6 +404,7 @@ class ProductionKlinesExtractor:
                             gaps_found=0,  # Not tracked in production extractor
                             gaps_filled=result["gaps_filled"],
                             extraction_type="klines",
+                            use_production_prefix=True,
                         )
                     except Exception as e:
                         self.logger.warning(f"Failed to send NATS message for {symbol}: {e}")

@@ -106,7 +106,9 @@ class NATSMessenger:
             "errors": errors or [],
         }
 
-        subject = f"binance.extraction.{extraction_type}.{symbol}.{period}"
+        # Get subject prefix from environment variable
+        subject_prefix = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
+        subject = f"{subject_prefix}.{extraction_type}.{symbol}.{period}"
         
         try:
             await self.client.publish(subject, json.dumps(message).encode())
@@ -168,7 +170,9 @@ class NATSMessenger:
             "errors": errors or [],
         }
 
-        subject = f"binance.extraction.{extraction_type}.batch.{period}"
+        # Get subject prefix from environment variable
+        subject_prefix = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
+        subject = f"{subject_prefix}.{extraction_type}.batch.{period}"
         
         try:
             await self.client.publish(subject, json.dumps(message).encode())
@@ -200,6 +204,8 @@ def publish_extraction_completion_sync(
     gaps_found: int = 0,
     gaps_filled: int = 0,
     extraction_type: str = "klines",
+    use_production_prefix: bool = False,
+    use_gap_filler_prefix: bool = False,
 ) -> None:
     """
     Synchronous wrapper for publishing extraction completion messages.
@@ -209,19 +215,35 @@ def publish_extraction_completion_sync(
     messenger = get_messenger()
     
     async def _publish():
-        await messenger.publish_extraction_completion(
-            symbol=symbol,
-            period=period,
-            records_fetched=records_fetched,
-            records_written=records_written,
-            success=success,
-            duration_seconds=duration_seconds,
-            errors=errors,
-            gaps_found=gaps_found,
-            gaps_filled=gaps_filled,
-            extraction_type=extraction_type,
-        )
-        await messenger.disconnect()
+        # Use production or gap filler prefix if requested
+        original_prefix = None
+        if use_production_prefix:
+            # Override the subject prefix for production messages
+            original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
+            os.environ["NATS_SUBJECT_PREFIX"] = os.getenv("NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production")
+        elif use_gap_filler_prefix:
+            # Override the subject prefix for gap filler messages
+            original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
+            os.environ["NATS_SUBJECT_PREFIX"] = os.getenv("NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler")
+        
+        try:
+            await messenger.publish_extraction_completion(
+                symbol=symbol,
+                period=period,
+                records_fetched=records_fetched,
+                records_written=records_written,
+                success=success,
+                duration_seconds=duration_seconds,
+                errors=errors,
+                gaps_found=gaps_found,
+                gaps_filled=gaps_filled,
+                extraction_type=extraction_type,
+            )
+        finally:
+            # Restore original prefix if it was changed
+            if original_prefix:
+                os.environ["NATS_SUBJECT_PREFIX"] = original_prefix
+            await messenger.disconnect()
 
     try:
         # Create new event loop for this thread
