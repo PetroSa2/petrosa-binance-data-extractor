@@ -3,10 +3,10 @@ Unit tests for error classification functionality.
 """
 
 from utils.error_classifier import (
+    ErrorClassifier,
     classify_database_error,
     get_retry_strategy,
     should_retry_operation,
-    ErrorClassifier,
 )
 
 

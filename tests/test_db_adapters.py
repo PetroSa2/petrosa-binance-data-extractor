@@ -132,10 +132,11 @@ class TestMongoDBAdapter:
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
 
-        # Mock successful insert
+        # Mock successful bulk write
         mock_result = MagicMock()
-        mock_result.inserted_ids = ["id1", "id2"]
-        mock_collection.insert_many.return_value = mock_result
+        mock_result.upserted_count = 1
+        mock_result.modified_count = 1
+        mock_collection.bulk_write.return_value = mock_result
 
         # Create test data
         now = datetime.now(timezone.utc)
@@ -182,7 +183,7 @@ class TestMongoDBAdapter:
         result = adapter.write(klines, "klines_m15")
 
         assert result == 2
-        mock_collection.insert_many.assert_called_once()
+        mock_collection.bulk_write.assert_called_once()
 
     @patch("db.mongodb_adapter.MongoClient")
     def test_mongodb_adapter_query_range(self, mock_mongo_client):
@@ -239,8 +240,9 @@ class TestMongoDBAdapter:
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
         mock_result = MagicMock()
-        mock_result.inserted_ids = ["id1", "id2", "id3"]
-        mock_collection.insert_many.return_value = mock_result
+        mock_result.upserted_count = 1
+        mock_result.modified_count = 1
+        mock_collection.bulk_write.return_value = mock_result
         now = datetime.now(timezone.utc)
         klines = [
             KlineModel(
@@ -264,8 +266,8 @@ class TestMongoDBAdapter:
         adapter._connected = True
         adapter.database = mock_database
         result = adapter.write_batch(klines, "klines_m15", batch_size=2)
-        assert result == 6  # 3 records * 2 batches = 6 total written
-        assert mock_collection.insert_many.call_count >= 1
+        assert result == 4  # 2 batches * (1 upserted + 1 modified) = 4 total written
+        assert mock_collection.bulk_write.call_count >= 1
 
     @patch("db.mongodb_adapter.MongoClient")
     def test_mongodb_adapter_query_latest(self, mock_mongo_client):
@@ -377,7 +379,7 @@ class TestMongoDBAdapter:
         mock_mongo_client.return_value = mock_client
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
-        mock_collection.insert_many.side_effect = Exception("write error")
+        mock_collection.bulk_write.side_effect = Exception("write error")
         now = datetime.now(timezone.utc)
         klines = [
             KlineModel(

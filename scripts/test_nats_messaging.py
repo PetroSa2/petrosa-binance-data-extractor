@@ -9,22 +9,24 @@ to verify the messaging system works correctly.
 import os
 import sys
 import time
-from datetime import datetime
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import constants
-from utils.messaging import publish_extraction_completion_sync, publish_batch_extraction_completion_sync
-from utils.logger import setup_logging, get_logger
+from utils.logger import get_logger, setup_logging
+from utils.messaging import (
+    publish_batch_extraction_completion_sync,
+    publish_extraction_completion_sync,
+)
 
 
 def test_single_symbol_messaging():
     """Test sending a single symbol extraction completion message."""
     logger = get_logger(__name__)
     logger.info("Testing single symbol NATS messaging...")
-    
+
     try:
         publish_extraction_completion_sync(
             symbol="BTCUSDT",
@@ -49,7 +51,7 @@ def test_batch_messaging():
     """Test sending a batch extraction completion message."""
     logger = get_logger(__name__)
     logger.info("Testing batch NATS messaging...")
-    
+
     try:
         publish_batch_extraction_completion_sync(
             symbols=["BTCUSDT", "ETHUSDT", "BNBUSDT"],
@@ -74,7 +76,7 @@ def test_error_messaging():
     """Test sending a message with errors."""
     logger = get_logger(__name__)
     logger.info("Testing error NATS messaging...")
-    
+
     try:
         publish_extraction_completion_sync(
             symbol="INVALIDUSDT",
@@ -99,7 +101,7 @@ def test_gap_filling_messaging():
     """Test sending a gap filling completion message."""
     logger = get_logger(__name__)
     logger.info("Testing gap filling NATS messaging...")
-    
+
     try:
         publish_extraction_completion_sync(
             symbol="BTCUSDT",
@@ -125,15 +127,15 @@ def main():
     # Setup logging
     setup_logging(level="INFO")
     logger = get_logger(__name__)
-    
+
     logger.info("🚀 Starting NATS messaging tests...")
     logger.info(f"NATS URL: {constants.NATS_URL}")
     logger.info(f"NATS Enabled: {constants.NATS_ENABLED}")
-    
+
     if not constants.NATS_ENABLED:
         logger.warning("⚠️ NATS messaging is disabled. Set NATS_ENABLED=true to enable.")
         return
-    
+
     # Run tests
     tests = [
         ("Single Symbol", test_single_symbol_messaging),
@@ -141,10 +143,10 @@ def main():
         ("Error", test_error_messaging),
         ("Gap Filling", test_gap_filling_messaging),
     ]
-    
+
     passed = 0
     total = len(tests)
-    
+
     for test_name, test_func in tests:
         logger.info(f"\n📋 Running {test_name} test...")
         if test_func():
@@ -152,13 +154,13 @@ def main():
             logger.info(f"✅ {test_name} test passed")
         else:
             logger.error(f"❌ {test_name} test failed")
-        
+
         # Small delay between tests
         time.sleep(1)
-    
+
     # Summary
     logger.info(f"\n📊 Test Results: {passed}/{total} tests passed")
-    
+
     if passed == total:
         logger.info("🎉 All NATS messaging tests passed!")
         return 0
@@ -168,4 +170,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    sys.exit(main())

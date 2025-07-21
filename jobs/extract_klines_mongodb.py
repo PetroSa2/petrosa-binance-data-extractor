@@ -33,10 +33,10 @@ from fetchers import BinanceClient, KlinesFetcher
 from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
 from utils.messaging import publish_extraction_completion_sync
 from utils.time_utils import (
+    binance_interval_to_table_suffix,
     format_duration,
     get_current_utc_time,
     parse_datetime_string,
-    binance_interval_to_table_suffix,
 )
 
 

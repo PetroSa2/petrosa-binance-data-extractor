@@ -5,7 +5,6 @@ This script helps encode API keys and database URIs to base64 for use in Kuberne
 """
 
 import base64
-import getpass
 
 
 def encode_secret(value: str) -> str:

@@ -6,7 +6,39 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 
 ### Enterprise-Grade Production System
 - **🔄 Fully Automated Extraction**: Production extractor with auto-detection of last timestamp and gap-filling
-- **⏰ Multi-Timeframe Support**: Simultaneous extraction across m5, m## 📚 Documen## 📚 Quick References
+- **⏰ Multi-Timeframe Support**: Simultaneous extraction across m5, m15, m30, h1, d1 timeframes
+- **🏃‍♂️ Parallel Processing**: Extract 20+ symbols simultaneously with optimized worker pools
+- **🎯 Zero Configuration**: Production system requires no manual start/end dates
+- **📊 Financial Market Standards**: Proper table naming conventions following financial industry standards
+
+### Kubernetes-Native Architecture
+- **🔧 Production CronJobs**: Scheduled extraction for all timeframes with optimal resource allocation
+- **🛡️ Security-First**: Non-root containers, secret management, and RBAC compliance
+- **📈 Auto-Scaling**: Resource-optimized deployments with horizontal scaling capabilities
+- **🔍 Comprehensive Monitoring**: Built-in observability with structured logging and health checks
+
+### Database & Data Management
+- **💾 Multi-Database Support**: MongoDB and MySQL adapters with robust connection handling (PostgreSQL planned)
+- **🔄 Incremental Updates**: Smart gap detection and backfill capabilities
+- **✅ Data Validation**: Pydantic v2 models ensuring data integrity
+- **📊 Optimized Storage**: Efficient indexing and partitioning strategies
+- **🔒 Time-Series Collections**: MongoDB time-series collections with upsert-based uniqueness
+
+### Developer Experience
+- **🚀 One-Command Deployment**: Single script deployment with full validation
+- **📚 Comprehensive Documentation**: Operations guides, troubleshooting, and best practices
+- **🧪 Full Test Coverage**: Unit, integration, and end-to-end testing
+- **🔄 CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions
+- **🏷️ Automatic Versioning**: Semantic versioning with automatic tag creation and release management
+
+### Real-Time Messaging
+- **📡 NATS Integration**: Real-time notifications when extraction actions complete
+- **🔔 Event-Driven Architecture**: Non-blocking messaging for monitoring and alerting
+- **📊 Performance Tracking**: Detailed metrics and timing information in messages
+- **🛡️ Fault Tolerant**: Messaging failures don't affect extraction operations
+- **⚙️ Configurable Subjects**: NATS subject prefixes managed via Kubernetes ConfigMaps
+
+## 📚 Quick References
 
 ### 🚀 Getting Started
 - **[Repository Setup Guide](docs/REPOSITORY_SETUP_GUIDE.md)** - Complete setup and configuration guide
@@ -36,178 +68,6 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 ### Development & CI/CD
 - **[Test Implementation Guide](docs/TEST_IMPLEMENTATION_GUIDE.md)** - Testing strategies and best practices
 - **[OpenTelemetry Setup](docs/OTEL_INSTALLATION_GUIDE.md)** - Observability and monitoring setup
-- **🏃‍♂️ Parallel Processing**: Extract 20+ symbols simultaneously with optimized worker pools
-- **🎯 Zero Configuration**: Production system requires no manual start/end dates
-- **📊 Financial Market Standards**: Proper table naming conventions following financial industry standards
-
-### Kubernetes-Native Architecture
-- **🔧 Production CronJobs**: Scheduled extraction for all timeframes with optimal resource allocation
-- **🛡️ Security-First**: Non-root containers, secret management, and RBAC compliance
-- **📈 Auto-Scaling**: Resource-optimized deployments with horizontal scaling capabilities
-- **🔍 Comprehensive Monitoring**: Built-in observability with structured logging and health checks
-
-### Database & Data Management
-- **💾 Multi-Database Support**: MongoDB and MySQL adapters with robust connection handling (PostgreSQL planned)
-- **🔄 Incremental Updates**: Smart gap detection and backfill capabilities
-- **✅ Data Validation**: Pydantic v2 models ensuring data integrity
-- **📊 Optimized Storage**: Efficient indexing and partitioning strategies
-
-### Developer Experience
-- **🚀 One-Command Deployment**: Single script deployment with full validation
-- **📚 Comprehensive Documentation**: Operations guides, troubleshooting, and best practices
-- **🧪 Full Test Coverage**: Unit, integration, and end-to-end testing
-- **🔄 CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions
-- **🏷️ Automatic Versioning**: Semantic versioning with automatic tag creation and release management
-
-### Real-Time Messaging
-- **📡 NATS Integration**: Real-time notifications when extraction actions complete
-- **🔔 Event-Driven Architecture**: Non-blocking messaging for monitoring and alerting
-- **📊 Performance Tracking**: Detailed metrics and timing information in messages
-- **🛡️ Fault Tolerant**: Messaging failures don't affect extraction operations
-
-## 📋 Project Structure
-
-```
-petrosa-binance-data-extractor/
-├── constants.py              # Central configuration
-├── models/                   # Pydantic data models
-│   ├── base.py              # Base models with common fields
-│   ├── kline.py             # Candlestick data model
-│   ├── trade.py             # Trade data model
-│   └── funding_rate.py      # Funding rate model
-├── db/                      # Database adapters
-│   ├── base_adapter.py      # Abstract base adapter
-│   ├── mongodb_adapter.py   # MongoDB implementation
-│   └── mysql_adapter.py     # MySQL implementation
-├── fetchers/                # API clients and data fetchers
-│   ├── client.py            # Binance API HTTP client
-│   ├── klines.py            # Klines data fetcher
-│   ├── trades.py            # Trades data fetcher
-│   └── funding.py           # Funding rates fetcher
-├── utils/                   # Utility modules
-│   ├── logger.py            # Structured logging setup
-│   ├── time_utils.py        # Time/date utilities
-│   └── retry.py             # Retry and rate limiting
-├── jobs/                    # CLI entry points
-│   ├── extract_klines.py    # Manual klines extraction job
-│   ├── extract_klines_production.py # 🆕 Production auto-extractor
-│   ├── extract_klines_gap_filler.py # 🔧 Gap detection and filling job
-│   ├── extract_trades.py    # Trades extraction job
-│   └── extract_funding.py   # Funding rates extraction job
-├── config/                  # 🆕 Configuration management
-│   └── symbols.py           # Symbol configuration for production
-├── k8s/                     # 🆕 Kubernetes manifests
-│   ├── klines-all-timeframes-cronjobs.yaml
-│   ├── klines-gap-filler-cronjob.yaml # 🔧 Daily gap filling job
-│   ├── namespace.yaml
-│   └── secrets-example.yaml
-├── scripts/                 # 🆕 Utility scripts
-│   ├── deploy-production.sh # Production deployment script
-│   ├── validate-production.sh # Production validation
-│   ├── deploy-local.sh      # Local development deployment
-│   ├── build-multiarch.sh   # Multi-architecture Docker builds
-│   ├── create-release.sh    # 🆕 Manual version and release management
-│   └── encode_secrets.py    # Secret encoding for Kubernetes
-├── Dockerfile               # Multi-stage container build
-├── tests/                   # Comprehensive test suite
-├── requirements.txt         # Runtime dependencies
-└── requirements-dev.txt     # Development dependencies
-```
-
-## 🛠️ Installation
-
-### Prerequisites
-- Python 3.11+
-- Docker (optional, for containerized deployment)
-- Kubernetes cluster (optional, for production deployment)
-
-### Local Development Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/petrosa-binance-data-extractor.git
-   cd petrosa-binance-data-extractor
-   ```
-
-2. **Create virtual environment**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-
-4. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-### Environment Variables
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `BINANCE_API_KEY` | Binance API key | No | "" |
-| `BINANCE_API_SECRET` | Binance API secret | No | "" |
-| `DB_ADAPTER` | Database adapter type | No | "mysql" |
-| `MYSQL_URI` | MySQL connection string | No | "mysql+pymysql://username:password@localhost:3306/binance_data" |
-| `MONGODB_URI` | MongoDB connection string | No | "mongodb://localhost:27017/binance_data" |
-| `POSTGRESQL_URI` | PostgreSQL connection string | No | "postgresql://user:password@localhost:5432/binance_data" |
-| `LOG_LEVEL` | Logging level | No | "INFO" |
-| `DEFAULT_PERIOD` | Default extraction interval | No | "15m" |
-| `DB_BATCH_SIZE` | Database batch size | No | "1000" |
-| `NATS_ENABLED` | Enable NATS messaging | No | "true" |
-| `NATS_URL` | NATS server URL | No | "nats://localhost:4222" |
-
-## 🚀 Usage
-
-### 📡 NATS Messaging (New!)
-
-The system now includes real-time NATS messaging for extraction completion events. When enabled, messages are sent to NATS whenever a kline extraction action completes.
-
-**Configuration:**
-```bash
-# Enable NATS messaging
-export NATS_ENABLED=true
-export NATS_URL=nats://localhost:4222
-
-# Optional: Custom subject prefix
-export NATS_SUBJECT_PREFIX=petrosa.binance.extraction
-```
-
-**Message Subjects:**
-- `binance.extraction.klines.{symbol}.{period}` - Single symbol completion
-- `binance.extraction.klines_gap_filling.{symbol}.{period}` - Gap filling completion
-- `binance.extraction.klines.batch.{period}` - Batch completion
-
-**Example Message:**
-```json
-{
-  "event_type": "extraction_completed",
-  "symbol": "BTCUSDT",
-  "period": "15m",
-  "success": true,
-  "metrics": {
-    "records_fetched": 150,
-    "records_written": 150,
-    "duration_seconds": 3.5
-  }
-}
-```
-
-**Testing:**
-```bash
-# Test NATS messaging
-python scripts/test_nats_messaging.py
-
-# Run unit tests
-python -m pytest tests/test_messaging.py -v
-```
-
-For detailed documentation, see [NATS Messaging Guide](docs/NATS_MESSAGING.md).
 
 ### 🎯 Unified Pipeline Runner (New!)
 
@@ -888,11 +748,16 @@ When reporting issues, please include:
 
 ### Recent Achievements ✅
 
-- **Multi-Timeframe Production System**: Complete m5-d1 coverage
-- **Kubernetes-Native Architecture**: Production-ready CronJobs
-- **Automated CI/CD**: GitHub Actions deployment pipeline
+- **Multi-Timeframe Production System**: Complete m5-d1 coverage with optimized CronJobs
+- **Kubernetes-Native Architecture**: Production-ready CronJobs with resource optimization
+- **Automated CI/CD**: GitHub Actions deployment pipeline with Docker Hub integration
 - **Production Operations**: Comprehensive monitoring and maintenance guides
 - **Financial Market Standards**: Proper table naming and industry conventions
+- **MongoDB Time-Series Collections**: Optimized for time-series data with upsert-based uniqueness
+- **NATS Messaging Integration**: Real-time event notifications with configurable subject prefixes
+- **OpenTelemetry Observability**: Comprehensive tracing and monitoring
+- **Gap Detection & Filling**: Automated detection and backfill of missing data
+- **Cross-Namespace Communication**: NATS URL configuration for multi-namespace deployments
 
 ### Upcoming Features
 
@@ -905,11 +770,43 @@ When reporting issues, please include:
 
 ### Version History
 
-- **v1.0.0**: Initial release with core functionality
-- **v1.1.0**: Enhanced observability and monitoring
-- **v1.2.0**: Kubernetes native deployment
-- **v2.0.0**: Production multi-timeframe system (current)
-- **v2.1.0**: (Planned) Real-time streaming support
+- **v1.0.43** (Current): MongoDB upsert uniqueness for time-series collections
+- **v1.0.42**: NATS messaging test fixes and YAML formatting improvements
+- **v1.0.41**: MongoDB secret configuration and NATS URL updates
+- **v1.0.40**: MongoDB extraction job fixes and kubectl dependency removal
+- **v1.0.39**: NATS subject prefixes configuration and messaging improvements
+- **v1.0.38**: MongoDB adapter fixes and deployment optimizations
+- **v1.0.37**: Docker tag versioning and build script improvements
+- **v1.0.36**: Production deployment and CI/CD pipeline enhancements
+- **v1.0.35**: Multi-timeframe CronJob implementation
+- **v1.0.34**: Initial production-ready release with Kubernetes deployment
+
+### Recent Major Features
+
+**v1.0.43 - MongoDB Time-Series Optimization**
+- Fixed unique index limitations in MongoDB time-series collections
+- Implemented upsert-based uniqueness using (symbol, timestamp) pairs
+- Enhanced bulk write operations with proper error handling
+
+**v1.0.42 - NATS Messaging & YAML Fixes**
+- Fixed NATS messaging test assertions for configurable subject prefixes
+- Resolved YAML formatting issues in Kubernetes manifests
+- Improved deployment reliability and configuration management
+
+**v1.0.41 - MongoDB & NATS Configuration**
+- Fixed MongoDB URI to use Kubernetes secrets instead of ConfigMaps
+- Updated NATS URL for cross-namespace service resolution
+- Enhanced security and connectivity for production deployments
+
+**v1.0.40 - MongoDB Extraction Improvements**
+- Removed kubectl dependency from MongoDB extraction jobs
+- Fixed max_pool_size parameter issues in MongoDB adapter
+- Streamlined production job execution and error handling
+
+**v1.0.39 - NATS Subject Prefixes**
+- Added configurable NATS subject prefixes via Kubernetes ConfigMaps
+- Implemented production and gap-filler specific messaging
+- Enhanced event-driven architecture with flexible subject naming
 
 ---
 

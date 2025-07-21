@@ -285,9 +285,9 @@ class MySQLAdapter(BaseAdapter):
                 # Classify error and determine retry strategy
                 error_classification = classify_database_error(e)
                 should_retry, retry_strategy = should_retry_operation(e)
-                
+
                 logger.warning(f"MySQL write error ({error_classification}): {e}")
-                
+
                 if not should_retry:
                     raise DatabaseError(f"Non-retryable error in MySQL write: {e}") from e
                 else:
