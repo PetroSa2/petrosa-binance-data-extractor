@@ -17,6 +17,7 @@ try:
     from pymongo.collection import Collection
     from pymongo.database import Database
     from pymongo.errors import BulkWriteError, ConnectionFailure, DuplicateKeyError
+    from pymongo.operations import UpdateOne
 
     PYMONGO_AVAILABLE = True
 except ImportError:
@@ -113,7 +114,7 @@ class MongoDBAdapter(BaseAdapter):
             logger.info("Disconnected from MongoDB")
 
     def write(self, model_instances: List[BaseModel], collection: str) -> int:
-        """Write model instances to MongoDB collection with circuit breaker protection."""
+        """Write model instances to MongoDB collection with circuit breaker protection, using upserts for uniqueness on (symbol, timestamp)."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
 
@@ -124,36 +125,32 @@ class MongoDBAdapter(BaseAdapter):
             try:
                 db = self._get_database()
                 coll: Collection = db[collection]
-                documents = []
+                operations = []
 
                 for instance in model_instances:
                     doc = instance.model_dump()
-                    # Use timestamp as MongoDB _id for better performance and uniqueness
-                    if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                        doc["_id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
+                    # Remove _id logic, use upsert on (symbol, timestamp)
+                    filter_query = {"symbol": doc["symbol"], "timestamp": doc["timestamp"]}
                     doc = MongoDBAdapter._convert_decimals(doc)
-                    documents.append(doc)
+                    operations.append(UpdateOne(filter_query, {"$set": doc}, upsert=True))
 
-                # Use ordered=False for better performance with duplicates
-                result = coll.insert_many(documents, ordered=False)
-                return len(result.inserted_ids)
+                if not operations:
+                    return 0
 
-            except DuplicateKeyError:
-                # Handle duplicates gracefully
-                logger.warning("Duplicate records found when writing to %s", collection)
-                return 0
+                result = coll.bulk_write(operations, ordered=False)
+                # Count upserts and modified (for existing docs)
+                return result.upserted_count + result.modified_count
+
             except BulkWriteError as e:
-                # Count successful writes even if some failed
-                successful_writes = e.details.get("nInserted", 0)
+                # Count successful upserts and modifications
+                upserts = e.details.get("nUpserted", 0)
+                modified = e.details.get("nModified", 0)
                 logger.warning("Bulk write error: %s", e.details.get("writeErrors", []))
-                return successful_writes
+                return upserts + modified
             except Exception as e:
-                # Classify error and determine retry strategy
                 error_classification = classify_database_error(e)
                 should_retry, retry_strategy = should_retry_operation(e)
-                
                 logger.warning(f"MongoDB write error ({error_classification}): {e}")
-                
                 if not should_retry:
                     raise DatabaseError(f"Non-retryable error in MongoDB write: {e}") from e
                 else:
