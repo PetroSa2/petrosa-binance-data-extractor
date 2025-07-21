@@ -4,13 +4,12 @@ MongoDB adapter implementation.
 This module provides a MongoDB implementation of the BaseAdapter interface.
 """
 
+import decimal
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
-
-import decimal
 
 try:
     from pymongo import ASCENDING, DESCENDING, MongoClient
@@ -24,10 +23,9 @@ except ImportError:
     PYMONGO_AVAILABLE = False
 
 import constants
+from db.base_adapter import BaseAdapter, DatabaseError
 from utils.circuit_breaker import DatabaseCircuitBreaker
 from utils.error_classifier import classify_database_error, should_retry_operation
-
-from db.base_adapter import BaseAdapter, DatabaseError
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +66,7 @@ class MongoDBAdapter(BaseAdapter):
         # MongoDB specific settings
         self.client: Optional[MongoClient] = None
         self.database: Optional[Database] = None
-        
+
         # Extract database name from connection string or use default
         self.database_name = kwargs.get("database_name", "binance")
         if "/" in connection_string and connection_string.split("/")[-1]:

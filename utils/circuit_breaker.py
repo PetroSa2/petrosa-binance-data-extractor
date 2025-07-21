@@ -7,8 +7,7 @@ when database operations are experiencing issues.
 
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ class CircuitBreaker:
     - OPEN: Calls are blocked, circuit is broken
     - HALF_OPEN: Limited calls allowed to test recovery
     """
-    
+
     def __init__(
         self,
         failure_threshold: int = 5,
@@ -43,17 +42,17 @@ class CircuitBreaker:
         self.recovery_timeout = recovery_timeout
         self.expected_exception = expected_exception
         self.name = name
-        
+
         # State tracking
         self.failure_count = 0
         self.last_failure_time: float = 0.0
         self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
-        
+
         # Statistics
         self.total_calls = 0
         self.successful_calls = 0
         self.failed_calls = 0
-        
+
     def call(self, func: Callable, *args, **kwargs) -> Any:
         """
         Execute function with circuit breaker protection.
@@ -70,7 +69,7 @@ class CircuitBreaker:
             Exception: If circuit is open or function fails
         """
         self.total_calls += 1
-        
+
         # Check circuit state
         if self.state == "OPEN":
             if time.time() - self.last_failure_time > self.recovery_timeout:
@@ -78,40 +77,40 @@ class CircuitBreaker:
                 self.state = "HALF_OPEN"
             else:
                 raise Exception(f"{self.name}: Circuit breaker is OPEN")
-        
+
         # Execute function
         try:
             result = func(*args, **kwargs)
             self.successful_calls += 1
-            
+
             # Reset on success
             if self.state == "HALF_OPEN":
                 logger.info(f"{self.name}: Circuit recovered, transitioning to CLOSED")
                 self.state = "CLOSED"
                 self.failure_count = 0
-                
+
             return result
-            
+
         except self.expected_exception as e:
             self.failed_calls += 1
             self.failure_count += 1
             self.last_failure_time = time.time()
-            
+
             logger.warning(
                 f"{self.name}: Function failed (attempt {self.failure_count}/{self.failure_threshold}): {e}"
             )
-            
+
             # Check if circuit should open
             if self.failure_count >= self.failure_threshold:
                 logger.error(f"{self.name}: Circuit breaker opening after {self.failure_count} failures")
                 self.state = "OPEN"
-            
+
             raise e
         except Exception as e:
             # Non-expected exceptions don't count toward circuit breaker
             self.failed_calls += 1
             raise e
-    
+
     def get_stats(self) -> dict:
         """Get circuit breaker statistics."""
         return {
@@ -124,7 +123,7 @@ class CircuitBreaker:
             "success_rate": self.successful_calls / self.total_calls if self.total_calls > 0 else 0,
             "last_failure_time": self.last_failure_time,
         }
-    
+
     def reset(self):
         """Manually reset the circuit breaker."""
         self.state = "CLOSED"
@@ -137,7 +136,7 @@ class DatabaseCircuitBreaker(CircuitBreaker):
     """
     Specialized circuit breaker for database operations.
     """
-    
+
     def __init__(self, adapter_type: str = "unknown"):
         """
         Initialize database circuit breaker.
@@ -151,4 +150,4 @@ class DatabaseCircuitBreaker(CircuitBreaker):
             expected_exception=Exception,
             name=f"db_circuit_breaker_{adapter_type}"
         )
-        self.adapter_type = adapter_type 
+        self.adapter_type = adapter_type

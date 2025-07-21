@@ -109,7 +109,7 @@ class NATSMessenger:
         # Get subject prefix from environment variable
         subject_prefix = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
         subject = f"{subject_prefix}.{extraction_type}.{symbol}.{period}"
-        
+
         try:
             await self.client.publish(subject, json.dumps(message).encode())
             logger.info(f"Published extraction completion message for {symbol} to {subject}")
@@ -173,7 +173,7 @@ class NATSMessenger:
         # Get subject prefix from environment variable
         subject_prefix = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
         subject = f"{subject_prefix}.{extraction_type}.batch.{period}"
-        
+
         try:
             await self.client.publish(subject, json.dumps(message).encode())
             logger.info(f"Published batch extraction completion message for {len(symbols)} symbols to {subject}")
@@ -213,7 +213,7 @@ def publish_extraction_completion_sync(
     This function runs the async publish function in a new event loop.
     """
     messenger = get_messenger()
-    
+
     async def _publish():
         # Use production or gap filler prefix if requested
         original_prefix = None
@@ -225,7 +225,7 @@ def publish_extraction_completion_sync(
             # Override the subject prefix for gap filler messages
             original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
             os.environ["NATS_SUBJECT_PREFIX"] = os.getenv("NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler")
-        
+
         try:
             await messenger.publish_extraction_completion(
                 symbol=symbol,
@@ -274,7 +274,7 @@ def publish_batch_extraction_completion_sync(
     This function runs the async publish function in a new event loop.
     """
     messenger = get_messenger()
-    
+
     async def _publish():
         await messenger.publish_batch_extraction_completion(
             symbols=symbols,
@@ -298,4 +298,4 @@ def publish_batch_extraction_completion_sync(
     except Exception as e:
         logger.error(f"Failed to publish batch extraction completion message: {e}")
     finally:
-        loop.close() 
+        loop.close()
