@@ -57,81 +57,85 @@ class TestNATSMessenger:
     @pytest.mark.asyncio
     async def test_publish_extraction_completion(self):
         """Test publishing extraction completion message."""
-        messenger = NATSMessenger()
+        # Set up environment for default prefix
+        with patch.dict('os.environ', {'NATS_SUBJECT_PREFIX': 'binance.extraction'}):
+            messenger = NATSMessenger()
 
-        # Mock the nats client
-        mock_client = Mock()
-        mock_client.is_closed = False
-        messenger.client = mock_client
+            # Mock the nats client
+            mock_client = Mock()
+            mock_client.is_closed = False
+            messenger.client = mock_client
 
-        # Test message publishing
-        await messenger.publish_extraction_completion(
-            symbol="BTCUSDT",
-            period="15m",
-            records_fetched=100,
-            records_written=100,
-            success=True,
-            duration_seconds=5.5,
-            errors=[],
-            gaps_found=0,
-            gaps_filled=0,
-            extraction_type="klines",
-        )
+            # Test message publishing
+            await messenger.publish_extraction_completion(
+                symbol="BTCUSDT",
+                period="15m",
+                records_fetched=100,
+                records_written=100,
+                success=True,
+                duration_seconds=5.5,
+                errors=[],
+                gaps_found=0,
+                gaps_filled=0,
+                extraction_type="klines",
+            )
 
-        # Verify the message was published
-        mock_client.publish.assert_called_once()
-        call_args = mock_client.publish.call_args
-        assert call_args[0][0] == "binance.extraction.gap-filler.klines.BTCUSDT.15m"
+            # Verify the message was published
+            mock_client.publish.assert_called_once()
+            call_args = mock_client.publish.call_args
+            assert call_args[0][0] == "binance.extraction.klines.BTCUSDT.15m"
 
-        # Verify message content
-        message_data = json.loads(call_args[0][1].decode())
-        assert message_data["event_type"] == "extraction_completed"
-        assert message_data["symbol"] == "BTCUSDT"
-        assert message_data["period"] == "15m"
-        assert message_data["success"] is True
-        assert message_data["metrics"]["records_fetched"] == 100
-        assert message_data["metrics"]["records_written"] == 100
-        assert message_data["metrics"]["duration_seconds"] == 5.5
+            # Verify message content
+            message_data = json.loads(call_args[0][1].decode())
+            assert message_data["event_type"] == "extraction_completed"
+            assert message_data["symbol"] == "BTCUSDT"
+            assert message_data["period"] == "15m"
+            assert message_data["success"] is True
+            assert message_data["metrics"]["records_fetched"] == 100
+            assert message_data["metrics"]["records_written"] == 100
+            assert message_data["metrics"]["duration_seconds"] == 5.5
 
     @pytest.mark.asyncio
     async def test_publish_batch_extraction_completion(self):
         """Test publishing batch extraction completion message."""
-        messenger = NATSMessenger()
+        # Set up environment for default prefix
+        with patch.dict('os.environ', {'NATS_SUBJECT_PREFIX': 'binance.extraction'}):
+            messenger = NATSMessenger()
 
-        # Mock the nats client
-        mock_client = Mock()
-        mock_client.is_closed = False
-        messenger.client = mock_client
+            # Mock the nats client
+            mock_client = Mock()
+            mock_client.is_closed = False
+            messenger.client = mock_client
 
-        # Test batch message publishing
-        await messenger.publish_batch_extraction_completion(
-            symbols=["BTCUSDT", "ETHUSDT"],
-            period="15m",
-            total_records_fetched=200,
-            total_records_written=200,
-            success=True,
-            duration_seconds=10.5,
-            errors=[],
-            total_gaps_found=0,
-            total_gaps_filled=0,
-            extraction_type="klines",
-        )
+            # Test batch message publishing
+            await messenger.publish_batch_extraction_completion(
+                symbols=["BTCUSDT", "ETHUSDT"],
+                period="15m",
+                total_records_fetched=200,
+                total_records_written=200,
+                success=True,
+                duration_seconds=10.5,
+                errors=[],
+                total_gaps_found=0,
+                total_gaps_filled=0,
+                extraction_type="klines",
+            )
 
-        # Verify the message was published
-        mock_client.publish.assert_called_once()
-        call_args = mock_client.publish.call_args
-        assert call_args[0][0] == "binance.extraction.gap-filler.klines.batch.15m"
+            # Verify the message was published
+            mock_client.publish.assert_called_once()
+            call_args = mock_client.publish.call_args
+            assert call_args[0][0] == "binance.extraction.klines.batch.15m"
 
-        # Verify message content
-        message_data = json.loads(call_args[0][1].decode())
-        assert message_data["event_type"] == "batch_extraction_completed"
-        assert message_data["symbols"] == ["BTCUSDT", "ETHUSDT"]
-        assert message_data["period"] == "15m"
-        assert message_data["success"] is True
-        assert message_data["metrics"]["total_records_fetched"] == 200
-        assert message_data["metrics"]["total_records_written"] == 200
-        assert message_data["metrics"]["duration_seconds"] == 10.5
-        assert message_data["metrics"]["symbols_processed"] == 2
+            # Verify message content
+            message_data = json.loads(call_args[0][1].decode())
+            assert message_data["event_type"] == "batch_extraction_completed"
+            assert message_data["symbols"] == ["BTCUSDT", "ETHUSDT"]
+            assert message_data["period"] == "15m"
+            assert message_data["success"] is True
+            assert message_data["metrics"]["total_records_fetched"] == 200
+            assert message_data["metrics"]["total_records_written"] == 200
+            assert message_data["metrics"]["duration_seconds"] == 10.5
+            assert message_data["metrics"]["symbols_processed"] == 2
 
 
 class TestMessagingFunctions:

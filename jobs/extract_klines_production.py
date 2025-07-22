@@ -145,7 +145,7 @@ class ProductionKlinesExtractor:
         db_uri: Optional[str] = None,
         max_workers: int = 5,
         lookback_hours: int = 24,
-        batch_size: int = 1000,
+        batch_size: int = constants.DB_BATCH_SIZE,
     ):
         self.symbols = symbols
         self.period = period
@@ -553,7 +553,7 @@ Examples:
 
     parser.add_argument("--lookback-hours", type=int, default=24, help="Hours to look back for gap detection (default: 24)")
 
-    parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE, help="Database batch size (default: 1000)")
+    parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE, help=f"Database batch size (default: {constants.DB_BATCH_SIZE})")
 
     # Database parameters
     parser.add_argument(

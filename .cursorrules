@@ -32,6 +32,7 @@ When users encounter connection issues:
 - **ALWAYS use the existing Kubernetes secret `petrosa-sensitive-credentials` for credentials**
 - **ALWAYS use the existing configmap `petrosa-common-config` for configuration**
 - **NEVER create new secrets/configmaps or change their names**
+- **NEVER replace VERSION_PLACEHOLDER in Kubernetes manifests** - it's part of the deployment system
 
 ## GitHub CLI Commands
 - **When running `gh` commands, always dump output to a file in `/tmp` and then read the file**
@@ -69,6 +70,7 @@ When users encounter connection issues:
 - **WHEN writing Python code**: Follow PEP 8, use type hints, add proper error handling
 - **NEVER suggest AWS EKS commands** - this is a MicroK8s setup
 - **NEVER create new Kubernetes secrets/configmaps** - use existing ones only
+- **NEVER replace VERSION_PLACEHOLDER in Kubernetes manifests** - it's part of the deployment system
 
 ## AUTOMATED DOCUMENTATION CHECK
 - **BEFORE responding to ANY request**: Automatically read and reference `docs/REPOSITORY_SETUP_GUIDE.md` and `docs/QUICK_REFERENCE.md`
