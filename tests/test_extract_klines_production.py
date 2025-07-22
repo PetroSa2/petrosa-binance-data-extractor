@@ -124,7 +124,7 @@ class TestProductionKlinesExtractor:
         assert self.extractor.db_uri == self.db_uri
         assert self.extractor.max_workers == 2
         assert self.extractor.lookback_hours == 24
-        assert self.extractor.batch_size == 1000
+        assert self.extractor.batch_size == 2000
         assert self.extractor.logger is not None
         assert isinstance(self.extractor._lock, type(threading.Lock()))
         assert self.extractor.stats == {
@@ -452,7 +452,7 @@ class TestParseArguments:
             assert args.symbols is None
             assert args.max_workers == 5
             assert args.lookback_hours == 24
-            assert args.batch_size == 1000
+            assert args.batch_size == 2000
             assert args.db_adapter == constants.DB_ADAPTER  # Use actual default from constants
             assert args.db_uri is None
             assert args.log_level == "INFO"
@@ -517,7 +517,7 @@ class TestMainFunction:
         mock_args.symbols = None
         mock_args.max_workers = 5
         mock_args.lookback_hours = 24
-        mock_args.batch_size = 1000
+        mock_args.batch_size = 2000
         mock_args.db_adapter = "mysql"
         mock_args.db_uri = None
         mock_args.log_level = "INFO"
@@ -568,7 +568,7 @@ class TestMainFunction:
         mock_args.symbols = None
         mock_args.max_workers = 5
         mock_args.lookback_hours = 24
-        mock_args.batch_size = 1000
+        mock_args.batch_size = 2000
         mock_args.db_adapter = "mysql"
         mock_args.db_uri = None
         mock_args.log_level = "INFO"
@@ -619,7 +619,7 @@ class TestMainFunction:
         mock_args.symbols = None
         mock_args.max_workers = 5
         mock_args.lookback_hours = 24
-        mock_args.batch_size = 1000
+        mock_args.batch_size = 2000
         mock_args.db_adapter = "mysql"
         mock_args.db_uri = None
         mock_args.log_level = "INFO"
@@ -662,7 +662,7 @@ class TestMainFunction:
         mock_args.period = "15m"
         mock_args.max_workers = 5
         mock_args.lookback_hours = 24
-        mock_args.batch_size = 1000
+        mock_args.batch_size = 2000
         mock_args.db_adapter = "mysql"
         mock_args.db_uri = None
         mock_args.log_level = "INFO"

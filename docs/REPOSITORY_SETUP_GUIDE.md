@@ -72,6 +72,12 @@ NATS_URL=nats://localhost:4222
 
 ## 🏗️ Development Environment
 
+### ⚠️ CRITICAL: VERSION_PLACEHOLDER Rules
+- **NEVER replace VERSION_PLACEHOLDER in Kubernetes manifests**
+- **VERSION_PLACEHOLDER is part of the deployment system and must be preserved**
+- **The deployment scripts handle version replacement automatically**
+- **Only modify VERSION_PLACEHOLDER if you're updating the deployment system itself**
+
 ### Local Development
 ```bash
 # Start local MicroK8s cluster

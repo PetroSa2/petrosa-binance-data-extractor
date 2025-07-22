@@ -18,7 +18,7 @@ API_SECRET = os.getenv("BINANCE_API_SECRET", "")
 
 # Default extraction parameters
 DEFAULT_PERIOD = "15m"
-DEFAULT_START_DATE = "2021-01-01T00:00:00Z"
+DEFAULT_START_DATE = "2023-01-01T00:00:00Z"
 BACKFILL = True
 MAX_RETRIES = 5
 RETRY_BACKOFF_SECONDS = 2
@@ -48,7 +48,7 @@ POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5
 
 # Database settings
 DB_ADAPTER = os.getenv("DB_ADAPTER", "mongodb")  # mongodb, mysql, postgresql
-DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "1000"))
+DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "2000"))
 DB_CONNECTION_TIMEOUT = int(os.getenv("DB_CONNECTION_TIMEOUT", "30"))
 
 # Database-specific configurations for shared/free tier environments

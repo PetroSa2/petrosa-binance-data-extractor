@@ -31,7 +31,7 @@ except ImportError:
 from db.mongodb_adapter import MongoDBAdapter
 from fetchers import BinanceClient, KlinesFetcher
 from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
-from utils.messaging import publish_extraction_completion_sync
+from utils.messaging import publish_extraction_completion_sync, publish_batch_extraction_completion_sync
 from utils.time_utils import (
     binance_interval_to_table_suffix,
     format_duration,
@@ -316,7 +316,9 @@ def main():
 
     extraction_start_time = time.time()
     total_records_written = 0
+    total_records_fetched = 0
     results = []
+    errors = []
 
     try:
         # Connect to database
@@ -336,6 +338,30 @@ def main():
             )
             results.append(result)
             total_records_written += result["records_written"]
+            
+            # Track errors for batch reporting
+            if result["status"] == "error":
+                errors.append(f"{symbol}: {result.get('error', 'Unknown error')}")
+            
+            # Send individual symbol NATS event
+            if constants.NATS_ENABLED:
+                try:
+                    publish_extraction_completion_sync(
+                        symbol=symbol,
+                        period=args.period,
+                        records_fetched=result.get("records_fetched", result["records_written"]),
+                        records_written=result["records_written"],
+                        success=result["status"] == "success",
+                        duration_seconds=result["duration"],
+                        errors=[result.get("error")] if result.get("error") else None,
+                        gaps_found=0,  # Not tracked in MongoDB extractor
+                        gaps_filled=0,  # Not tracked in MongoDB extractor
+                        extraction_type="klines",
+                        use_production_prefix=False,  # Use default prefix for MongoDB
+                        use_gap_filler_prefix=False,  # Use default prefix for MongoDB
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send NATS message for {symbol}: {e}")
 
         # Log extraction completion
         extraction_duration = time.time() - extraction_start_time
@@ -346,14 +372,23 @@ def main():
             duration_seconds=extraction_duration,
         )
 
-        # Publish completion message
-        publish_extraction_completion_sync(
-            extractor_type="klines_mongodb",
-            total_records=total_records_written,
-            duration_seconds=extraction_duration,
-            symbols=symbols,
-            period=args.period
-        )
+        # Publish batch completion message
+        if constants.NATS_ENABLED:
+            try:
+                publish_batch_extraction_completion_sync(
+                    symbols=symbols,
+                    period=args.period,
+                    total_records_fetched=total_records_written,  # Use written as fetched for simplicity
+                    total_records_written=total_records_written,
+                    success=len(errors) == 0,
+                    duration_seconds=extraction_duration,
+                    errors=errors if errors else None,
+                    total_gaps_found=0,  # Not tracked in MongoDB extractor
+                    total_gaps_filled=0,  # Not tracked in MongoDB extractor
+                    extraction_type="klines",
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send batch NATS message: {e}")
 
         logger.info(f"Extraction completed: {total_records_written} records in {format_duration(extraction_duration)}")
 
