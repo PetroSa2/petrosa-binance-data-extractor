@@ -16,7 +16,7 @@ try:
     from pymongo.collection import Collection
     from pymongo.database import Database
     from pymongo.errors import BulkWriteError, ConnectionFailure, DuplicateKeyError
-    from pymongo.operations import UpdateOne
+    from pymongo.operations import InsertOne, UpdateOne
 
     PYMONGO_AVAILABLE = True
 except ImportError:
@@ -127,24 +127,22 @@ class MongoDBAdapter(BaseAdapter):
 
                 for instance in model_instances:
                     doc = instance.model_dump()
-                    # Remove _id logic, use upsert on (symbol, timestamp)
-                    filter_query = {"symbol": doc["symbol"], "timestamp": doc["timestamp"]}
+                    # For timeseries collections, use insertOne instead of upsert
                     doc = MongoDBAdapter._convert_decimals(doc)
-                    operations.append(UpdateOne(filter_query, {"$set": doc}, upsert=True))
+                    operations.append(InsertOne(doc))
 
                 if not operations:
                     return 0
 
                 result = coll.bulk_write(operations, ordered=False)
-                # Count upserts and modified (for existing docs)
-                return result.upserted_count + result.modified_count
+                # Count inserted documents
+                return result.inserted_count
 
             except BulkWriteError as e:
-                # Count successful upserts and modifications
-                upserts = e.details.get("nUpserted", 0)
-                modified = e.details.get("nModified", 0)
+                # Count successful inserts
+                inserted = e.details.get("nInserted", 0)
                 logger.warning("Bulk write error: %s", e.details.get("writeErrors", []))
-                return upserts + modified
+                return inserted
             except Exception as e:
                 error_classification = classify_database_error(e)
                 should_retry, retry_strategy = should_retry_operation(e)

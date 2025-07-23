@@ -134,8 +134,7 @@ class TestMongoDBAdapter:
 
         # Mock successful bulk write
         mock_result = MagicMock()
-        mock_result.upserted_count = 1
-        mock_result.modified_count = 1
+        mock_result.inserted_count = 2
         mock_collection.bulk_write.return_value = mock_result
 
         # Create test data
@@ -239,10 +238,12 @@ class TestMongoDBAdapter:
         mock_mongo_client.return_value = mock_client
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
-        mock_result = MagicMock()
-        mock_result.upserted_count = 1
-        mock_result.modified_count = 1
-        mock_collection.bulk_write.return_value = mock_result
+        # Mock different results for different calls
+        mock_result1 = MagicMock()
+        mock_result1.inserted_count = 2
+        mock_result2 = MagicMock()
+        mock_result2.inserted_count = 1
+        mock_collection.bulk_write.side_effect = [mock_result1, mock_result2]
         now = datetime.now(timezone.utc)
         klines = [
             KlineModel(
@@ -266,7 +267,7 @@ class TestMongoDBAdapter:
         adapter._connected = True
         adapter.database = mock_database
         result = adapter.write_batch(klines, "klines_m15", batch_size=2)
-        assert result == 4  # 2 batches * (1 upserted + 1 modified) = 4 total written
+        assert result == 3  # 2 + 1 = 3 total inserted
         assert mock_collection.bulk_write.call_count >= 1
 
     @patch("db.mongodb_adapter.MongoClient")
