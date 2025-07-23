@@ -11,7 +11,7 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 # Add project root to path (works for both local and container environments)
@@ -210,38 +210,27 @@ def extract_klines_for_symbol(
             latest_records = db_adapter.query_latest(collection_name, symbol=symbol, limit=1)
             if latest_records:
                 last_timestamp = latest_records[0]["timestamp"]
+                # Ensure timezone awareness for the timestamp from database
+                if last_timestamp.tzinfo is None:
+                    last_timestamp = last_timestamp.replace(tzinfo=timezone.utc)
                 logger.info(f"Last timestamp for {symbol}: {last_timestamp}")
 
-                # Start from next interval with 1 period overlap for safety
-                if period.endswith('m'):
-                    minutes = int(period[:-1])
-                    start_date = last_timestamp - timedelta(minutes=minutes)  # 1 period overlap
-                elif period.endswith('h'):
-                    hours = int(period[:-1])
-                    start_date = last_timestamp - timedelta(hours=hours)  # 1 period overlap
-                elif period.endswith('d'):
-                    days = int(period[:-1])
-                    start_date = last_timestamp - timedelta(days=days)  # 1 period overlap
-                else:
-                    # Default to minutes
-                    start_date = last_timestamp - timedelta(minutes=1)  # 1 period overlap
+                # Start from 1 period before for safety overlap
+                interval_minutes = int(period[:-1]) if period.endswith('m') else \
+                                   int(period[:-1]) * 60 if period.endswith('h') else \
+                                   int(period[:-1]) * 24 * 60 if period.endswith('d') else 5 # Default to 5m
+                start_date = last_timestamp - timedelta(minutes=interval_minutes)
+                logger.info(f"Incremental extraction for {symbol}: starting from {start_date} (1 period overlap)")
             else:
                 # No data found, fetch last 10 periods
                 logger.info(f"No existing data found for {symbol}, fetching last 10 periods")
                 current_time = get_current_utc_time()
                 
-                if period.endswith('m'):
-                    minutes = int(period[:-1])
-                    start_date = current_time - timedelta(minutes=minutes * 10)
-                elif period.endswith('h'):
-                    hours = int(period[:-1])
-                    start_date = current_time - timedelta(hours=hours * 10)
-                elif period.endswith('d'):
-                    days = int(period[:-1])
-                    start_date = current_time - timedelta(days=days * 10)
-                else:
-                    # Default to minutes
-                    start_date = current_time - timedelta(minutes=10)
+                interval_minutes = int(period[:-1]) if period.endswith('m') else \
+                                   int(period[:-1]) * 60 if period.endswith('h') else \
+                                   int(period[:-1]) * 24 * 60 if period.endswith('d') else 5 # Default to 5m
+                start_date = current_time - timedelta(minutes=interval_minutes * 10)
+                logger.info(f"Fallback extraction for {symbol}: starting from {start_date} (last 10 periods)")
 
         # Fetch klines data
         logger.info(f"Fetching klines for {symbol} from {start_date} to {end_date}")
