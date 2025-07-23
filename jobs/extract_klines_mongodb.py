@@ -31,7 +31,7 @@ except ImportError:
 from db.mongodb_adapter import MongoDBAdapter
 from fetchers import BinanceClient, KlinesFetcher
 from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
-from utils.messaging import publish_extraction_completion_sync, publish_batch_extraction_completion_sync
+# NATS messaging disabled for MongoDB jobs
 from utils.time_utils import (
     binance_interval_to_table_suffix,
     format_duration,
@@ -84,13 +84,14 @@ Examples:
     parser.add_argument(
         "--backfill",
         action="store_true",
-        default=constants.BACKFILL,
-        help="Perform backfill from start date",
+        default=False,  # Disable backfill by default for MongoDB jobs (use incremental)
+        help="Perform backfill from start date (default: False for MongoDB)",
     )
     parser.add_argument(
         "--incremental",
         action="store_true",
-        help="Perform incremental extraction from last timestamp",
+        default=True,  # Enable incremental by default for MongoDB jobs
+        help="Perform incremental extraction from last timestamp (default: True for MongoDB)",
     )
 
     # Limits and batching
@@ -211,16 +212,36 @@ def extract_klines_for_symbol(
                 last_timestamp = latest_records[0]["timestamp"]
                 logger.info(f"Last timestamp for {symbol}: {last_timestamp}")
 
-                # Start from next interval
+                # Start from next interval with 1 period overlap for safety
                 if period.endswith('m'):
-                    start_date = last_timestamp + timedelta(minutes=int(period[:-1]))
+                    minutes = int(period[:-1])
+                    start_date = last_timestamp - timedelta(minutes=minutes)  # 1 period overlap
                 elif period.endswith('h'):
-                    start_date = last_timestamp + timedelta(hours=int(period[:-1]))
+                    hours = int(period[:-1])
+                    start_date = last_timestamp - timedelta(hours=hours)  # 1 period overlap
                 elif period.endswith('d'):
-                    start_date = last_timestamp + timedelta(days=int(period[:-1]))
+                    days = int(period[:-1])
+                    start_date = last_timestamp - timedelta(days=days)  # 1 period overlap
                 else:
                     # Default to minutes
-                    start_date = last_timestamp + timedelta(minutes=1)
+                    start_date = last_timestamp - timedelta(minutes=1)  # 1 period overlap
+            else:
+                # No data found, fetch last 10 periods
+                logger.info(f"No existing data found for {symbol}, fetching last 10 periods")
+                current_time = get_current_utc_time()
+                
+                if period.endswith('m'):
+                    minutes = int(period[:-1])
+                    start_date = current_time - timedelta(minutes=minutes * 10)
+                elif period.endswith('h'):
+                    hours = int(period[:-1])
+                    start_date = current_time - timedelta(hours=hours * 10)
+                elif period.endswith('d'):
+                    days = int(period[:-1])
+                    start_date = current_time - timedelta(days=days * 10)
+                else:
+                    # Default to minutes
+                    start_date = current_time - timedelta(minutes=10)
 
         # Fetch klines data
         logger.info(f"Fetching klines for {symbol} from {start_date} to {end_date}")
@@ -343,25 +364,7 @@ def main():
             if result["status"] == "error":
                 errors.append(f"{symbol}: {result.get('error', 'Unknown error')}")
             
-            # Send individual symbol NATS event
-            if constants.NATS_ENABLED:
-                try:
-                    publish_extraction_completion_sync(
-                        symbol=symbol,
-                        period=args.period,
-                        records_fetched=result.get("records_fetched", result["records_written"]),
-                        records_written=result["records_written"],
-                        success=result["status"] == "success",
-                        duration_seconds=result["duration"],
-                        errors=[result.get("error")] if result.get("error") else None,
-                        gaps_found=0,  # Not tracked in MongoDB extractor
-                        gaps_filled=0,  # Not tracked in MongoDB extractor
-                        extraction_type="klines",
-                        use_production_prefix=False,  # Use default prefix for MongoDB
-                        use_gap_filler_prefix=False,  # Use default prefix for MongoDB
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to send NATS message for {symbol}: {e}")
+            # NATS messaging disabled for MongoDB jobs
 
         # Log extraction completion
         extraction_duration = time.time() - extraction_start_time
@@ -372,23 +375,7 @@ def main():
             duration_seconds=extraction_duration,
         )
 
-        # Publish batch completion message
-        if constants.NATS_ENABLED:
-            try:
-                publish_batch_extraction_completion_sync(
-                    symbols=symbols,
-                    period=args.period,
-                    total_records_fetched=total_records_written,  # Use written as fetched for simplicity
-                    total_records_written=total_records_written,
-                    success=len(errors) == 0,
-                    duration_seconds=extraction_duration,
-                    errors=errors if errors else None,
-                    total_gaps_found=0,  # Not tracked in MongoDB extractor
-                    total_gaps_filled=0,  # Not tracked in MongoDB extractor
-                    extraction_type="klines",
-                )
-            except Exception as e:
-                logger.warning(f"Failed to send batch NATS message: {e}")
+        # NATS batch messaging disabled for MongoDB jobs
 
         logger.info(f"Extraction completed: {total_records_written} records in {format_duration(extraction_duration)}")
 
