@@ -68,6 +68,22 @@ A robust, production-ready cryptocurrency data extraction system designed for en
 ### Development & CI/CD
 - **[Test Implementation Guide](docs/TEST_IMPLEMENTATION_GUIDE.md)** - Testing strategies and best practices
 - **[OpenTelemetry Setup](docs/OTEL_INSTALLATION_GUIDE.md)** - Observability and monitoring setup
+- **[Bug Investigation Guide](docs/BUG_INVESTIGATION_GUIDE.md)** - Systematic bug investigation procedures
+
+### 🐛 Bug Investigation
+When bugs are reported or detected, follow our systematic approach:
+
+```bash
+# Quick bug investigation
+./scripts/bug-investigation.sh all
+
+# Or step by step:
+./scripts/bug-investigation.sh confirm    # Confirm the bug
+./scripts/bug-investigation.sh investigate # Investigate root cause
+./scripts/bug-investigation.sh test       # Test the fix
+```
+
+**Full Documentation**: See `docs/BUG_INVESTIGATION_GUIDE.md` for detailed procedures.
 
 ### 🎯 Unified Pipeline Runner (New!)
 
