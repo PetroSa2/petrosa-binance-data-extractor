@@ -381,6 +381,7 @@ class MySQLAdapter(BaseAdapter):
             with engine.connect() as conn:
                 gaps = []
                 expected_interval = timedelta(minutes=interval_minutes)
+                gap_results: List[Tuple[datetime, datetime, float]] = []
                 
                 # Build base query conditions
                 base_conditions = [
@@ -433,19 +434,19 @@ class MySQLAdapter(BaseAdapter):
                     """
                     
                     # Execute gap detection query
-                    gap_params = [start, end]
+                    gap_params: List[Any] = [start, end]
                     if symbol:
                         gap_params.append(symbol)
                     gap_params.append(interval_minutes + 1)  # Allow 1-minute tolerance
                     
-                    gap_results = conn.execute(text(gap_query), gap_params).fetchall()
+                    raw_results = conn.execute(text(gap_query), gap_params).fetchall()
+                    gap_results = [(ensure_timezone_aware(row[0]), ensure_timezone_aware(row[1]), float(row[2])) for row in raw_results]
                     
                 except Exception as window_error:
                     logger.warning(f"Window function approach failed, falling back to chunked processing: {window_error}")
                     
                     # Fallback: Process in chunks to avoid memory issues
                     chunk_size = 10000  # Process 10k records at a time
-                    gap_results = []
                     
                     # Get total count for chunking
                     count_query = (
@@ -454,10 +455,10 @@ class MySQLAdapter(BaseAdapter):
                     )
                     total_count = conn.execute(count_query).scalar()
                     
-                    if total_count > chunk_size:
+                    if total_count is not None and total_count > chunk_size:
                         # Process in chunks
                         offset = 0
-                        while offset < total_count:
+                        while total_count is not None and offset < total_count:
                             chunk_query = (
                                 select(table.c.timestamp)
                                 .where(and_(*base_conditions))
