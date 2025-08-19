@@ -16,7 +16,7 @@ try:
     from pymongo.collection import Collection
     from pymongo.database import Database
     from pymongo.errors import BulkWriteError, ConnectionFailure, DuplicateKeyError
-    from pymongo.operations import InsertOne, UpdateOne
+    from pymongo.operations import InsertOne
 
     PYMONGO_AVAILABLE = True
 except ImportError:

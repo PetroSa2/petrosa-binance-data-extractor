@@ -22,11 +22,11 @@ echo ""
 echo "🔍 Step 2: Running Code Linting"
 echo "--------------------------------"
 echo "Running critical errors check..."
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,htmlcov,__pycache__,.git
+/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,venv,htmlcov,__pycache__,.git,.mypy_cache,.pytest_cache
 echo "✅ Critical errors check passed"
 
 echo "Running style check..."
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,htmlcov,__pycache__,.git
+/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,venv,htmlcov,__pycache__,.git,.mypy_cache,.pytest_cache
 echo "✅ Style check completed"
 
 # Step 3: Run type checking
