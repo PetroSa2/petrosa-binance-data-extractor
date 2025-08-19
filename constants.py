@@ -38,8 +38,8 @@ DEFAULT_SYMBOLS = [
     "XRPUSDT",
 ]
 
-# Time intervals supported by Binance
-SUPPORTED_INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"]
+# Time intervals supported by Binance (standardized)
+SUPPORTED_INTERVALS = ["5m", "15m", "30m", "1h", "1d"]
 
 # Database URIs (pluggable)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/binance")
