@@ -87,7 +87,7 @@ spec:
                   name: petrosa-common-config
                   key: OTEL_EXPORTER_OTLP_ENDPOINT
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "service.name=binance-extractor,service.version=2.0.0"
+              value: "service.name=binance-extractor,service.version=VERSION_PLACEHOLDER"
             - name: OTEL_METRICS_EXPORTER
               valueFrom:
                 configMapKeyRef:
@@ -508,7 +508,7 @@ spec:
                   name: petrosa-common-config
                   key: OTEL_EXPORTER_OTLP_ENDPOINT
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "service.name=binance-extractor,service.version=2.0.0"
+              value: "service.name=binance-extractor,service.version=VERSION_PLACEHOLDER"
             - name: OTEL_METRICS_EXPORTER
               valueFrom:
                 configMapKeyRef:
