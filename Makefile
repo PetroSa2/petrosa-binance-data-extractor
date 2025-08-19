@@ -27,7 +27,12 @@ help:
 	@echo "  coverage       - Run tests with coverage report"
 	@echo "  coverage-html  - Generate HTML coverage report"
 	@echo ""
-
+	@echo "🐛 Bug Investigation:"
+	@echo "  bug-confirm    - Confirm bug behavior locally"
+	@echo "  bug-investigate - Investigate root cause"
+	@echo "  bug-test       - Test bug fixes"
+	@echo "  bug-all        - Run complete bug investigation"
+	@echo ""
 # Installation targets
 install:
 	@echo "📦 Installing production dependencies..."
@@ -226,3 +231,23 @@ ci-simulation: install-dev
 	$(MAKE) security-scan
 	@echo ""
 	@echo "✅ CI/CD simulation completed successfully!" 
+# Bug Investigation
+bug-confirm:
+	@echo "🔍 Confirming bug behavior locally..."
+	@chmod +x scripts/bug-investigation.sh
+	@./scripts/bug-investigation.sh confirm
+
+bug-investigate:
+	@echo "🔬 Investigating root cause..."
+	@chmod +x scripts/bug-investigation.sh
+	@./scripts/bug-investigation.sh investigate
+
+bug-test:
+	@echo "🧪 Testing bug fixes..."
+	@chmod +x scripts/bug-investigation.sh
+	@./scripts/bug-investigation.sh test
+
+bug-all:
+	@echo "🚨 Running complete bug investigation..."
+	@chmod +x scripts/bug-investigation.sh
+	@./scripts/bug-investigation.sh all
