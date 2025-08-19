@@ -33,7 +33,7 @@ try:
     )
     from sqlalchemy.engine import Engine
     from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-    from sqlalchemy.sql import and_, delete, func, select
+    from sqlalchemy.sql import and_, delete, func, select, text
 
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
@@ -370,44 +370,161 @@ class MySQLAdapter(BaseAdapter):
         interval_minutes: int,
         symbol: Optional[str] = None,
     ) -> List[Tuple[datetime, datetime]]:
-        """Find gaps in time series data."""
-        # This is a simplified implementation - for production use,
-        # consider using MySQL-specific window functions for better performance
-        records = self.query_range(collection, start, end, symbol)
+        """Find gaps in time series data using efficient database queries."""
+        if not self._connected:
+            raise DatabaseError("Not connected to database")
 
-        if not records:
-            return [(start, end)]
-
-        timestamps = []
-        for record in records:
-            ts = record["timestamp"]
-            # Ensure timezone awareness for comparison
-            ts = ensure_timezone_aware(ts)
-            timestamps.append(ts)
-
-        timestamps.sort()
-
-        gaps = []
-        expected_interval = timedelta(minutes=interval_minutes)
-
-        # Check for gap at the beginning
-        if timestamps[0] > start + expected_interval:
-            gaps.append((start, timestamps[0]))
-
-        # Check for gaps between timestamps
-        for i in range(len(timestamps) - 1):
-            current = timestamps[i]
-            next_timestamp = timestamps[i + 1]
-            expected_next = current + expected_interval
-
-            if next_timestamp > expected_next + timedelta(minutes=1):
-                gaps.append((expected_next, next_timestamp))
-
-        # Check for gap at the end
-        if timestamps[-1] < end - expected_interval:
-            gaps.append((timestamps[-1] + expected_interval, end))
-
-        return gaps
+        try:
+            table = self._get_table(collection)
+            engine = self._ensure_connected()
+            
+            with engine.connect() as conn:
+                gaps = []
+                expected_interval = timedelta(minutes=interval_minutes)
+                
+                # Build base query conditions
+                base_conditions = [
+                    table.c.timestamp >= start,
+                    table.c.timestamp < end
+                ]
+                if symbol:
+                    base_conditions.append(table.c.symbol == symbol)
+                
+                # Find the first timestamp in range
+                first_query = (
+                    select(table.c.timestamp)
+                    .where(and_(*base_conditions))
+                    .order_by(table.c.timestamp)
+                    .limit(1)
+                )
+                
+                first_result = conn.execute(first_query).fetchone()
+                
+                if not first_result:
+                    # No data in range, entire range is a gap
+                    return [(start, end)]
+                
+                first_timestamp = first_result[0]
+                first_timestamp = ensure_timezone_aware(first_timestamp)
+                
+                # Check for gap at the beginning
+                if first_timestamp > start + expected_interval:
+                    gaps.append((start, first_timestamp))
+                
+                # Try window function approach first (MySQL 8.0+)
+                try:
+                    gap_query = f"""
+                    WITH timestamp_pairs AS (
+                        SELECT 
+                            timestamp as current_ts,
+                            LEAD(timestamp) OVER (ORDER BY timestamp) as next_ts
+                        FROM {table.name}
+                        WHERE timestamp >= %s AND timestamp < %s
+                        {f"AND symbol = %s" if symbol else ""}
+                        ORDER BY timestamp
+                    )
+                    SELECT 
+                        current_ts,
+                        next_ts,
+                        TIMESTAMPDIFF(MINUTE, current_ts, next_ts) as gap_minutes
+                    FROM timestamp_pairs
+                    WHERE next_ts IS NOT NULL 
+                    AND TIMESTAMPDIFF(MINUTE, current_ts, next_ts) > %s
+                    """
+                    
+                    # Execute gap detection query
+                    gap_params = [start, end]
+                    if symbol:
+                        gap_params.append(symbol)
+                    gap_params.append(interval_minutes + 1)  # Allow 1-minute tolerance
+                    
+                    gap_results = conn.execute(text(gap_query), gap_params).fetchall()
+                    
+                except Exception as window_error:
+                    logger.warning(f"Window function approach failed, falling back to chunked processing: {window_error}")
+                    
+                    # Fallback: Process in chunks to avoid memory issues
+                    chunk_size = 10000  # Process 10k records at a time
+                    gap_results = []
+                    
+                    # Get total count for chunking
+                    count_query = (
+                        select(func.count(table.c.timestamp))
+                        .where(and_(*base_conditions))
+                    )
+                    total_count = conn.execute(count_query).scalar()
+                    
+                    if total_count > chunk_size:
+                        # Process in chunks
+                        offset = 0
+                        while offset < total_count:
+                            chunk_query = (
+                                select(table.c.timestamp)
+                                .where(and_(*base_conditions))
+                                .order_by(table.c.timestamp)
+                                .limit(chunk_size)
+                                .offset(offset)
+                            )
+                            
+                            chunk_results = conn.execute(chunk_query).fetchall()
+                            timestamps = [ensure_timezone_aware(row[0]) for row in chunk_results]
+                            
+                            # Find gaps within this chunk
+                            for i in range(len(timestamps) - 1):
+                                current_ts = timestamps[i]
+                                next_ts = timestamps[i + 1]
+                                expected_next = current_ts + expected_interval
+                                
+                                if next_ts > expected_next + timedelta(minutes=1):
+                                    gap_results.append((current_ts, next_ts, (next_ts - current_ts).total_seconds() / 60))
+                            
+                            offset += chunk_size
+                    else:
+                        # Small dataset, load all at once
+                        all_query = (
+                            select(table.c.timestamp)
+                            .where(and_(*base_conditions))
+                            .order_by(table.c.timestamp)
+                        )
+                        
+                        all_results = conn.execute(all_query).fetchall()
+                        timestamps = [ensure_timezone_aware(row[0]) for row in all_results]
+                        
+                        # Find gaps
+                        for i in range(len(timestamps) - 1):
+                            current_ts = timestamps[i]
+                            next_ts = timestamps[i + 1]
+                            expected_next = current_ts + expected_interval
+                            
+                            if next_ts > expected_next + timedelta(minutes=1):
+                                gap_results.append((current_ts, next_ts, (next_ts - current_ts).total_seconds() / 60))
+                
+                for row in gap_results:
+                    current_ts = ensure_timezone_aware(row[0])
+                    next_ts = ensure_timezone_aware(row[1])
+                    expected_next = current_ts + expected_interval
+                    gaps.append((expected_next, next_ts))
+                
+                # Find the last timestamp in range
+                last_query = (
+                    select(table.c.timestamp)
+                    .where(and_(*base_conditions))
+                    .order_by(table.c.timestamp.desc())
+                    .limit(1)
+                )
+                
+                last_result = conn.execute(last_query).fetchone()
+                if last_result:
+                    last_timestamp = ensure_timezone_aware(last_result[0])
+                    
+                    # Check for gap at the end
+                    if last_timestamp < end - expected_interval:
+                        gaps.append((last_timestamp + expected_interval, end))
+                
+                return gaps
+                
+        except Exception as e:
+            raise DatabaseError(f"Failed to find gaps in {collection}: {e}") from e
 
     def get_record_count(
         self,
