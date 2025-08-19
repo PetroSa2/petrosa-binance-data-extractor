@@ -164,10 +164,10 @@ spec:
                   fieldPath: metadata.name
             resources:
               requests:
-                memory: "1Gi"
+                memory: "2Gi"
                 cpu: "500m"
               limits:
-                memory: "2Gi"
+                memory: "4Gi"
                 cpu: "1000m"
             securityContext:
               runAsNonRoot: true
@@ -343,10 +343,10 @@ spec:
                   fieldPath: metadata.name
             resources:
               requests:
-                memory: "1Gi"
+                memory: "2Gi"
                 cpu: "500m"
               limits:
-                memory: "2Gi"
+                memory: "4Gi"
                 cpu: "1000m"
             securityContext:
               runAsNonRoot: true
@@ -522,10 +522,10 @@ spec:
                   fieldPath: metadata.name
             resources:
               requests:
-                memory: "1Gi"
+                memory: "2Gi"
                 cpu: "500m"
               limits:
-                memory: "2Gi"
+                memory: "4Gi"
                 cpu: "1000m"
             securityContext:
               runAsNonRoot: true
@@ -701,10 +701,10 @@ spec:
                   fieldPath: metadata.name
             resources:
               requests:
-                memory: "1Gi"
+                memory: "2Gi"
                 cpu: "500m"
               limits:
-                memory: "2Gi"
+                memory: "4Gi"
                 cpu: "1000m"
             securityContext:
               runAsNonRoot: true
@@ -880,10 +880,10 @@ spec:
                   fieldPath: metadata.name
             resources:
               requests:
-                memory: "1Gi"
+                memory: "2Gi"
                 cpu: "500m"
               limits:
-                memory: "2Gi"
+                memory: "4Gi"
                 cpu: "1000m"
             securityContext:
               runAsNonRoot: true
