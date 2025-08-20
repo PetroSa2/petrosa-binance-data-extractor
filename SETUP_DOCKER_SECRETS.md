@@ -1,22 +1,22 @@
-# Setting Up Docker Hub Secrets for Petrosa Socket Client
+# Setting Up Docker Hub Secrets for Petrosa Binance Data Extractor
 
 ## Current Status
 - ✅ KUBE_CONFIG_DATA - Already configured
 - ❌ DOCKERHUB_USERNAME - Needs to be set
 - ❌ DOCKERHUB_TOKEN - Needs to be set
 
-## Method 1: Copy from petrosa-crypto-binance-socket (Recommended)
+## Method 1: Copy from petrosa-socket-client (Recommended)
 
-Since the `petrosa-crypto-binance-socket` repository already has these secrets configured:
+Since the `petrosa-socket-client` repository already has these secrets configured:
 
 1. **Go to GitHub Web Interface**:
-   - Navigate to: https://github.com/PetroSa2/petrosa-crypto-binance-socket/settings/secrets/actions
+   - Navigate to: https://github.com/PetroSa2/petrosa-socket-client/settings/secrets/actions
    - Click on `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`
    - Copy the values
 
-2. **Set the secrets in petrosa-socket-client**:
+2. **Set the secrets in petrosa-binance-data-extractor**:
    ```bash
-   cd /Users/yurisa2/petrosa/petrosa-socket-client
+   cd /Users/yurisa2/petrosa/petrosa-binance-data-extractor
 
    # Set Docker Hub username
    gh secret set DOCKERHUB_USERNAME -b "your-dockerhub-username"
@@ -35,7 +35,7 @@ Since the `petrosa-crypto-binance-socket` repository already has these secrets c
 
 2. **Set the secrets**:
    ```bash
-   cd /Users/yurisa2/petrosa/petrosa-socket-client
+   cd /Users/yurisa2/petrosa/petrosa-binance-data-extractor
 
    # Set Docker Hub username
    gh secret set DOCKERHUB_USERNAME -b "your-dockerhub-username"

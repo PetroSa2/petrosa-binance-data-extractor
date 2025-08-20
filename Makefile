@@ -7,7 +7,7 @@
 
 # Default target
 help:
-	@echo "🚀 Petrosa Socket Client - Standardized Development Commands"
+	@echo "🚀 Petrosa Binance Data Extractor - Standardized Development Commands"
 	@echo "=========================================================="
 	@echo ""
 	@echo "📦 Setup & Installation:"
@@ -48,7 +48,7 @@ help:
 	@echo "  k8s-status     - Check Kubernetes deployment status"
 	@echo "  k8s-logs       - View Kubernetes logs"
 	@echo "  k8s-clean      - Clean up Kubernetes resources"
-	@echo "  run-local      - Run socket client locally"
+	@echo "  run-local      - Run extraction jobs locally"
 
 # Setup and installation
 setup:
@@ -179,7 +179,7 @@ container:
 
 docker-clean:
 	@echo "🧹 Cleaning up Docker images..."
-	docker rmi petrosa-socket-client:latest 2>/dev/null || true
+	docker rmi petrosa-binance-data-extractor:latest 2>/dev/null || true
 	docker system prune -f
 
 # Deployment
@@ -222,12 +222,12 @@ pipeline:
 # Kubernetes utilities
 k8s-status:
 	@echo "📊 Kubernetes deployment status:"
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -l app=socket-client
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get svc -n petrosa-apps -l app=socket-client
+	kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -l app=binance-data-extractor
+kubectl --kubeconfig=k8s/kubeconfig.yaml get svc -n petrosa-apps -l app=binance-data-extractor
 
 k8s-logs:
 	@echo "📋 Kubernetes logs:"
-	kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client --tail=50
+	kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=binance-data-extractor --tail=50
 
 k8s-clean:
 	@echo "🧹 Cleaning up Kubernetes resources..."
@@ -235,8 +235,8 @@ k8s-clean:
 
 # Local development
 run-local:
-	@echo "🚀 Running socket client locally..."
-	python -m socket_client.main
+	@echo "🚀 Running extraction jobs locally..."
+	python -m jobs.extract_klines_production --period 15m --symbols BTCUSDT
 
 # Quick development workflow
 dev: setup format lint type-check test
