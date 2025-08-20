@@ -3,7 +3,7 @@
 ## Overview
 This guide provides unified procedures for all Petrosa systems:
 - **petrosa-bot-ta-analysis**: Technical Analysis bot for crypto trading
-- **petrosa-tradeengine**: Cryptocurrency trading engine system  
+- **petrosa-tradeengine**: Cryptocurrency trading engine system
 - **petrosa-binance-data-extractor**: Cryptocurrency data extraction system
 
 All systems share the same infrastructure, deployment patterns, and development workflows.

@@ -47,4 +47,4 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -A && echo "Now help me with K
 ```bash
 # Copy this output into your Cursor prompt
 echo "Context: $(./scripts/cursor_helper.sh)" && echo "Now help me with [YOUR ISSUE]"
-``` 
+```

@@ -12,7 +12,7 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from utils import telemetry
+from utils import telemetry  # noqa: E402
 
 
 class TestTelemetryManager:
@@ -71,7 +71,7 @@ class TestTelemetryManager:
         mock_tracer_provider.return_value = mock_provider_instance
         mock_trace.get_tracer_provider.return_value = mock_provider_instance
         mock_provider_instance.get_tracer.return_value = DummyContextManager()
-        with patch.object(manager, "_setup_auto_instrumentation") as mock_auto_instr:
+        with patch.object(manager, "_setup_auto_instrumentation") as _:
             with patch.object(manager.logger, "info") as mock_info:
                 result = manager.initialize_telemetry()
                 assert result is True
@@ -83,7 +83,9 @@ class TestTelemetryManager:
         """Test initialization with import error."""
         manager = telemetry.TelemetryManager()
 
-        with patch.object(manager, "_create_resource", side_effect=ImportError("test error")):
+        with patch.object(
+            manager, "_create_resource", side_effect=ImportError("test error")
+        ):
             with patch.object(manager.logger, "error") as mock_error:
                 result = manager.initialize_telemetry()
 
@@ -116,14 +118,17 @@ class TestTelemetryManager:
         mock_resource.create.return_value = mock_resource_instance
         mock_resource.return_value = mock_resource_instance
 
-        with patch.dict(os.environ, {
-            "KUBERNETES_SERVICE_HOST": "test-host",
-            "K8S_CLUSTER_NAME": "test-cluster",
-            "K8S_NAMESPACE": "test-namespace",
-            "K8S_POD_NAME": "test-pod",
-            "K8S_CONTAINER_NAME": "test-container",
-            "K8S_DEPLOYMENT_NAME": "test-deployment"
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "KUBERNETES_SERVICE_HOST": "test-host",
+                "K8S_CLUSTER_NAME": "test-cluster",
+                "K8S_NAMESPACE": "test-namespace",
+                "K8S_POD_NAME": "test-pod",
+                "K8S_CONTAINER_NAME": "test-container",
+                "K8S_DEPLOYMENT_NAME": "test-deployment",
+            },
+        ):
             result = manager._create_resource()
 
             assert result == mock_resource_instance
@@ -139,7 +144,10 @@ class TestTelemetryManager:
         mock_resource.create.return_value = mock_resource_instance
         mock_resource.return_value = mock_resource_instance
 
-        with patch("utils.telemetry.constants.OTEL_RESOURCE_ATTRIBUTES", "key1=value1,key2=value2"):
+        with patch(
+            "utils.telemetry.constants.OTEL_RESOURCE_ATTRIBUTES",
+            "key1=value1,key2=value2",
+        ):
             result = manager._create_resource()
 
             assert result == mock_resource_instance
@@ -290,7 +298,9 @@ class TestTelemetryManager:
         mock_metrics.get_meter.assert_called_with("test-meter")
 
 
-@pytest.mark.skip("Module-level singleton cannot be reliably mocked in this environment")
+@pytest.mark.skip(
+    "Module-level singleton cannot be reliably mocked in this environment"
+)
 class TestModuleFunctions:
     pass
 
@@ -298,8 +308,10 @@ class TestModuleFunctions:
 class DummyContextManager:
     def __enter__(self):
         return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
     def set_attribute(self, *args, **kwargs):
         pass
 
@@ -336,14 +348,17 @@ class TestErrorHandling:
         """Test handling of resource detector import errors."""
         manager = telemetry.TelemetryManager()
 
-        with patch.object(manager.logger, "debug") as mock_debug:
+        with patch.object(manager.logger, "debug") as _:
             # This should not raise an exception
             manager._create_resource()
             # The debug method may or may not be called depending on the environment
             # We just ensure the method doesn't raise an exception
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
-    @patch("utils.telemetry.constants.OTEL_EXPORTER_OTLP_ENDPOINT", new="https://test-endpoint.com")
+    @patch(
+        "utils.telemetry.constants.OTEL_EXPORTER_OTLP_ENDPOINT",
+        new="https://test-endpoint.com",
+    )
     @patch("utils.telemetry.GRPCSpanExporter")
     def test_exporter_initialization_error(self, mock_grpc_exporter):
         """Test handling of exporter initialization errors."""
@@ -352,7 +367,9 @@ class TestErrorHandling:
 
         mock_grpc_exporter.side_effect = RuntimeError("Exporter error")
 
-        with patch.dict(os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com"}):
+        with patch.dict(
+            os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com"}
+        ):
             with patch.object(telemetry.TelemetryManager.logger, "error") as mock_error:
                 # This should handle the error gracefully
                 manager._setup_tracing(mock_resource)
@@ -374,11 +391,14 @@ class TestEnvironmentVariables:
         mock_resource_instance = Mock()
         mock_resource.create.return_value = mock_resource_instance
         mock_resource.return_value = mock_resource_instance
-        with patch.dict(os.environ, {
-            "ENVIRONMENT": "production",
-            "HOSTNAME": "test-host",
-            "OTEL_RESOURCE_ATTRIBUTES": "custom.key=custom.value"
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "HOSTNAME": "test-host",
+                "OTEL_RESOURCE_ATTRIBUTES": "custom.key=custom.value",
+            },
+        ):
             result = manager._create_resource()
             assert result == mock_resource_instance
             mock_resource.create.assert_called()
@@ -396,6 +416,3 @@ class TestEnvironmentVariables:
             result = manager._create_resource()
             assert result == mock_resource_instance
             mock_resource.create.assert_called()
-
-
-

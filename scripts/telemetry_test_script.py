@@ -12,6 +12,7 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def test_telemetry():
     """Test the telemetry setup."""
     try:
@@ -24,7 +25,7 @@ def test_telemetry():
         success = initialize_telemetry(
             service_name="binance-data-extractor-test",
             service_version="2.0.0",
-            environment="test"
+            environment="test",
         )
 
         if not success:
@@ -45,8 +46,8 @@ def test_telemetry():
 
             # Get span context
             span_context = span.get_span_context()
-            trace_id = format(span_context.trace_id, '032x')
-            span_id = format(span_context.span_id, '016x')
+            trace_id = format(span_context.trace_id, "032x")
+            span_id = format(span_context.span_id, "016x")
 
             logger.info("✓ Test span created successfully")
             logger.info(f"  Trace ID: {trace_id}")
@@ -59,8 +60,8 @@ def test_telemetry():
                 child_span.set_attribute("parent.trace_id", trace_id)
 
                 child_context = child_span.get_span_context()
-                child_trace_id = format(child_context.trace_id, '032x')
-                child_span_id = format(child_context.span_id, '016x')
+                child_trace_id = format(child_context.trace_id, "032x")
+                child_span_id = format(child_context.span_id, "016x")
 
                 logger.info("✓ Child span created successfully")
                 logger.info(f"  Child Trace ID: {child_trace_id}")
@@ -78,20 +79,24 @@ def test_telemetry():
                 otlp_span.set_attribute("endpoint", otlp_endpoint)
 
                 otlp_context = otlp_span.get_span_context()
-                otlp_trace_id = format(otlp_context.trace_id, '032x')
+                otlp_trace_id = format(otlp_context.trace_id, "032x")
 
                 logger.info(f"✓ OTLP test span created - Trace ID: {otlp_trace_id}")
                 logger.info("  This span should be exported to New Relic")
         else:
-            logger.warning("⚠️ No OTLP endpoint configured - spans will only be logged locally")
+            logger.warning(
+                "⚠️ No OTLP endpoint configured - spans will only be logged locally"
+            )
 
         return True
 
     except Exception as e:
         logger.error(f"Telemetry test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def main():
     """Main test function."""
@@ -99,7 +104,9 @@ def main():
 
     # Check environment variables
     logger.info("Environment check:")
-    logger.info(f"  OTEL_EXPORTER_OTLP_ENDPOINT: {os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'Not set')}")
+    logger.info(
+        f"  OTEL_EXPORTER_OTLP_ENDPOINT: {os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'Not set')}"
+    )
     logger.info(f"  OTEL_SERVICE_NAME: {os.getenv('OTEL_SERVICE_NAME', 'Not set')}")
     logger.info(f"  ENABLE_OTEL: {os.getenv('ENABLE_OTEL', 'Not set')}")
 
@@ -113,6 +120,7 @@ def main():
     else:
         logger.error("❌ OpenTelemetry test failed!")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

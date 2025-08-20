@@ -892,4 +892,4 @@ spec:
               readOnlyRootFilesystem: false
               capabilities:
                 drop:
-                - ALL 
+                - ALL

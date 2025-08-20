@@ -14,9 +14,9 @@ import time
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import constants
-from utils.logger import get_logger, setup_logging
-from utils.messaging import (
+import constants  # noqa: E402
+from utils.logger import get_logger, setup_logging  # noqa: E402
+from utils.messaging import (  # noqa: E402
     publish_batch_extraction_completion_sync,
     publish_extraction_completion_sync,
 )

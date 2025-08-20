@@ -40,4 +40,4 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
 - This repository uses **local MicroK8s cluster**, not AWS EKS
 - Always use `kubectl --kubeconfig=k8s/kubeconfig.yaml` for cluster operations
 - For port forwarding: `kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward`
-- See [Quick Reference](../docs/QUICK_REFERENCE.md) for common commands 
+- See [Quick Reference](../docs/QUICK_REFERENCE.md) for common commands

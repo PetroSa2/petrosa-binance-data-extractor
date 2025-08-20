@@ -112,7 +112,9 @@ class NATSMessenger:
 
         try:
             await self.client.publish(subject, json.dumps(message).encode())
-            logger.info(f"Published extraction completion message for {symbol} to {subject}")
+            logger.info(
+                f"Published extraction completion message for {symbol} to {subject}"
+            )
         except Exception as e:
             logger.error(f"Failed to publish extraction completion message: {e}")
 
@@ -176,7 +178,9 @@ class NATSMessenger:
 
         try:
             await self.client.publish(subject, json.dumps(message).encode())
-            logger.info(f"Published batch extraction completion message for {len(symbols)} symbols to {subject}")
+            logger.info(
+                f"Published batch extraction completion message for {len(symbols)} symbols to {subject}"
+            )
         except Exception as e:
             logger.error(f"Failed to publish batch extraction completion message: {e}")
 
@@ -209,7 +213,7 @@ def publish_extraction_completion_sync(
 ) -> None:
     """
     Synchronous wrapper for publishing extraction completion messages.
-    
+
     This function runs the async publish function in a new event loop.
     """
     messenger = get_messenger()
@@ -220,11 +224,15 @@ def publish_extraction_completion_sync(
         if use_production_prefix:
             # Override the subject prefix for production messages
             original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
-            os.environ["NATS_SUBJECT_PREFIX"] = os.getenv("NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production")
+            os.environ["NATS_SUBJECT_PREFIX"] = os.getenv(
+                "NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production"
+            )
         elif use_gap_filler_prefix:
             # Override the subject prefix for gap filler messages
             original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
-            os.environ["NATS_SUBJECT_PREFIX"] = os.getenv("NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler")
+            os.environ["NATS_SUBJECT_PREFIX"] = os.getenv(
+                "NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler"
+            )
 
         try:
             await messenger.publish_extraction_completion(
@@ -270,7 +278,7 @@ def publish_batch_extraction_completion_sync(
 ) -> None:
     """
     Synchronous wrapper for publishing batch extraction completion messages.
-    
+
     This function runs the async publish function in a new event loop.
     """
     messenger = get_messenger()

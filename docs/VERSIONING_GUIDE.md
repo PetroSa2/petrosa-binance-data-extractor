@@ -205,4 +205,4 @@ kubectl logs -l app=binance-extractor --tail=100 -n petrosa-apps
 
 # Check CronJob status
 kubectl get cronjobs -n petrosa-apps
-``` 
+```

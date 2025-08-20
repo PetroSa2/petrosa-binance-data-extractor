@@ -15,10 +15,10 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from db.base_adapter import BaseAdapter, DatabaseError
-from db.mongodb_adapter import MongoDBAdapter
-from db.mysql_adapter import MySQLAdapter
-from models.kline import KlineModel
+from db.base_adapter import BaseAdapter, DatabaseError  # noqa: E402
+from db.mongodb_adapter import MongoDBAdapter  # noqa: E402
+from db.mysql_adapter import MySQLAdapter  # noqa: E402
+from models.kline import KlineModel  # noqa: E402
 
 
 class TestBaseAdapter:
@@ -47,10 +47,14 @@ class TestBaseAdapter:
                 def query_latest(self, collection, symbol=None, limit=1):
                     pass
 
-                def find_gaps(self, collection, start, end, interval_minutes, symbol=None):
+                def find_gaps(
+                    self, collection, start, end, interval_minutes, symbol=None
+                ):
                     pass
 
-                def get_record_count(self, collection, start=None, end=None, symbol=None):
+                def get_record_count(
+                    self, collection, start=None, end=None, symbol=None
+                ):
                     pass
 
                 def ensure_indexes(self, collection):
@@ -103,7 +107,9 @@ class TestBaseAdapter:
         assert hasattr(adapter, "__exit__")
 
 
-@pytest.mark.skipif(not hasattr(MongoDBAdapter, "__init__"), reason="MongoDB dependencies not available")
+@pytest.mark.skipif(
+    not hasattr(MongoDBAdapter, "__init__"), reason="MongoDB dependencies not available"
+)
 class TestMongoDBAdapter:
     """Test MongoDBAdapter functionality."""
 
@@ -261,7 +267,8 @@ class TestMongoDBAdapter:
                 number_of_trades=0,
                 taker_buy_base_asset_volume=Decimal("0"),
                 taker_buy_quote_asset_volume=Decimal("0"),
-            ) for _ in range(3)
+            )
+            for _ in range(3)
         ]
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
@@ -279,9 +286,9 @@ class TestMongoDBAdapter:
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
         mock_cursor = MagicMock()
-        mock_cursor.__iter__.return_value = iter([
-            {"symbol": "BTCUSDT", "timestamp": datetime.now(timezone.utc)}
-        ])
+        mock_cursor.__iter__.return_value = iter(
+            [{"symbol": "BTCUSDT", "timestamp": datetime.now(timezone.utc)}]
+        )
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
         adapter = MongoDBAdapter("mongodb://test:27017/test")
@@ -311,7 +318,9 @@ class TestMongoDBAdapter:
         adapter.database = mock_database
         start = datetime.now(timezone.utc)
         end = datetime.now(timezone.utc)
-        result = adapter.find_gaps("klines_m15", start, end, interval_minutes=15, symbol="BTCUSDT")
+        result = adapter.find_gaps(
+            "klines_m15", start, end, interval_minutes=15, symbol="BTCUSDT"
+        )
         assert isinstance(result, list)
         mock_collection.find.assert_called()
 
@@ -329,7 +338,9 @@ class TestMongoDBAdapter:
         adapter.database = mock_database
         start = datetime.now(timezone.utc)
         end = datetime.now(timezone.utc)
-        result = adapter.get_record_count("klines_m15", start=start, end=end, symbol="BTCUSDT")
+        result = adapter.get_record_count(
+            "klines_m15", start=start, end=end, symbol="BTCUSDT"
+        )
         assert result == 42
         mock_collection.count_documents.assert_called()
 
@@ -407,7 +418,9 @@ class TestMongoDBAdapter:
             adapter.write(klines, "klines_m15")
 
 
-@pytest.mark.skipif(not hasattr(MySQLAdapter, "__init__"), reason="MySQL dependencies not available")
+@pytest.mark.skipif(
+    not hasattr(MySQLAdapter, "__init__"), reason="MySQL dependencies not available"
+)
 class TestMySQLAdapter:
     """Test MySQLAdapter functionality."""
 
@@ -522,7 +535,9 @@ class MockAdapter(BaseAdapter):
         return len(model_instances)
 
     def write_batch(self, model_instances, collection, batch_size=1000):
-        self.operations.append(("write_batch", len(model_instances), collection, batch_size))
+        self.operations.append(
+            ("write_batch", len(model_instances), collection, batch_size)
+        )
         return len(model_instances)
 
     def query_range(self, collection, start, end, symbol=None):
@@ -534,7 +549,9 @@ class MockAdapter(BaseAdapter):
         return []
 
     def find_gaps(self, collection, start, end, interval_minutes, symbol=None):
-        self.operations.append(("find_gaps", collection, start, end, interval_minutes, symbol))
+        self.operations.append(
+            ("find_gaps", collection, start, end, interval_minutes, symbol)
+        )
         return []
 
     def get_record_count(self, collection, start=None, end=None, symbol=None):

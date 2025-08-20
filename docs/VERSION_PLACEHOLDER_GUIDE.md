@@ -59,7 +59,7 @@ The version comes from:
 ### Project-Specific Files
 - **TA Bot**: All standard manifests
 - **Trading Engine**: All standard manifests
-- **Data Extractor**: 
+- **Data Extractor**:
   - `k8s/klines-all-timeframes-cronjobs.yaml`
   - `k8s/klines-gap-filler-cronjob.yaml`
   - `k8s/klines-mongodb-production.yaml`

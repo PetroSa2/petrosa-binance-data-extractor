@@ -206,4 +206,4 @@ OTEL_LOG_LEVEL=DEBUG opentelemetry-instrument python app.py
 
 # Verify environment variables
 env | grep OTEL
-``` 
+```

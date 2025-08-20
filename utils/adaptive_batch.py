@@ -30,7 +30,7 @@ class AdaptiveBatchManager:
     ):
         """
         Initialize adaptive batch manager.
-        
+
         Args:
             initial_batch_size: Starting batch size
             min_batch_size: Minimum allowed batch size
@@ -42,7 +42,9 @@ class AdaptiveBatchManager:
         self.current_batch_size = initial_batch_size
         self.min_batch_size = min_batch_size or constants.MIN_BATCH_SIZE
         self.max_batch_size = max_batch_size or constants.MAX_BATCH_SIZE
-        self.success_rate_threshold = success_rate_threshold or constants.SUCCESS_RATE_THRESHOLD
+        self.success_rate_threshold = (
+            success_rate_threshold or constants.SUCCESS_RATE_THRESHOLD
+        )
         self.adjustment_factor = adjustment_factor
         self.min_success_rate = min_success_rate
 
@@ -55,10 +57,12 @@ class AdaptiveBatchManager:
         self.successful_operations = 0
         self.failed_operations = 0
 
-    def record_operation(self, success: bool, duration: float, batch_size: Optional[int] = None):
+    def record_operation(
+        self, success: bool, duration: float, batch_size: Optional[int] = None
+    ):
         """
         Record operation result for batch size adjustment.
-        
+
         Args:
             success: Whether the operation was successful
             duration: Operation duration in seconds
@@ -96,20 +100,25 @@ class AdaptiveBatchManager:
 
         # Calculate recent performance metrics
         recent_operations = self.operation_history[-10:]  # Last 10 operations
-        success_rate = sum(1 for op in recent_operations if op["success"]) / len(recent_operations)
-        avg_duration = sum(op["duration"] for op in recent_operations) / len(recent_operations)
+        success_rate = sum(1 for op in recent_operations if op["success"]) / len(
+            recent_operations
+        )
+        avg_duration = sum(op["duration"] for op in recent_operations) / len(
+            recent_operations
+        )
 
         # Determine if adjustment is needed
         should_increase = (
-            success_rate >= self.success_rate_threshold and
-            avg_duration < 5.0 and  # Fast operations
-            self.current_batch_size < self.max_batch_size
+            success_rate >= self.success_rate_threshold
+            and avg_duration < 5.0
+            and self.current_batch_size < self.max_batch_size  # Fast operations
         )
 
         should_decrease = (
-            success_rate < self.min_success_rate or
-            avg_duration > 10.0 or  # Slow operations
-            self.failed_operations > self.successful_operations * 0.2  # High failure rate
+            success_rate < self.min_success_rate
+            or avg_duration > 10.0
+            or self.failed_operations  # Slow operations
+            > self.successful_operations * 0.2  # High failure rate
         )
 
         old_batch_size = self.current_batch_size
@@ -118,19 +127,21 @@ class AdaptiveBatchManager:
             # Increase batch size
             increase_factor = 1 + self.adjustment_factor
             self.current_batch_size = min(
-                self.max_batch_size,
-                int(self.current_batch_size * increase_factor)
+                self.max_batch_size, int(self.current_batch_size * increase_factor)
             )
-            logger.info(f"Batch size increased from {old_batch_size} to {self.current_batch_size}")
+            logger.info(
+                f"Batch size increased from {old_batch_size} to {self.current_batch_size}"
+            )
 
         elif should_decrease:
             # Decrease batch size
             decrease_factor = 1 - self.adjustment_factor
             self.current_batch_size = max(
-                self.min_batch_size,
-                int(self.current_batch_size * decrease_factor)
+                self.min_batch_size, int(self.current_batch_size * decrease_factor)
             )
-            logger.warning(f"Batch size decreased from {old_batch_size} to {self.current_batch_size}")
+            logger.warning(
+                f"Batch size decreased from {old_batch_size} to {self.current_batch_size}"
+            )
 
     def get_batch_size(self) -> int:
         """Get current batch size."""
@@ -147,8 +158,12 @@ class AdaptiveBatchManager:
             }
 
         recent_operations = self.operation_history[-20:]  # Last 20 operations
-        success_rate = sum(1 for op in recent_operations if op["success"]) / len(recent_operations)
-        avg_duration = sum(op["duration"] for op in recent_operations) / len(recent_operations)
+        success_rate = sum(1 for op in recent_operations if op["success"]) / len(
+            recent_operations
+        )
+        avg_duration = sum(op["duration"] for op in recent_operations) / len(
+            recent_operations
+        )
 
         return {
             "current_batch_size": self.current_batch_size,
@@ -179,7 +194,7 @@ class DatabaseSpecificBatchManager(AdaptiveBatchManager):
     def __init__(self, adapter_type: str, environment: str = "production"):
         """
         Initialize database-specific batch manager.
-        
+
         Args:
             adapter_type: Type of database adapter (mysql, mongodb, etc.)
             environment: Environment (production, development, shared, free_tier)
@@ -196,7 +211,9 @@ class DatabaseSpecificBatchManager(AdaptiveBatchManager):
         self.adapter_type = adapter_type
         self.environment = environment
 
-        logger.info(f"Initialized {adapter_type} batch manager for {environment} environment")
+        logger.info(
+            f"Initialized {adapter_type} batch manager for {environment} environment"
+        )
 
     def get_environment_constraints(self) -> Dict:
         """Get environment-specific constraints."""

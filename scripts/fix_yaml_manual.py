@@ -3,10 +3,11 @@
 Script to manually fix YAML formatting issues in MongoDB production manifest
 """
 
+
 def fix_yaml_manual(file_path):
     """Manually fix YAML formatting issues."""
 
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         lines = f.readlines()
 
     # Fix the specific lines that have formatting issues
@@ -20,17 +21,16 @@ def fix_yaml_manual(file_path):
             fixed_lines.append(line)
 
     # Write the fixed content back
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         f.writelines(fixed_lines)
 
     print(f"✅ Manually fixed YAML formatting in {file_path}")
 
+
 def main():
     """Main function to fix YAML formatting."""
 
-    files_to_fix = [
-        'k8s/klines-mongodb-production.yaml'
-    ]
+    files_to_fix = ["k8s/klines-mongodb-production.yaml"]
 
     for file_path in files_to_fix:
         if os.path.exists(file_path):
@@ -40,6 +40,8 @@ def main():
 
     print("🎉 YAML formatting manually fixed!")
 
+
 if __name__ == "__main__":
     import os
+
     main()

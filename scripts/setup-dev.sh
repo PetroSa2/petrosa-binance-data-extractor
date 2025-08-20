@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Petrosa Binance Data Extractor - Development Setup Script
-# 
+#
 # This script sets up the development environment for this repository.
 # For detailed instructions, see: docs/REPOSITORY_SETUP_GUIDE.md
 # For quick reference, see: docs/QUICK_REFERENCE.md
@@ -67,4 +67,4 @@ echo "   - Check status: kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n pet
 echo "   - Port forward NATS: kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 4222:4222 &"
 echo "   - View logs: kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/binance-extractor -n petrosa-apps"
 echo ""
-echo "💡 Remember: This repository uses local MicroK8s, not AWS EKS!" 
+echo "💡 Remember: This repository uses local MicroK8s, not AWS EKS!"

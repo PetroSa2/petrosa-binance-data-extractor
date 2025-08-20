@@ -35,4 +35,4 @@ When working with this repository, ALWAYS follow these rules:
 ## Key Files to Check
 - `docs/REPOSITORY_SETUP_GUIDE.md`
 - `docs/QUICK_REFERENCE.md`
-- `k8s/kubeconfig.yaml` 
+- `k8s/kubeconfig.yaml`

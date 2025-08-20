@@ -16,15 +16,15 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import constants
-from jobs.extract_klines_production import (
+import constants  # noqa: E402
+from jobs.extract_klines_production import (  # noqa: E402
     ProductionKlinesExtractor,
     _main_impl,
     main,
     parse_arguments,
     retry_with_backoff,
 )
-from models.kline import KlineModel
+from models.kline import KlineModel  # noqa: E402
 
 
 class TestRetryWithBackoff:
@@ -46,7 +46,11 @@ class TestRetryWithBackoff:
     def test_retry_success_after_failures(self, mock_sleep):
         """Test successful execution after some failures."""
         mock_func = Mock(
-            side_effect=[Exception("Lost connection to MySQL server"), Exception("MySQL server has gone away"), "success"]
+            side_effect=[
+                Exception("Lost connection to MySQL server"),
+                Exception("MySQL server has gone away"),
+                "success",
+            ]
         )
         mock_logger = Mock()
 
@@ -86,7 +90,11 @@ class TestRetryWithBackoff:
     def test_retry_exponential_backoff(self, mock_sleep):
         """Test exponential backoff timing."""
         mock_func = Mock(
-            side_effect=[Exception("Lost connection to MySQL server"), Exception("MySQL server has gone away"), "success"]
+            side_effect=[
+                Exception("Lost connection to MySQL server"),
+                Exception("MySQL server has gone away"),
+                "success",
+            ]
         )
         mock_logger = Mock()
 
@@ -113,7 +121,11 @@ class TestProductionKlinesExtractor:
         self.db_uri = "mysql://test:test@localhost/test"
 
         self.extractor = ProductionKlinesExtractor(
-            symbols=self.symbols, period=self.period, db_adapter_name=self.db_adapter_name, db_uri=self.db_uri, max_workers=2
+            symbols=self.symbols,
+            period=self.period,
+            db_adapter_name=self.db_adapter_name,
+            db_uri=self.db_uri,
+            max_workers=2,
         )
 
     def test_initialization(self):
@@ -167,13 +179,20 @@ class TestProductionKlinesExtractor:
         mock_get_adapter.return_value = mock_adapter
 
         # Mock database response with data
-        mock_record = {"close_time": datetime(2023, 1, 1, 12, 0, 0), "symbol": "BTCUSDT"}  # timezone-naive
+        mock_record = {
+            "close_time": datetime(2023, 1, 1, 12, 0, 0),
+            "symbol": "BTCUSDT",
+        }  # timezone-naive
         mock_adapter.query_latest.return_value = [mock_record]
 
-        timestamp = self.extractor.get_last_timestamp_for_symbol(mock_adapter, "BTCUSDT")
+        timestamp = self.extractor.get_last_timestamp_for_symbol(
+            mock_adapter, "BTCUSDT"
+        )
 
         assert timestamp == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        mock_adapter.query_latest.assert_called_once_with("klines_m15", symbol="BTCUSDT", limit=1)
+        mock_adapter.query_latest.assert_called_once_with(
+            "klines_m15", symbol="BTCUSDT", limit=1
+        )
 
     @patch("jobs.extract_klines_production.get_adapter")
     def test_get_last_timestamp_for_symbol_no_data(self, mock_get_adapter):
@@ -186,7 +205,9 @@ class TestProductionKlinesExtractor:
 
         with patch("jobs.extract_klines_production.constants") as mock_constants:
             mock_constants.DEFAULT_START_DATE = "2023-01-01T00:00:00Z"
-            timestamp = self.extractor.get_last_timestamp_for_symbol(mock_adapter, "BTCUSDT")
+            timestamp = self.extractor.get_last_timestamp_for_symbol(
+                mock_adapter, "BTCUSDT"
+            )
 
         assert timestamp == datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -199,7 +220,9 @@ class TestProductionKlinesExtractor:
 
         # Test with recent timestamp
         last_timestamp = datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
-        start_time, end_time = self.extractor.calculate_extraction_window(last_timestamp)
+        start_time, end_time = self.extractor.calculate_extraction_window(
+            last_timestamp
+        )
 
         # Should start 30 minutes before last timestamp
         expected_start = datetime(2023, 1, 1, 10, 30, 0, tzinfo=timezone.utc)
@@ -236,7 +259,9 @@ class TestProductionKlinesExtractor:
 
         # Test with timezone-naive timestamp
         naive_timestamp = datetime(2023, 1, 1, 11, 0, 0)  # No timezone info
-        start_time, end_time = self.extractor.calculate_extraction_window(naive_timestamp)
+        start_time, end_time = self.extractor.calculate_extraction_window(
+            naive_timestamp
+        )
 
         # Should convert to timezone-aware
         expected_start = datetime(2023, 1, 1, 10, 30, 0, tzinfo=timezone.utc)
@@ -247,7 +272,9 @@ class TestProductionKlinesExtractor:
 
     @patch("jobs.extract_klines_production.get_adapter")
     @patch("jobs.extract_klines_production.KlinesFetcher")
-    def test_extract_symbol_data_success(self, mock_klines_fetcher_class, mock_get_adapter):
+    def test_extract_symbol_data_success(
+        self, mock_klines_fetcher_class, mock_get_adapter
+    ):
         """Test successful symbol data extraction."""
         # Mock dependencies
         mock_adapter = Mock()
@@ -259,7 +286,9 @@ class TestProductionKlinesExtractor:
         mock_binance_client = Mock()
 
         # Mock database operations
-        mock_adapter.query_latest.return_value = [{"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}]
+        mock_adapter.query_latest.return_value = [
+            {"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}
+        ]
 
         # Mock klines data
         mock_klines = [
@@ -318,7 +347,9 @@ class TestProductionKlinesExtractor:
 
     @patch("jobs.extract_klines_production.get_adapter")
     @patch("jobs.extract_klines_production.KlinesFetcher")
-    def test_extract_symbol_data_api_error(self, mock_klines_fetcher_class, mock_get_adapter):
+    def test_extract_symbol_data_api_error(
+        self, mock_klines_fetcher_class, mock_get_adapter
+    ):
         """Test symbol data extraction with API error."""
         # Mock dependencies
         mock_adapter = Mock()
@@ -330,7 +361,9 @@ class TestProductionKlinesExtractor:
         mock_binance_client = Mock()
 
         # Mock database operations
-        mock_adapter.query_latest.return_value = [{"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}]
+        mock_adapter.query_latest.return_value = [
+            {"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}
+        ]
 
         # Mock API error
         mock_fetcher.fetch_klines.side_effect = Exception("API rate limit exceeded")
@@ -343,7 +376,9 @@ class TestProductionKlinesExtractor:
 
     @patch("jobs.extract_klines_production.BinanceClient")
     @patch("jobs.extract_klines_production.ThreadPoolExecutor")
-    def test_run_extraction_success(self, mock_executor_class, mock_binance_client_class):
+    def test_run_extraction_success(
+        self, mock_executor_class, mock_binance_client_class
+    ):
         """Test successful extraction run."""
         # Mock ThreadPoolExecutor
         mock_executor = Mock()
@@ -392,7 +427,9 @@ class TestProductionKlinesExtractor:
 
     @patch("jobs.extract_klines_production.BinanceClient")
     @patch("jobs.extract_klines_production.ThreadPoolExecutor")
-    def test_run_extraction_partial_failure(self, mock_executor_class, mock_binance_client_class):
+    def test_run_extraction_partial_failure(
+        self, mock_executor_class, mock_binance_client_class
+    ):
         """Test extraction run with partial failures."""
         # Mock ThreadPoolExecutor
         mock_executor = Mock()
@@ -453,7 +490,9 @@ class TestParseArguments:
             assert args.max_workers == 5
             assert args.lookback_hours == 24
             assert args.batch_size == 2000
-            assert args.db_adapter == constants.DB_ADAPTER  # Use actual default from constants
+            assert (
+                args.db_adapter == constants.DB_ADAPTER
+            )  # Use actual default from constants
             assert args.db_uri is None
             assert args.log_level == "INFO"
             assert args.dry_run is False
@@ -559,7 +598,12 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
     def test_main_impl_failure(
-        self, mock_parse_args, mock_constants, mock_extractor_class, mock_get_logger, mock_setup_logging
+        self,
+        mock_parse_args,
+        mock_constants,
+        mock_extractor_class,
+        mock_get_logger,
+        mock_setup_logging,
     ):
         """Test main implementation with extraction failure."""
         # Mock arguments
@@ -610,7 +654,12 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
     def test_main_impl_keyboard_interrupt(
-        self, mock_parse_args, mock_constants, mock_extractor_class, mock_get_logger, mock_setup_logging
+        self,
+        mock_parse_args,
+        mock_constants,
+        mock_extractor_class,
+        mock_get_logger,
+        mock_setup_logging,
     ):
         """Test main implementation with keyboard interrupt."""
         # Mock arguments
@@ -653,7 +702,12 @@ class TestMainFunction:
     @patch("jobs.extract_klines_production.constants")
     @patch("jobs.extract_klines_production.parse_arguments")
     def test_main_impl_general_exception(
-        self, mock_parse_args, mock_constants, mock_extractor_class, mock_get_logger, mock_setup_logging
+        self,
+        mock_parse_args,
+        mock_constants,
+        mock_extractor_class,
+        mock_get_logger,
+        mock_setup_logging,
     ):
         """Test main implementation with general exception."""
         # Mock arguments
@@ -709,7 +763,9 @@ class TestMainFunction:
 
             mock_main_impl.assert_called_once()
             mock_get_tracer.assert_called_once_with("jobs.extract_klines_production")
-            mock_tracer.start_as_current_span.assert_called_once_with("klines_extraction_main")
+            mock_tracer.start_as_current_span.assert_called_once_with(
+                "klines_extraction_main"
+            )
 
     @patch("jobs.extract_klines_production._main_impl")
     def test_main_without_tracer(self, mock_main_impl):
@@ -724,16 +780,24 @@ class TestTimezoneHandling:
 
     def test_timezone_aware_comparison(self):
         """Test that timezone-aware and timezone-naive datetimes are handled correctly."""
-        extractor = ProductionKlinesExtractor(symbols=["BTCUSDT"], period="15m", db_adapter_name="mysql")
+        extractor = ProductionKlinesExtractor(
+            symbols=["BTCUSDT"], period="15m", db_adapter_name="mysql"
+        )
 
         # Test with timezone-naive datetime from database
         naive_timestamp = datetime(2023, 1, 1, 12, 0, 0)  # No timezone info
 
         # This should not raise an error
-        with patch("jobs.extract_klines_production.get_current_utc_time") as mock_current_time:
-            mock_current_time.return_value = datetime(2023, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
+        with patch(
+            "jobs.extract_klines_production.get_current_utc_time"
+        ) as mock_current_time:
+            mock_current_time.return_value = datetime(
+                2023, 1, 1, 13, 0, 0, tzinfo=timezone.utc
+            )
 
-            start_time, end_time = extractor.calculate_extraction_window(naive_timestamp)
+            start_time, end_time = extractor.calculate_extraction_window(
+                naive_timestamp
+            )
 
             # Should convert naive timestamp to timezone-aware
             assert start_time.tzinfo is not None
@@ -742,7 +806,9 @@ class TestTimezoneHandling:
 
     def test_timezone_aware_timestamp_retrieval(self):
         """Test that timestamps from database are made timezone-aware."""
-        extractor = ProductionKlinesExtractor(symbols=["BTCUSDT"], period="15m", db_adapter_name="mysql")
+        extractor = ProductionKlinesExtractor(
+            symbols=["BTCUSDT"], period="15m", db_adapter_name="mysql"
+        )
 
         # Mock database adapter
         mock_adapter = Mock()

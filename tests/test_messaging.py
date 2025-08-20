@@ -58,7 +58,7 @@ class TestNATSMessenger:
     async def test_publish_extraction_completion(self):
         """Test publishing extraction completion message."""
         # Set up environment for default prefix
-        with patch.dict('os.environ', {'NATS_SUBJECT_PREFIX': 'binance.extraction'}):
+        with patch.dict("os.environ", {"NATS_SUBJECT_PREFIX": "binance.extraction"}):
             messenger = NATSMessenger()
 
             # Mock the nats client
@@ -99,7 +99,7 @@ class TestNATSMessenger:
     async def test_publish_batch_extraction_completion(self):
         """Test publishing batch extraction completion message."""
         # Set up environment for default prefix
-        with patch.dict('os.environ', {'NATS_SUBJECT_PREFIX': 'binance.extraction'}):
+        with patch.dict("os.environ", {"NATS_SUBJECT_PREFIX": "binance.extraction"}):
             messenger = NATSMessenger()
 
             # Mock the nats client
@@ -150,7 +150,9 @@ class TestMessagingFunctions:
     @patch("utils.messaging.get_messenger")
     @patch("utils.messaging.asyncio.new_event_loop")
     @patch("utils.messaging.asyncio.set_event_loop")
-    def test_publish_extraction_completion_sync(self, mock_set_loop, mock_new_loop, mock_get_messenger):
+    def test_publish_extraction_completion_sync(
+        self, mock_set_loop, mock_new_loop, mock_get_messenger
+    ):
         """Test synchronous extraction completion publishing."""
         # Mock the messenger
         mock_messenger = Mock()

@@ -35,4 +35,4 @@ kubectl patch configmap petrosa-common-config -n petrosa-apps \
 
 ## Affected Components
 - `petrosa-common-config` ConfigMap in `petrosa-apps` namespace
-- All binance extractor jobs using OpenTelemetry instrumentation 
+- All binance extractor jobs using OpenTelemetry instrumentation

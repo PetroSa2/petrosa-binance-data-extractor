@@ -221,10 +221,10 @@ async def message_handler(msg):
 
 async def main():
     nc = await nats.connect("nats://localhost:4222")
-    
+
     # Subscribe to all extraction events
     await nc.subscribe("binance.extraction.>", cb=message_handler)
-    
+
     # Keep the connection alive
     await asyncio.sleep(3600)  # 1 hour
 
@@ -290,4 +290,4 @@ Look for these log messages:
 - Message persistence
 - Retry mechanisms
 - Message filtering
-- Custom message formats 
+- Custom message formats

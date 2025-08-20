@@ -12,8 +12,7 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-
-from config.symbols import (
+from config.symbols import (  # noqa: E402
     DEVELOPMENT_SYMBOLS,
     PRODUCTION_SYMBOLS,
     get_symbols_for_environment,

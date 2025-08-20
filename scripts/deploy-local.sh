@@ -63,7 +63,7 @@ if [ -f "$KUBECONFIG_PATH" ]; then
         echo -e "${GREEN}✅ Connected using MicroK8s kubeconfig${NC}"
         KUBECONFIG_FOUND=true
         KUBECTL_CMD="kubectl --kubeconfig=\"$KUBECONFIG_PATH\" --insecure-skip-tls-verify"
-        
+
         # Import image to MicroK8s if available
         echo -e "${BLUE}📦 Importing image to MicroK8s...${NC}"
         if command -v microk8s &>/dev/null; then
@@ -83,7 +83,7 @@ if [ "$KUBECONFIG_FOUND" = false ]; then
         echo -e "${GREEN}✅ Connected using default kubectl context${NC}"
         KUBECONFIG_FOUND=true
         KUBECTL_CMD="kubectl"
-        
+
         # For other setups (Docker Desktop, minikube), the image should be available
         echo -e "${BLUE}📦 Using local Docker image (should be available in cluster)${NC}"
     fi

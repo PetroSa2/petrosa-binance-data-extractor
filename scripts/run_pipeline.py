@@ -25,9 +25,9 @@ from typing import Any, Dict, Optional
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-import constants
-from utils.logger import get_logger, setup_logging
-from utils.telemetry import TelemetryManager
+import constants  # noqa: E402
+from utils.logger import get_logger, setup_logging  # noqa: E402
+from utils.telemetry import TelemetryManager  # noqa: E402
 
 
 class PipelineRunner:
@@ -331,7 +331,9 @@ class PipelineRunner:
                         self.logger.error(f"{job_name} job failed")
                 else:
                     if self.logger:
-                        self.logger.info(f"{job_name} job completed successfully in {job_duration:.2f}s")
+                        self.logger.info(
+                            f"{job_name} job completed successfully in {job_duration:.2f}s"
+                        )
 
             except Exception as e:
                 job_duration = time.time() - job_start
@@ -354,7 +356,9 @@ class PipelineRunner:
             "end_time": datetime.now(timezone.utc).isoformat(),
         }
 
-    def run(self, job_name: Optional[str] = None, run_all: bool = False, **kwargs) -> Dict[str, Any]:
+    def run(
+        self, job_name: Optional[str] = None, run_all: bool = False, **kwargs
+    ) -> Dict[str, Any]:
         """Main run method for the pipeline."""
         self.start_time = datetime.now(timezone.utc)
         self.setup_logging_and_telemetry()
@@ -406,22 +410,49 @@ Examples:
 
     # Job selection
     job_group = parser.add_mutually_exclusive_group(required=True)
-    job_group.add_argument("--job", choices=["klines", "funding", "trades", "gap-filler"], help="Specific job to run")
-    job_group.add_argument("--all", action="store_true", help="Run all jobs in sequence")
+    job_group.add_argument(
+        "--job",
+        choices=["klines", "funding", "trades", "gap-filler"],
+        help="Specific job to run",
+    )
+    job_group.add_argument(
+        "--all", action="store_true", help="Run all jobs in sequence"
+    )
 
     # Common parameters
-    parser.add_argument("--symbols", nargs="+", help="Symbols to process (default: all from constants)")
-    parser.add_argument("--period", help="Time period for klines/gap-filler (default: 15m)")
-    parser.add_argument("--max-workers", type=int, help="Maximum number of worker threads")
-    parser.add_argument("--lookback-hours", type=int, help="Lookback period in hours for klines")
-    parser.add_argument("--batch-size", type=int, help="Batch size for database operations")
+    parser.add_argument(
+        "--symbols", nargs="+", help="Symbols to process (default: all from constants)"
+    )
+    parser.add_argument(
+        "--period", help="Time period for klines/gap-filler (default: 15m)"
+    )
+    parser.add_argument(
+        "--max-workers", type=int, help="Maximum number of worker threads"
+    )
+    parser.add_argument(
+        "--lookback-hours", type=int, help="Lookback period in hours for klines"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, help="Batch size for database operations"
+    )
     parser.add_argument("--limit", type=int, help="Limit for trades extraction")
-    parser.add_argument("--db-adapter", choices=["mongodb", "mysql", "postgresql"], help="Database adapter to use")
+    parser.add_argument(
+        "--db-adapter",
+        choices=["mongodb", "mysql", "postgresql"],
+        help="Database adapter to use",
+    )
     parser.add_argument("--db-uri", help="Database connection URI")
     parser.add_argument(
-        "--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO", help="Logging level (default: INFO)"
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Logging level (default: INFO)",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Run in dry-run mode (no actual data extraction)")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run in dry-run mode (no actual data extraction)",
+    )
 
     return parser.parse_args()
 

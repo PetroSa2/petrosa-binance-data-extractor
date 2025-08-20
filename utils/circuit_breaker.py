@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class CircuitBreaker:
     """
     Circuit breaker pattern for database operations.
-    
+
     States:
     - CLOSED: Normal operation, calls pass through
     - OPEN: Calls are blocked, circuit is broken
@@ -27,11 +27,11 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         recovery_timeout: int = 60,
         expected_exception: type[BaseException] = Exception,
-        name: str = "circuit_breaker"
+        name: str = "circuit_breaker",
     ):
         """
         Initialize circuit breaker.
-        
+
         Args:
             failure_threshold: Number of failures before opening circuit
             recovery_timeout: Seconds to wait before attempting recovery
@@ -56,15 +56,15 @@ class CircuitBreaker:
     def call(self, func: Callable, *args, **kwargs) -> Any:
         """
         Execute function with circuit breaker protection.
-        
+
         Args:
             func: Function to execute
             *args: Function arguments
             **kwargs: Function keyword arguments
-            
+
         Returns:
             Function result
-            
+
         Raises:
             Exception: If circuit is open or function fails
         """
@@ -102,7 +102,9 @@ class CircuitBreaker:
 
             # Check if circuit should open
             if self.failure_count >= self.failure_threshold:
-                logger.error(f"{self.name}: Circuit breaker opening after {self.failure_count} failures")
+                logger.error(
+                    f"{self.name}: Circuit breaker opening after {self.failure_count} failures"
+                )
                 self.state = "OPEN"
 
             raise e
@@ -120,7 +122,9 @@ class CircuitBreaker:
             "total_calls": self.total_calls,
             "successful_calls": self.successful_calls,
             "failed_calls": self.failed_calls,
-            "success_rate": self.successful_calls / self.total_calls if self.total_calls > 0 else 0,
+            "success_rate": self.successful_calls / self.total_calls
+            if self.total_calls > 0
+            else 0,
             "last_failure_time": self.last_failure_time,
         }
 
@@ -140,14 +144,14 @@ class DatabaseCircuitBreaker(CircuitBreaker):
     def __init__(self, adapter_type: str = "unknown"):
         """
         Initialize database circuit breaker.
-        
+
         Args:
             adapter_type: Type of database adapter (mysql, mongodb, etc.)
         """
         super().__init__(
             failure_threshold=3,  # Lower threshold for databases
-            recovery_timeout=30,   # Faster recovery for databases
+            recovery_timeout=30,  # Faster recovery for databases
             expected_exception=Exception,
-            name=f"db_circuit_breaker_{adapter_type}"
+            name=f"db_circuit_breaker_{adapter_type}",
         )
         self.adapter_type = adapter_type

@@ -7,4 +7,10 @@ from .funding import FundingRatesFetcher
 from .klines import KlinesFetcher
 from .trades import TradesFetcher
 
-__all__ = ["BinanceClient", "BinanceAPIError", "KlinesFetcher", "TradesFetcher", "FundingRatesFetcher"]
+__all__ = [
+    "BinanceClient",
+    "BinanceAPIError",
+    "KlinesFetcher",
+    "TradesFetcher",
+    "FundingRatesFetcher",
+]

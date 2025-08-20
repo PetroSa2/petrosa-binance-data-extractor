@@ -207,7 +207,7 @@ spec:
    ```bash
    # Check quota usage
    kubectl describe resourcequota -n petrosa-apps
-   
+
    # Check resource usage
    kubectl top pods -n petrosa-apps
    ```
@@ -216,7 +216,7 @@ spec:
    ```bash
    # Check service account
    kubectl get serviceaccount -n petrosa-apps
-   
+
    # Check RBAC
    kubectl auth can-i create jobs --namespace petrosa-apps
    ```
@@ -225,7 +225,7 @@ spec:
    ```bash
    # List all namespaces
    kubectl get namespaces
-   
+
    # Create if missing
    kubectl create namespace petrosa-apps
    ```

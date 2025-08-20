@@ -3,4 +3,4 @@ max-line-length = 127
 exclude = venv/*,.venv/*,htmlcov/*,.venv/*,__pycache__/*,.git/*,.mypy_cache/*,.pytest_cache/*
 ignore = E402
 max-complexity = 10
-jobs = 1 
+jobs = 1

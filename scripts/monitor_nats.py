@@ -20,6 +20,7 @@ except ImportError:
     os.system("pip install nats-py")
     import nats
 
+
 async def monitor_nats_messages():
     """Monitor NATS messages for binance extraction events"""
 
@@ -27,7 +28,7 @@ async def monitor_nats_messages():
     nats_urls = [
         "nats://localhost:4222",  # If port-forward is working
         "nats://nats-server.nats.svc.cluster.local:4222",  # Direct cluster DNS
-        "nats://10.152.183.189:4222"  # Direct IP
+        "nats://10.152.183.189:4222",  # Direct IP
     ]
 
     nc = None
@@ -77,6 +78,7 @@ async def monitor_nats_messages():
         print(f"❌ Error in message monitoring: {e}")
     finally:
         await nc.close()
+
 
 if __name__ == "__main__":
     print("🚀 Starting NATS Message Monitor")

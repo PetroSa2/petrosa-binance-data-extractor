@@ -24,7 +24,9 @@ class TestErrorClassification:
             Exception("Error 2006: MySQL server has gone away"),
             Exception("Error 2003: Can't connect to MySQL server"),
             Exception("Connection refused"),
-            Exception("MySQL connection pool exhausted"),  # Updated to be MySQL-specific
+            Exception(
+                "MySQL connection pool exhausted"
+            ),  # Updated to be MySQL-specific
         ]
 
         for error in mysql_errors:
@@ -35,7 +37,9 @@ class TestErrorClassification:
         """Test MongoDB connection error classification."""
         # Test various MongoDB connection errors
         mongodb_errors = [
-            Exception("MongoDB connection pool exhausted"),  # Updated to be MongoDB-specific
+            Exception(
+                "MongoDB connection pool exhausted"
+            ),  # Updated to be MongoDB-specific
             Exception("Server selection timeout"),
             Exception("Network timeout"),
             Exception("Read timeout"),

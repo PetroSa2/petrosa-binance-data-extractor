@@ -59,7 +59,9 @@ class TradesFetcher:
                     trade = TradeModel.from_binance_trade(trade_data, symbol)
                     trades.append(trade)
                 except Exception as e:
-                    logger.warning(f"Failed to parse trade data: {e}, data: {trade_data}")
+                    logger.warning(
+                        f"Failed to parse trade data: {e}, data: {trade_data}"
+                    )
                     continue
 
             logger.info(f"Fetched {len(trades)} recent trades for {symbol}")
@@ -72,7 +74,9 @@ class TradesFetcher:
             logger.error(f"Unexpected error fetching recent trades for {symbol}: {e}")
             raise
 
-    def fetch_historical_trades(self, symbol: str, from_id: Optional[int] = None, limit: int = 1000) -> List[TradeModel]:
+    def fetch_historical_trades(
+        self, symbol: str, from_id: Optional[int] = None, limit: int = 1000
+    ) -> List[TradeModel]:
         """
         Fetch historical trades for a symbol.
 
@@ -92,10 +96,15 @@ class TradesFetcher:
         symbol = symbol.upper()
         limit = min(limit, self.max_trades_per_request)
 
-        logger.info(f"Fetching historical trades for {symbol}" + (f" from ID {from_id}" if from_id else ""))
+        logger.info(
+            f"Fetching historical trades for {symbol}"
+            + (f" from ID {from_id}" if from_id else "")
+        )
 
         try:
-            trades_data = self.client.get_historical_trades(symbol=symbol, from_id=from_id, limit=limit)
+            trades_data = self.client.get_historical_trades(
+                symbol=symbol, from_id=from_id, limit=limit
+            )
 
             trades = []
             for trade_data in trades_data:
@@ -103,7 +112,9 @@ class TradesFetcher:
                     trade = TradeModel.from_binance_trade(trade_data, symbol)
                     trades.append(trade)
                 except Exception as e:
-                    logger.warning(f"Failed to parse trade data: {e}, data: {trade_data}")
+                    logger.warning(
+                        f"Failed to parse trade data: {e}, data: {trade_data}"
+                    )
                     continue
 
             logger.info(f"Fetched {len(trades)} historical trades for {symbol}")
@@ -113,7 +124,9 @@ class TradesFetcher:
             logger.error(f"API error fetching historical trades for {symbol}: {e}")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error fetching historical trades for {symbol}: {e}")
+            logger.error(
+                f"Unexpected error fetching historical trades for {symbol}: {e}"
+            )
             raise
 
     def fetch_trades_batch(
@@ -139,7 +152,9 @@ class TradesFetcher:
 
         while batch_count < max_batches:
             try:
-                batch_trades = self.fetch_historical_trades(symbol=symbol, from_id=current_id, limit=batch_size)
+                batch_trades = self.fetch_historical_trades(
+                    symbol=symbol, from_id=current_id, limit=batch_size
+                )
 
                 if not batch_trades:
                     logger.info(f"No more trades available for {symbol}")
@@ -151,7 +166,10 @@ class TradesFetcher:
                 # Update current_id for next batch
                 current_id = max(trade.trade_id for trade in batch_trades) + 1
 
-                logger.debug(f"Fetched batch {batch_count}: {len(batch_trades)} trades, " f"next ID: {current_id}")
+                logger.debug(
+                    f"Fetched batch {batch_count}: {len(batch_trades)} trades, "
+                    f"next ID: {current_id}"
+                )
 
                 # Small delay to be nice to the API
                 if constants.REQUEST_DELAY_SECONDS > 0:
@@ -173,10 +191,14 @@ class TradesFetcher:
                 logger.error(f"Unexpected error in batch {batch_count}: {e}")
                 break
 
-        logger.info(f"Fetched total of {len(all_trades)} trades in {batch_count} batches")
+        logger.info(
+            f"Fetched total of {len(all_trades)} trades in {batch_count} batches"
+        )
         return all_trades
 
-    def fetch_multiple_symbols(self, symbols: List[str], limit: int = 1000, use_historical: bool = False) -> dict:
+    def fetch_multiple_symbols(
+        self, symbols: List[str], limit: int = 1000, use_historical: bool = False
+    ) -> dict:
         """
         Fetch trades for multiple symbols.
 
@@ -208,7 +230,9 @@ class TradesFetcher:
                 continue
 
         total_trades = sum(len(trades) for trades in results.values())
-        logger.info(f"Fetched total of {total_trades} trades across {len(symbols)} symbols")
+        logger.info(
+            f"Fetched total of {total_trades} trades across {len(symbols)} symbols"
+        )
 
         return results
 
@@ -231,7 +255,9 @@ class TradesFetcher:
             logger.error(f"Failed to get latest trade ID for {symbol}: {e}")
             return None
 
-    def fetch_trades_since_id(self, symbol: str, since_id: int, max_records: int = 10000) -> List[TradeModel]:
+    def fetch_trades_since_id(
+        self, symbol: str, since_id: int, max_records: int = 10000
+    ) -> List[TradeModel]:
         """
         Fetch all trades since a specific trade ID.
 

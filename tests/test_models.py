@@ -13,10 +13,14 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 
-from models.base import BaseSymbolModel, BaseTimestampedModel, ExtractionMetadata
-from models.funding_rate import FundingRateModel
-from models.kline import KlineModel
-from models.trade import TradeModel
+from models.base import (  # noqa: E402
+    BaseSymbolModel,
+    BaseTimestampedModel,
+    ExtractionMetadata,
+)
+from models.funding_rate import FundingRateModel  # noqa: E402
+from models.kline import KlineModel  # noqa: E402
+from models.trade import TradeModel  # noqa: E402
 
 
 class TestBaseModels:
@@ -214,7 +218,9 @@ class TestFundingRateModel:
             "markPrice": "50000.00000000",
         }
 
-        funding_rate = FundingRateModel.from_binance_funding_rate(binance_data, "BTCUSDT")
+        funding_rate = FundingRateModel.from_binance_funding_rate(
+            binance_data, "BTCUSDT"
+        )
 
         assert funding_rate.symbol == "BTCUSDT"
         assert funding_rate.funding_rate == Decimal("0.00010000")

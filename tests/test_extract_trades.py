@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import jobs.extract_trades as extract_trades
+import jobs.extract_trades as extract_trades  # noqa: E402
 
 
 class TestParseArguments:
@@ -98,7 +98,9 @@ class TestMain:
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        mock_get_adapter.return_value.__enter__.return_value = mock_get_adapter.return_value
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
         mock_get_adapter.return_value.ensure_indexes.return_value = None
         mock_fetcher = Mock()
         mock_fetcher.fetch_recent_trades.return_value = [Mock(), Mock()]
@@ -142,7 +144,9 @@ class TestMain:
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        mock_get_adapter.return_value.__enter__.return_value = mock_get_adapter.return_value
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
         mock_get_adapter.return_value.ensure_indexes.return_value = None
         mock_fetcher = Mock()
         mock_fetcher.fetch_historical_trades.return_value = [Mock()]
@@ -186,7 +190,9 @@ class TestMain:
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
         mock_parse_args.return_value = mock_args
-        mock_get_adapter.return_value.__enter__.return_value = mock_get_adapter.return_value
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
         mock_get_adapter.return_value.ensure_indexes.return_value = None
         mock_fetcher = Mock()
         mock_fetcher.fetch_trades_since_id.return_value = [Mock()]
@@ -230,7 +236,9 @@ class TestMain:
         mock_args.log_level = "INFO"
         mock_args.dry_run = True
         mock_parse_args.return_value = mock_args
-        mock_get_adapter.return_value.__enter__.return_value = mock_get_adapter.return_value
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
         mock_get_adapter.return_value.ensure_indexes.return_value = None
         mock_fetcher = Mock()
         mock_fetcher.fetch_recent_trades.return_value = [Mock(), Mock()]

@@ -123,4 +123,4 @@
 # - Be specific about changes and document reasoning
 # - Test in multiple environments (local, Docker, K8s)
 # - Ensure no regressions are introduced
-# - Stop only when all tests pass and the fix is validated 
+# - Stop only when all tests pass and the fix is validated

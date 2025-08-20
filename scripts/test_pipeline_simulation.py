@@ -36,7 +36,9 @@ class PipelineSimulator:
             "service_configs": {},
         }
 
-    def log_test(self, test_name: str, passed: bool, details: str = "", duration: float = 0):
+    def log_test(
+        self, test_name: str, passed: bool, details: str = "", duration: float = 0
+    ):
         """Log test results."""
         self.test_results["tests_run"] += 1
         if passed:
@@ -134,7 +136,10 @@ class PipelineSimulator:
             )
 
             self.log_test(
-                "Custom Environment Variables", expected_values, f"Successfully applied custom service names", duration
+                "Custom Environment Variables",
+                expected_values,
+                "Successfully applied custom service names",
+                duration,
             )
 
         except Exception as e:
@@ -155,7 +160,10 @@ class PipelineSimulator:
 
             # Result should be False without OTLP endpoint, but no errors
             self.log_test(
-                "Basic Telemetry Init", True, f"setup_telemetry returned {result} (expected False without endpoint)", duration
+                "Basic Telemetry Init",
+                True,
+                f"setup_telemetry returned {result} (expected False without endpoint)",
+                duration,
             )
         except Exception as e:
             duration = time.time() - start_time
@@ -167,10 +175,17 @@ class PipelineSimulator:
             from utils.telemetry import TelemetryManager
 
             manager = TelemetryManager()
-            result = manager.initialize_telemetry(service_name="pipeline-test-manager", environment="test")
+            result = manager.initialize_telemetry(
+                service_name="pipeline-test-manager", environment="test"
+            )
             duration = time.time() - start_time
 
-            self.log_test("TelemetryManager Init", True, f"TelemetryManager.initialize_telemetry returned {result}", duration)
+            self.log_test(
+                "TelemetryManager Init",
+                True,
+                f"TelemetryManager.initialize_telemetry returned {result}",
+                duration,
+            )
         except Exception as e:
             duration = time.time() - start_time
             self.log_test("TelemetryManager Init", False, str(e), duration)
@@ -192,10 +207,14 @@ class PipelineSimulator:
             try:
                 __import__(module_path)
                 duration = time.time() - start_time
-                self.log_test(f"{name.title()} Instrumentation", True, f"Available", duration)
+                self.log_test(
+                    f"{name.title()} Instrumentation", True, "Available", duration
+                )
             except ImportError as e:
                 duration = time.time() - start_time
-                self.log_test(f"{name.title()} Instrumentation", False, str(e), duration)
+                self.log_test(
+                    f"{name.title()} Instrumentation", False, str(e), duration
+                )
 
     def test_job_initialization(self):
         """Test that all job files can be imported and initialized."""
@@ -214,7 +233,9 @@ class PipelineSimulator:
                 # Try to import the job module
                 __import__(job_module)
                 duration = time.time() - start_time
-                self.log_test(f"{job_name} Import", True, "Module imported successfully", duration)
+                self.log_test(
+                    f"{job_name} Import", True, "Module imported successfully", duration
+                )
             except Exception as e:
                 duration = time.time() - start_time
                 self.log_test(f"{job_name} Import", False, str(e), duration)
@@ -246,22 +267,33 @@ class PipelineSimulator:
                         self.log_test(
                             f"K8s {description}",
                             has_vars,
-                            f"Found required variables: {required_vars}" if has_vars else "Missing required variables",
+                            f"Found required variables: {required_vars}"
+                            if has_vars
+                            else "Missing required variables",
                             duration,
                         )
                     else:
                         # Shell script
-                        has_deploy_logic = "kubectl" in content and "NEW_RELIC_LICENSE_KEY" in content
+                        has_deploy_logic = (
+                            "kubectl" in content and "NEW_RELIC_LICENSE_KEY" in content
+                        )
                         duration = time.time() - start_time
                         self.log_test(
                             f"K8s {description}",
                             has_deploy_logic,
-                            "Contains kubectl and license key logic" if has_deploy_logic else "Missing deploy logic",
+                            "Contains kubectl and license key logic"
+                            if has_deploy_logic
+                            else "Missing deploy logic",
                             duration,
                         )
                 else:
                     duration = time.time() - start_time
-                    self.log_test(f"K8s {description}", False, f"File not found: {file_path}", duration)
+                    self.log_test(
+                        f"K8s {description}",
+                        False,
+                        f"File not found: {file_path}",
+                        duration,
+                    )
             except Exception as e:
                 duration = time.time() - start_time
                 self.log_test(f"K8s {description}", False, str(e), duration)
@@ -274,21 +306,25 @@ class PipelineSimulator:
         start_time = time.time()
         try:
             # This should handle gracefully
-            old_available = None
             try:
                 from utils.telemetry import OTEL_AVAILABLE
 
-                old_available = OTEL_AVAILABLE
-            except:
+                _ = OTEL_AVAILABLE  # Suppress unused variable warning
+            except ImportError:
                 pass
 
             # Test graceful degradation
             from otel_init import setup_telemetry
 
-            result = setup_telemetry(service_name="error-test")
+            setup_telemetry(service_name="error-test")
 
             duration = time.time() - start_time
-            self.log_test("Graceful Error Handling", True, "No exceptions thrown during error scenarios", duration)
+            self.log_test(
+                "Graceful Error Handling",
+                True,
+                "No exceptions thrown during error scenarios",
+                duration,
+            )
         except Exception as e:
             duration = time.time() - start_time
             self.log_test("Graceful Error Handling", False, str(e), duration)
@@ -310,7 +346,12 @@ class PipelineSimulator:
                     break
 
             duration = time.time() - start_time
-            self.log_test("Invalid Service Names", all_handled, "All invalid service names handled gracefully", duration)
+            self.log_test(
+                "Invalid Service Names",
+                all_handled,
+                "All invalid service names handled gracefully",
+                duration,
+            )
         except Exception as e:
             duration = time.time() - start_time
             self.log_test("Invalid Service Names", False, str(e), duration)
@@ -368,18 +409,20 @@ class PipelineSimulator:
         print(f"❌ Tests Failed: {self.test_results['tests_failed']}")
 
         if self.test_results["tests_run"] > 0:
-            success_rate = (self.test_results["tests_passed"] / self.test_results["tests_run"]) * 100
+            success_rate = (
+                self.test_results["tests_passed"] / self.test_results["tests_run"]
+            ) * 100
             print(f"📊 Success Rate: {success_rate:.1f}%")
 
         # Performance metrics
         if self.test_results["performance_metrics"]:
-            print(f"\n⚡ Performance Metrics:")
+            print("\n⚡ Performance Metrics:")
             for test, timing in self.test_results["performance_metrics"].items():
                 print(f"   - {test}: {timing}")
 
         # Service configurations
         if self.test_results["service_configs"]:
-            print(f"\n🛠️  Service Configurations:")
+            print("\n🛠️  Service Configurations:")
             for config_type, config in self.test_results["service_configs"].items():
                 print(f"   - {config_type.title()}:")
                 for service, name in config.items():
@@ -387,7 +430,7 @@ class PipelineSimulator:
 
         # Errors
         if self.test_results["errors"]:
-            print(f"\n🚨 Errors Encountered:")
+            print("\n🚨 Errors Encountered:")
             for error in self.test_results["errors"]:
                 print(f"   - {error}")
 
@@ -406,7 +449,9 @@ class PipelineSimulator:
             print("🎉 ALL TESTS PASSED! Pipeline is ready for production.")
             return True
         else:
-            print(f"⚠️  {self.test_results['tests_failed']} test(s) failed. Review errors above.")
+            print(
+                f"⚠️  {self.test_results['tests_failed']} test(s) failed. Review errors above."
+            )
             return False
 
     def run_full_simulation(self):

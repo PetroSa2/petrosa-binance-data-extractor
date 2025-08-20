@@ -12,31 +12,43 @@ import time
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import constants
+import constants  # noqa: E402
+from db import get_adapter  # noqa: E402
+from fetchers import BinanceClient, TradesFetcher  # noqa: E402
+from utils.logger import (  # noqa: E402
+    log_extraction_completion,
+    log_extraction_start,
+    setup_logging,
+)
+from utils.time_utils import format_duration  # noqa: E402
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from otel_init import setup_telemetry
+    from otel_init import setup_telemetry  # noqa: E402
+
     if not os.getenv("OTEL_NO_AUTO_INIT"):
         setup_telemetry(service_name=constants.OTEL_SERVICE_NAME_TRADES)
 except ImportError:
     pass
 
-from db import get_adapter
-from fetchers import BinanceClient, TradesFetcher
-from utils.logger import log_extraction_completion, log_extraction_start, setup_logging
-from utils.time_utils import format_duration
-
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Extract trades data from Binance Futures API")
+    parser = argparse.ArgumentParser(
+        description="Extract trades data from Binance Futures API"
+    )
 
     parser.add_argument("--symbol", type=str, help="Single trading symbol")
     parser.add_argument("--symbols", type=str, help="Comma-separated trading symbols")
-    parser.add_argument("--limit", type=int, default=1000, help="Number of trades per symbol")
-    parser.add_argument("--historical", action="store_true", help="Use historical trades endpoint")
-    parser.add_argument("--from-id", type=int, help="Starting trade ID for historical trades")
+    parser.add_argument(
+        "--limit", type=int, default=1000, help="Number of trades per symbol"
+    )
+    parser.add_argument(
+        "--historical", action="store_true", help="Use historical trades endpoint"
+    )
+    parser.add_argument(
+        "--from-id", type=int, help="Starting trade ID for historical trades"
+    )
     parser.add_argument(
         "--db-adapter",
         type=str,
@@ -46,7 +58,9 @@ def parse_arguments():
     parser.add_argument("--db-uri", type=str, help="Database connection URI")
     parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE)
     parser.add_argument("--log-level", type=str, default=constants.LOG_LEVEL)
-    parser.add_argument("--dry-run", action="store_true", help="Dry run without database writes")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Dry run without database writes"
+    )
 
     return parser.parse_args()
 
@@ -82,7 +96,11 @@ def main():
 
     try:
         # Initialize components
-        db_uri = args.db_uri or (constants.MONGODB_URI if args.db_adapter == "mongodb" else constants.MYSQL_URI)
+        db_uri = args.db_uri or (
+            constants.MONGODB_URI
+            if args.db_adapter == "mongodb"
+            else constants.MYSQL_URI
+        )
         db_adapter = get_adapter(args.db_adapter, db_uri)
         client = BinanceClient()
         fetcher = TradesFetcher(client)
@@ -96,19 +114,27 @@ def main():
 
                 try:
                     if args.historical and args.from_id:
-                        trades = fetcher.fetch_trades_since_id(symbol, args.from_id, args.limit)
+                        trades = fetcher.fetch_trades_since_id(
+                            symbol, args.from_id, args.limit
+                        )
                     elif args.historical:
-                        trades = fetcher.fetch_historical_trades(symbol, limit=args.limit)
+                        trades = fetcher.fetch_historical_trades(
+                            symbol, limit=args.limit
+                        )
                     else:
                         trades = fetcher.fetch_recent_trades(symbol, limit=args.limit)
 
                     if not args.dry_run and trades:
-                        written = db_adapter.write_batch(trades, collection_name, args.batch_size)
+                        written = db_adapter.write_batch(
+                            trades, collection_name, args.batch_size
+                        )
                         total_records += written
                         logger.info("Wrote %d trades for %s", written, symbol)
                     else:
                         total_records += len(trades)
-                        logger.info("Fetched %d trades for %s (dry run)", len(trades), symbol)
+                        logger.info(
+                            "Fetched %d trades for %s (dry run)", len(trades), symbol
+                        )
 
                 except Exception as e:
                     logger.error("Failed to process %s: %s", symbol, e)

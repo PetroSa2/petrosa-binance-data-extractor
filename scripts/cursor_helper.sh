@@ -42,4 +42,4 @@ echo ""
 
 echo "=== END CONTEXT ==="
 echo ""
-echo "💡 TIP: Copy the output above into your Cursor prompt for automatic context!" 
+echo "💡 TIP: Copy the output above into your Cursor prompt for automatic context!"

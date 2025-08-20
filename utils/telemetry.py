@@ -43,12 +43,14 @@ except ImportError as e:
 # Additional imports for tests
 try:
     from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
+
     PYMONGO_AVAILABLE = True
 except ImportError:
     PYMONGO_AVAILABLE = False
 
 try:
     from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor
+
     URLLIB3_AVAILABLE = True
 except ImportError:
     URLLIB3_AVAILABLE = False
@@ -56,12 +58,14 @@ except ImportError:
 # Cloud resource detectors
 try:
     from opentelemetry.sdk.resources import Resource
+
     GCP_AVAILABLE = True
 except ImportError:
     GCP_AVAILABLE = False
 
 try:
     from opentelemetry.sdk.resources import Resource
+
     AWS_AVAILABLE = True
 except ImportError:
     AWS_AVAILABLE = False
@@ -69,6 +73,7 @@ except ImportError:
 # Metrics (placeholder for tests)
 try:
     from opentelemetry import metrics
+
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
@@ -87,19 +92,21 @@ def initialize_telemetry(
 ) -> bool:
     """
     Initialize OpenTelemetry with a simple, reliable setup.
-    
+
     Args:
         service_name: Name of the service
         service_version: Version of the service
         environment: Environment name
-        
+
     Returns:
         bool: True if initialization was successful, False otherwise
     """
     global _tracer_provider, _initialized
 
     if not OTEL_AVAILABLE:
-        logging.getLogger(__name__).warning("OpenTelemetry not available, skipping initialization")
+        logging.getLogger(__name__).warning(
+            "OpenTelemetry not available, skipping initialization"
+        )
         return False
 
     if _initialized:
@@ -108,17 +115,21 @@ def initialize_telemetry(
 
     try:
         # Get configuration from environment or use defaults
-        service_name = service_name or os.getenv("OTEL_SERVICE_NAME", "binance-data-extractor")
+        service_name = service_name or os.getenv(
+            "OTEL_SERVICE_NAME", "binance-data-extractor"
+        )
         service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "2.0.0")
         environment = environment or os.getenv("ENVIRONMENT", "production")
 
         # Create resource
-        resource = Resource.create({
-            "service.name": service_name or "binance-data-extractor",
-            "service.version": service_version or "2.0.0",
-            "deployment.environment": environment or "production",
-            "service.instance.id": os.getenv("HOSTNAME", "unknown"),
-        })
+        resource = Resource.create(
+            {
+                "service.name": service_name or "binance-data-extractor",
+                "service.version": service_version or "2.0.0",
+                "deployment.environment": environment or "production",
+                "service.instance.id": os.getenv("HOSTNAME", "unknown"),
+            }
+        )
 
         # Create tracer provider
         _tracer_provider = TracerProvider(resource=resource)
@@ -144,13 +155,16 @@ def initialize_telemetry(
                             headers[key.strip()] = value.strip()
 
                 otlp_exporter = GRPCSpanExporter(
-                    endpoint=otlp_endpoint,
-                    headers=headers
+                    endpoint=otlp_endpoint, headers=headers
                 )
                 span_processors.append(BatchSpanProcessor(otlp_exporter))
-                logging.getLogger(__name__).info(f"OTLP exporter configured for endpoint: {otlp_endpoint}")
+                logging.getLogger(__name__).info(
+                    f"OTLP exporter configured for endpoint: {otlp_endpoint}"
+                )
             except Exception as e:
-                logging.getLogger(__name__).error(f"Failed to configure OTLP exporter: {e}")
+                logging.getLogger(__name__).error(
+                    f"Failed to configure OTLP exporter: {e}"
+                )
 
         # Add all span processors to the provider
         for processor in span_processors:
@@ -166,7 +180,9 @@ def initialize_telemetry(
             LoggingInstrumentor().instrument(set_logging_format=True)
             logging.getLogger(__name__).info("Auto-instrumentation enabled")
         except Exception as e:
-            logging.getLogger(__name__).warning(f"Failed to enable auto-instrumentation: {e}")
+            logging.getLogger(__name__).warning(
+                f"Failed to enable auto-instrumentation: {e}"
+            )
 
         # Test the setup
         test_tracer = trace.get_tracer("telemetry_init")
@@ -188,10 +204,10 @@ def initialize_telemetry(
 def get_tracer(name: str):
     """
     Get a tracer instance.
-    
+
     Args:
         name: Name of the tracer
-        
+
     Returns:
         Tracer instance or None if OpenTelemetry is not available
     """
@@ -215,10 +231,10 @@ def get_tracer(name: str):
 def get_tracer_simple(name: str):
     """
     Get a tracer instance directly from OpenTelemetry.
-    
+
     Args:
         name: Name of the tracer
-        
+
     Returns:
         Tracer instance or None if OpenTelemetry is not available
     """
@@ -242,19 +258,23 @@ def get_meter(name: str):
 if os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes"):
     initialize_telemetry()
 
+
 # Module-level exports for backward compatibility and tests
 def get_meter_module(name: str):
     """Get a meter instance at module level (not implemented)."""
     return None
+
 
 # Export TelemetryManager methods at module level for tests
 def get_tracer_module(name: str):
     """Get a tracer instance at module level."""
     return get_tracer(name)
 
+
 def get_tracer_simple_module(name: str):
     """Get a tracer instance directly at module level."""
     return get_tracer_simple(name)
+
 
 # Export OpenTelemetry classes for test patching
 if OTEL_AVAILABLE:
@@ -284,6 +304,7 @@ else:
 
 class TelemetryManager:
     """Telemetry manager for OpenTelemetry setup and management."""
+
     logger = logging.getLogger(__name__)
 
     def __init__(self):
@@ -325,23 +346,32 @@ class TelemetryManager:
             self.logger.error(f"Failed to initialize OpenTelemetry: {e}")
             return False
 
-    def _create_resource(self, service_name: Optional[str] = None, service_version: Optional[str] = None, environment: Optional[str] = None):
+    def _create_resource(
+        self,
+        service_name: Optional[str] = None,
+        service_version: Optional[str] = None,
+        environment: Optional[str] = None,
+    ):
         """Create OpenTelemetry resource."""
         if not OTEL_AVAILABLE:
             return None
 
         # Get configuration from environment or use defaults
-        service_name = service_name or os.getenv("OTEL_SERVICE_NAME", "binance-data-extractor")
+        service_name = service_name or os.getenv(
+            "OTEL_SERVICE_NAME", "binance-data-extractor"
+        )
         service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "2.0.0")
         environment = environment or os.getenv("ENVIRONMENT", "production")
 
         # Create resource
-        resource = Resource.create({
-            "service.name": service_name or "binance-data-extractor",
-            "service.version": service_version or "2.0.0",
-            "deployment.environment": environment or "production",
-            "service.instance.id": os.getenv("HOSTNAME", "unknown"),
-        })
+        resource = Resource.create(
+            {
+                "service.name": service_name or "binance-data-extractor",
+                "service.version": service_version or "2.0.0",
+                "deployment.environment": environment or "production",
+                "service.instance.id": os.getenv("HOSTNAME", "unknown"),
+            }
+        )
 
         return resource
 
@@ -364,17 +394,22 @@ class TelemetryManager:
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         print("DEBUG: OTLP endpoint = {}".format(otlp_endpoint))
         if otlp_endpoint:
-            print("DEBUG: Creating OTLP exporter for endpoint: {}".format(otlp_endpoint))
+            print(
+                "DEBUG: Creating OTLP exporter for endpoint: {}".format(otlp_endpoint)
+            )
             try:
-                headers = self._parse_headers(os.getenv("OTEL_EXPORTER_OTLP_HEADERS", ""))
+                headers = self._parse_headers(
+                    os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
+                )
                 print("DEBUG: About to create GRPCSpanExporter")
                 otlp_exporter = GRPCSpanExporter(
-                    endpoint=otlp_endpoint,
-                    headers=headers
+                    endpoint=otlp_endpoint, headers=headers
                 )
                 print("DEBUG: GRPCSpanExporter created successfully")
                 span_processors.append(BatchSpanProcessor(otlp_exporter))
-                self.logger.info("OTLP exporter configured for endpoint: {}".format(otlp_endpoint))
+                self.logger.info(
+                    "OTLP exporter configured for endpoint: {}".format(otlp_endpoint)
+                )
             except Exception as e:
                 print("DEBUG: Exception caught: {}".format(e))
                 self.logger.error("Failed to configure OTLP exporter: {}".format(e))

@@ -15,10 +15,10 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from fetchers.client import BinanceAPIError, BinanceClient
-from fetchers.funding import FundingRatesFetcher
-from fetchers.klines import KlinesFetcher
-from fetchers.trades import TradesFetcher
+from fetchers.client import BinanceAPIError, BinanceClient  # noqa: E402
+from fetchers.funding import FundingRatesFetcher  # noqa: E402
+from fetchers.klines import KlinesFetcher  # noqa: E402
+from fetchers.trades import TradesFetcher  # noqa: E402
 
 
 class TestBinanceClient:
@@ -208,7 +208,9 @@ class TestKlinesFetcher:
         assert len(klines) == 1
         assert klines[0].symbol == "BTCUSDT"
 
-        self.mock_client.get_klines.assert_called_with(symbol="BTCUSDT", interval="15m", limit=100)
+        self.mock_client.get_klines.assert_called_with(
+            symbol="BTCUSDT", interval="15m", limit=100
+        )
 
     @patch("fetchers.klines.get_current_utc_time")
     def test_fetch_incremental(self, mock_current_time):
@@ -288,9 +290,13 @@ class TestKlinesFetcher:
 
         symbols = ["BTCUSDT", "ETHUSDT"]
         start_time = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        end_time = datetime(2022, 1, 1, 0, 15, tzinfo=timezone.utc)  # Match mock data range
+        end_time = datetime(
+            2022, 1, 1, 0, 15, tzinfo=timezone.utc
+        )  # Match mock data range
 
-        results = self.fetcher.fetch_multiple_symbols(symbols, "15m", start_time, end_time)
+        results = self.fetcher.fetch_multiple_symbols(
+            symbols, "15m", start_time, end_time
+        )
 
         assert len(results) == 2
         assert "BTCUSDT" in results
@@ -346,7 +352,9 @@ class TestTradesFetcher:
         assert trades[1].trade_id == 28458
         assert trades[1].is_buyer_maker is False
 
-        self.mock_client.get_recent_trades.assert_called_with(symbol="BTCUSDT", limit=1000)
+        self.mock_client.get_recent_trades.assert_called_with(
+            symbol="BTCUSDT", limit=1000
+        )
 
     def test_fetch_historical_trades(self):
         """Test fetching historical trades."""
@@ -363,12 +371,16 @@ class TestTradesFetcher:
 
         self.mock_client.get_historical_trades.return_value = mock_trades_data
 
-        trades = self.fetcher.fetch_historical_trades("BTCUSDT", from_id=28457, limit=1000)
+        trades = self.fetcher.fetch_historical_trades(
+            "BTCUSDT", from_id=28457, limit=1000
+        )
 
         assert len(trades) == 1
         assert trades[0].trade_id == 28457
 
-        self.mock_client.get_historical_trades.assert_called_with(symbol="BTCUSDT", from_id=28457, limit=1000)
+        self.mock_client.get_historical_trades.assert_called_with(
+            symbol="BTCUSDT", from_id=28457, limit=1000
+        )
 
 
 class TestFundingRatesFetcher:
@@ -412,7 +424,9 @@ class TestFundingRatesFetcher:
         assert rates[0].mark_price == Decimal("50000.00000000")
         assert rates[1].funding_rate == Decimal("0.00015000")
 
-        self.mock_client.get_funding_rate.assert_called_with(symbol="BTCUSDT", limit=1000)
+        self.mock_client.get_funding_rate.assert_called_with(
+            symbol="BTCUSDT", limit=1000
+        )
 
     def test_fetch_current_funding_rates_single_symbol(self):
         """Test fetching current funding rates for single symbol."""

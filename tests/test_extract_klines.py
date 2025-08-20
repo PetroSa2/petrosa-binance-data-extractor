@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import jobs.extract_klines as extract_klines
+import jobs.extract_klines as extract_klines  # noqa: E402
 
 
 class TestParseArguments:
@@ -78,19 +78,34 @@ class TestHelpers:
         args = Mock(symbol=None, symbols="BTCUSDT,ethusdt")
         assert extract_klines.get_symbols_list(args) == ["BTCUSDT", "ETHUSDT"]
         args = Mock(symbol=None, symbols=None)
-        assert extract_klines.get_symbols_list(args) == extract_klines.constants.DEFAULT_SYMBOLS
+        assert (
+            extract_klines.get_symbols_list(args)
+            == extract_klines.constants.DEFAULT_SYMBOLS
+        )
 
     def test_get_database_connection_string(self):
         args = Mock(db_uri="custom://uri", db_adapter="mongodb")
         assert extract_klines.get_database_connection_string(args) == "custom://uri"
         args = Mock(db_uri=None, db_adapter="mongodb")
-        assert extract_klines.get_database_connection_string(args) == extract_klines.constants.MONGODB_URI
+        assert (
+            extract_klines.get_database_connection_string(args)
+            == extract_klines.constants.MONGODB_URI
+        )
         args = Mock(db_uri=None, db_adapter="mysql")
-        assert extract_klines.get_database_connection_string(args) == extract_klines.constants.MYSQL_URI
+        assert (
+            extract_klines.get_database_connection_string(args)
+            == extract_klines.constants.MYSQL_URI
+        )
         args = Mock(db_uri=None, db_adapter="postgresql")
-        assert extract_klines.get_database_connection_string(args) == extract_klines.constants.POSTGRESQL_URI
+        assert (
+            extract_klines.get_database_connection_string(args)
+            == extract_klines.constants.POSTGRESQL_URI
+        )
         args = Mock(db_uri=None, db_adapter="unknown")
-        assert extract_klines.get_database_connection_string(args) == extract_klines.constants.MONGODB_URI
+        assert (
+            extract_klines.get_database_connection_string(args)
+            == extract_klines.constants.MONGODB_URI
+        )
 
 
 class TestExtractKlinesForSymbol:
@@ -101,7 +116,9 @@ class TestExtractKlinesForSymbol:
         db_adapter = Mock()
         db_adapter.ensure_indexes.return_value = None
         db_adapter.write_batch.return_value = 2
-        args = Mock(incremental=False, dry_run=False, check_gaps=False, limit=100, batch_size=50)
+        args = Mock(
+            incremental=False, dry_run=False, check_gaps=False, limit=100, batch_size=50
+        )
         logger = Mock()
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
@@ -127,7 +144,9 @@ class TestExtractKlinesForSymbol:
         db_adapter.query_latest.return_value = [{"timestamp": 1234567890}]
         db_adapter.ensure_indexes.return_value = None
         db_adapter.write_batch.return_value = 1
-        args = Mock(incremental=True, dry_run=False, check_gaps=False, limit=100, batch_size=50)
+        args = Mock(
+            incremental=True, dry_run=False, check_gaps=False, limit=100, batch_size=50
+        )
         logger = Mock()
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
@@ -154,7 +173,9 @@ class TestExtractKlinesForSymbol:
         db_adapter.ensure_indexes.return_value = None
         db_adapter.write_batch.return_value = 2
         db_adapter.find_gaps.return_value = [(1, 2), (3, 4)]
-        args = Mock(incremental=False, dry_run=False, check_gaps=True, limit=100, batch_size=50)
+        args = Mock(
+            incremental=False, dry_run=False, check_gaps=True, limit=100, batch_size=50
+        )
         logger = Mock()
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
@@ -174,7 +195,9 @@ class TestExtractKlinesForSymbol:
         fetcher = Mock()
         fetcher.fetch_klines.return_value = [Mock(), Mock()]
         db_adapter = Mock()
-        args = Mock(incremental=False, dry_run=True, check_gaps=False, limit=100, batch_size=50)
+        args = Mock(
+            incremental=False, dry_run=True, check_gaps=False, limit=100, batch_size=50
+        )
         logger = Mock()
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
@@ -194,7 +217,9 @@ class TestExtractKlinesForSymbol:
         fetcher = Mock()
         fetcher.fetch_klines.side_effect = Exception("fail")
         db_adapter = Mock()
-        args = Mock(incremental=False, dry_run=False, check_gaps=False, limit=100, batch_size=50)
+        args = Mock(
+            incremental=False, dry_run=False, check_gaps=False, limit=100, batch_size=50
+        )
         logger = Mock()
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
@@ -259,11 +284,17 @@ class TestMain:
         mock_args.check_gaps = False
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
-        mock_parse_datetime_string.side_effect = [datetime(2024, 1, 1, tzinfo=timezone.utc)]
-        mock_get_current_utc_time.return_value = datetime(2024, 1, 2, tzinfo=timezone.utc)
+        mock_parse_datetime_string.side_effect = [
+            datetime(2024, 1, 1, tzinfo=timezone.utc)
+        ]
+        mock_get_current_utc_time.return_value = datetime(
+            2024, 1, 2, tzinfo=timezone.utc
+        )
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
-        mock_get_adapter.return_value.__enter__.return_value = mock_get_adapter.return_value
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
         mock_get_adapter.return_value.ensure_indexes.return_value = None
         mock_binance_client = Mock()
         mock_binance_client.ping.return_value = True
@@ -327,11 +358,17 @@ class TestMain:
         mock_args.check_gaps = False
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
-        mock_parse_datetime_string.side_effect = [datetime(2024, 1, 1, tzinfo=timezone.utc)]
-        mock_get_current_utc_time.return_value = datetime(2024, 1, 2, tzinfo=timezone.utc)
+        mock_parse_datetime_string.side_effect = [
+            datetime(2024, 1, 1, tzinfo=timezone.utc)
+        ]
+        mock_get_current_utc_time.return_value = datetime(
+            2024, 1, 2, tzinfo=timezone.utc
+        )
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
-        mock_get_adapter.return_value.__enter__.return_value = mock_get_adapter.return_value
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
         mock_get_adapter.return_value.ensure_indexes.return_value = None
         mock_binance_client = Mock()
         mock_binance_client.ping.return_value = False
@@ -424,8 +461,12 @@ class TestMain:
         mock_args.check_gaps = False
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
-        mock_parse_datetime_string.side_effect = [datetime(2024, 1, 1, tzinfo=timezone.utc)]
-        mock_get_current_utc_time.return_value = datetime(2024, 1, 2, tzinfo=timezone.utc)
+        mock_parse_datetime_string.side_effect = [
+            datetime(2024, 1, 1, tzinfo=timezone.utc)
+        ]
+        mock_get_current_utc_time.return_value = datetime(
+            2024, 1, 2, tzinfo=timezone.utc
+        )
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
         mock_get_adapter.side_effect = Exception("db fail")

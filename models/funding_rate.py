@@ -19,16 +19,26 @@ class FundingRateModel(BaseSymbolModel):
     """
 
     # Funding rate details
-    funding_rate: Decimal = Field(..., description="Current funding rate", decimal_places=8)
+    funding_rate: Decimal = Field(
+        ..., description="Current funding rate", decimal_places=8
+    )
     funding_time: datetime = Field(..., description="Next funding time")
-    mark_price: Optional[Decimal] = Field(None, description="Current mark price", decimal_places=8)
-    index_price: Optional[Decimal] = Field(None, description="Current index price", decimal_places=8)
+    mark_price: Optional[Decimal] = Field(
+        None, description="Current mark price", decimal_places=8
+    )
+    index_price: Optional[Decimal] = Field(
+        None, description="Current index price", decimal_places=8
+    )
 
     # Historical funding rate (if available)
-    last_funding_rate: Optional[Decimal] = Field(None, description="Previous funding rate", decimal_places=8)
+    last_funding_rate: Optional[Decimal] = Field(
+        None, description="Previous funding rate", decimal_places=8
+    )
 
     # Funding interval (usually 8 hours for most symbols)
-    funding_interval_hours: int = Field(default=8, description="Funding interval in hours")
+    funding_interval_hours: int = Field(
+        default=8, description="Funding interval in hours"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -52,7 +62,9 @@ class FundingRateModel(BaseSymbolModel):
         return v
 
     @classmethod
-    def from_binance_funding_rate(cls, funding_data: Dict[str, Any], symbol: str) -> "FundingRateModel":
+    def from_binance_funding_rate(
+        cls, funding_data: Dict[str, Any], symbol: str
+    ) -> "FundingRateModel":
         """
         Create FundingRateModel from Binance API funding rate data.
 
@@ -64,19 +76,27 @@ class FundingRateModel(BaseSymbolModel):
             "markPrice": "46600.00000000"
         }
         """
-        funding_time = datetime.fromtimestamp(int(funding_data["fundingTime"]) / 1000, tz=timezone.utc)
+        funding_time = datetime.fromtimestamp(
+            int(funding_data["fundingTime"]) / 1000, tz=timezone.utc
+        )
         return cls(
             symbol=symbol,
             timestamp=funding_time,  # Use funding_time as primary timestamp
             funding_rate=Decimal(funding_data["fundingRate"]),
             funding_time=funding_time,
-            mark_price=(Decimal(funding_data.get("markPrice", "0")) if funding_data.get("markPrice") else None),
+            mark_price=(
+                Decimal(funding_data.get("markPrice", "0"))
+                if funding_data.get("markPrice")
+                else None
+            ),
             index_price=None,  # Not provided in funding rate history
             last_funding_rate=None,  # Not provided in funding rate history
         )
 
     @classmethod
-    def from_binance_premium_index(cls, premium_data: Dict[str, Any], symbol: str) -> "FundingRateModel":
+    def from_binance_premium_index(
+        cls, premium_data: Dict[str, Any], symbol: str
+    ) -> "FundingRateModel":
         """
         Create FundingRateModel from Binance premium index data.
 
@@ -95,13 +115,27 @@ class FundingRateModel(BaseSymbolModel):
         return cls(
             symbol=symbol,
             funding_rate=Decimal(premium_data.get("lastFundingRate", "0")),
-            funding_time=datetime.fromtimestamp(int(premium_data["nextFundingTime"]) / 1000, tz=timezone.utc),
-            mark_price=(Decimal(premium_data["markPrice"]) if premium_data.get("markPrice") else None),
-            index_price=(Decimal(premium_data["indexPrice"]) if premium_data.get("indexPrice") else None),
-            last_funding_rate=(
-                Decimal(premium_data.get("lastFundingRate", "0")) if premium_data.get("lastFundingRate") else None
+            funding_time=datetime.fromtimestamp(
+                int(premium_data["nextFundingTime"]) / 1000, tz=timezone.utc
             ),
-            timestamp=datetime.fromtimestamp(int(premium_data["time"]) / 1000, tz=timezone.utc),
+            mark_price=(
+                Decimal(premium_data["markPrice"])
+                if premium_data.get("markPrice")
+                else None
+            ),
+            index_price=(
+                Decimal(premium_data["indexPrice"])
+                if premium_data.get("indexPrice")
+                else None
+            ),
+            last_funding_rate=(
+                Decimal(premium_data.get("lastFundingRate", "0"))
+                if premium_data.get("lastFundingRate")
+                else None
+            ),
+            timestamp=datetime.fromtimestamp(
+                int(premium_data["time"]) / 1000, tz=timezone.utc
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -121,5 +155,7 @@ class FundingRateModel(BaseSymbolModel):
     @property
     def annualized_funding_rate(self) -> Decimal:
         """Calculate annualized funding rate based on interval."""
-        periods_per_year = Decimal("365") * Decimal("24") / Decimal(str(self.funding_interval_hours))
+        periods_per_year = (
+            Decimal("365") * Decimal("24") / Decimal(str(self.funding_interval_hours))
+        )
         return self.funding_rate * periods_per_year

@@ -1,0 +1,4 @@
+--line-length=88
+--target-version=py311
+--skip-string-normalization
+--skip-magic-trailing-comma
