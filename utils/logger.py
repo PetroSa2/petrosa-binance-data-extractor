@@ -8,7 +8,7 @@ import json
 import logging
 import sys
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 import constants
 
@@ -251,7 +251,7 @@ def log_extraction_completion(
     total_records: int,
     duration_seconds: float,
     gaps_found: int = 0,
-    errors: Optional[List[str]] = None,
+    errors: Optional[list[str]] = None,
 ):
     """Log extraction completion with summary."""
     log.info(

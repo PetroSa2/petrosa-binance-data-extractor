@@ -17,9 +17,9 @@ Usage:
 import argparse
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
@@ -86,7 +86,7 @@ class PipelineRunner:
 
         return None
 
-    def run_job(self, job_name: str, **kwargs) -> Dict[str, Any]:
+    def run_job(self, job_name: str, **kwargs) -> dict[str, Any]:
         """Run a specific job with the given parameters."""
         if job_name not in self.job_configs:
             raise ValueError(f"Unknown job: {job_name}")
@@ -127,7 +127,7 @@ class PipelineRunner:
         # Add a fallback return to satisfy type checking
         return {"success": False, "error": "Unknown error in run_job"}
 
-    def _run_klines_job(self, main_func, **kwargs) -> Dict[str, Any]:
+    def _run_klines_job(self, main_func, **kwargs) -> dict[str, Any]:
         """Run the klines extraction job."""
         # Set up sys.argv for the job
         original_argv = sys.argv.copy()
@@ -179,7 +179,7 @@ class PipelineRunner:
         finally:
             sys.argv = original_argv
 
-    def _run_funding_job(self, main_func, **kwargs) -> Dict[str, Any]:
+    def _run_funding_job(self, main_func, **kwargs) -> dict[str, Any]:
         """Run the funding rates extraction job."""
         original_argv = sys.argv.copy()
 
@@ -216,7 +216,7 @@ class PipelineRunner:
         finally:
             sys.argv = original_argv
 
-    def _run_trades_job(self, main_func, **kwargs) -> Dict[str, Any]:
+    def _run_trades_job(self, main_func, **kwargs) -> dict[str, Any]:
         """Run the trades extraction job."""
         original_argv = sys.argv.copy()
 
@@ -256,7 +256,7 @@ class PipelineRunner:
         finally:
             sys.argv = original_argv
 
-    def _run_gap_filler_job(self, main_func, **kwargs) -> Dict[str, Any]:
+    def _run_gap_filler_job(self, main_func, **kwargs) -> dict[str, Any]:
         """Run the gap filler job."""
         original_argv = sys.argv.copy()
 
@@ -299,7 +299,7 @@ class PipelineRunner:
         finally:
             sys.argv = original_argv
 
-    def run_all_jobs(self, **kwargs) -> Dict[str, Any]:
+    def run_all_jobs(self, **kwargs) -> dict[str, Any]:
         """Run all jobs in sequence."""
         if self.logger:
             self.logger.info("Starting pipeline run for all jobs")
@@ -322,7 +322,7 @@ class PipelineRunner:
                 results[job_name] = {
                     **result,
                     "duration_seconds": job_duration,
-                    "start_time": datetime.now(timezone.utc).isoformat(),
+                    "start_time": datetime.now(UTC).isoformat(),
                 }
 
                 if not result.get("success", False):
@@ -341,26 +341,26 @@ class PipelineRunner:
                     "success": False,
                     "error": str(e),
                     "duration_seconds": job_duration,
-                    "start_time": datetime.now(timezone.utc).isoformat(),
+                    "start_time": datetime.now(UTC).isoformat(),
                 }
                 overall_success = False
                 if self.logger:
                     self.logger.error(f"{job_name} job failed with exception: {e}")
 
-        start_time = self.start_time or datetime.now(timezone.utc)
+        start_time = self.start_time or datetime.now(UTC)
         return {
             "success": overall_success,
             "jobs": results,
             "total_duration": time.time() - start_time.timestamp(),
             "start_time": start_time.isoformat(),
-            "end_time": datetime.now(timezone.utc).isoformat(),
+            "end_time": datetime.now(UTC).isoformat(),
         }
 
     def run(
         self, job_name: Optional[str] = None, run_all: bool = False, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Main run method for the pipeline."""
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
         self.setup_logging_and_telemetry()
 
         if self.logger:
@@ -385,7 +385,7 @@ class PipelineRunner:
                 "success": False,
                 "error": str(e),
                 "start_time": self.start_time.isoformat(),
-                "end_time": datetime.now(timezone.utc).isoformat(),
+                "end_time": datetime.now(UTC).isoformat(),
             }
 
         finally:

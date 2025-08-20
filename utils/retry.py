@@ -5,8 +5,9 @@ Retry utility with exponential backoff for API calls.
 import logging
 import random
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, List, Optional, Tuple, Type
+from typing import Any, Optional
 
 import constants
 
@@ -27,8 +28,8 @@ def exponential_backoff(
     max_delay: float = 60.0,
     exponential_factor: Optional[float] = None,
     jitter: bool = True,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,),
-    non_retryable_exceptions: Tuple[Type[Exception], ...] = (NonRetryableError,),
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
+    non_retryable_exceptions: tuple[type[Exception], ...] = (NonRetryableError,),
 ):
     """
     Decorator that implements exponential backoff retry logic.
@@ -94,7 +95,7 @@ def exponential_backoff(
 def simple_retry(
     max_retries: int = 3,
     delay: float = 1.0,
-    retryable_exceptions: Tuple[Type[Exception], ...] = (Exception,),
+    retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
 ):
     """
     Simple retry decorator with fixed delay.
@@ -146,7 +147,7 @@ class RateLimiter:
         """
         self.max_calls = max_calls
         self.time_window = time_window
-        self.calls: List[float] = []
+        self.calls: list[float] = []
         self._lock = None
 
         # Try to use threading lock if available
@@ -255,7 +256,7 @@ def retry_on_http_errors(
         base_delay: Initial delay between retries
     """
     # Define HTTP-specific retryable exceptions
-    http_retryable_exceptions: Tuple[Type[Exception], ...] = (
+    http_retryable_exceptions: tuple[type[Exception], ...] = (
         ConnectionError,
         TimeoutError,
     )

@@ -7,7 +7,7 @@ This module provides a MongoDB implementation of the BaseAdapter interface.
 import decimal
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -113,7 +113,7 @@ class MongoDBAdapter(BaseAdapter):
             self._connected = False
             logger.info("Disconnected from MongoDB")
 
-    def write(self, model_instances: List[BaseModel], collection: str) -> int:
+    def write(self, model_instances: list[BaseModel], collection: str) -> int:
         """Write model instances to MongoDB collection with circuit breaker protection, using upserts for uniqueness on (symbol, timestamp)."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -160,7 +160,7 @@ class MongoDBAdapter(BaseAdapter):
         return self.circuit_breaker.call(_write_operation)
 
     def write_batch(
-        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
+        self, model_instances: list[BaseModel], collection: str, batch_size: int = 1000
     ) -> int:
         """Write model instances in batches."""
         total_written = 0
@@ -186,7 +186,7 @@ class MongoDBAdapter(BaseAdapter):
         start: datetime,
         end: datetime,
         symbol: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Query records within time range."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -196,7 +196,7 @@ class MongoDBAdapter(BaseAdapter):
             coll: Collection = db[collection]
 
             # Build query filter
-            query: Dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
+            query: dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
 
             if symbol:
                 query["symbol"] = symbol
@@ -210,7 +210,7 @@ class MongoDBAdapter(BaseAdapter):
 
     def query_latest(
         self, collection: str, symbol: Optional[str] = None, limit: int = 1
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -219,7 +219,7 @@ class MongoDBAdapter(BaseAdapter):
             db = self._get_database()
             coll: Collection = db[collection]
 
-            query: Dict[str, Any] = {}
+            query: dict[str, Any] = {}
             if symbol:
                 query["symbol"] = symbol
 
@@ -236,14 +236,14 @@ class MongoDBAdapter(BaseAdapter):
         end: datetime,
         interval_minutes: int,
         symbol: Optional[str] = None,
-    ) -> List[Tuple[datetime, datetime]]:
+    ) -> list[tuple[datetime, datetime]]:
         """Find gaps in time series data."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
 
         try:
             # Get all timestamps in range
-            query: Dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
+            query: dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
             if symbol:
                 query["symbol"] = symbol
 
@@ -297,7 +297,7 @@ class MongoDBAdapter(BaseAdapter):
             db = self._get_database()
             coll: Collection = db[collection]
 
-            query: Dict[str, Any] = {}
+            query: dict[str, Any] = {}
             if start or end:
                 timestamp_filter = {}
                 if start:
@@ -368,7 +368,7 @@ class MongoDBAdapter(BaseAdapter):
             db = self._get_database()
             coll: Collection = db[collection]
 
-            query: Dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
+            query: dict[str, Any] = {"timestamp": {"$gte": start, "$lt": end}}
 
             if symbol:
                 query["symbol"] = symbol
@@ -379,7 +379,7 @@ class MongoDBAdapter(BaseAdapter):
         except (ConnectionFailure, BulkWriteError, DuplicateKeyError) as e:
             raise DatabaseError(f"Failed to delete from {collection}: {e}") from e
 
-    def get_collection_names(self) -> List[str]:
+    def get_collection_names(self) -> list[str]:
         """Get list of all collection names."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -399,7 +399,7 @@ class MongoDBAdapter(BaseAdapter):
         db[collection].drop()
         logger.warning("Dropped collection: %s", collection)
 
-    def get_database_stats(self) -> Dict[str, Any]:
+    def get_database_stats(self) -> dict[str, Any]:
         """Get database statistics."""
         if not self._connected:
             raise DatabaseError("Not connected to database")

@@ -2,14 +2,14 @@
 Database adapters package.
 """
 
-from typing import Dict, Optional, Type
+from typing import Optional
 
 from .base_adapter import BaseAdapter, DatabaseError
 from .mongodb_adapter import MongoDBAdapter
 from .mysql_adapter import MySQLAdapter
 
 # Adapter registry
-ADAPTERS: Dict[str, Type[BaseAdapter]] = {
+ADAPTERS: dict[str, type[BaseAdapter]] = {
     "mongodb": MongoDBAdapter,
     "mysql": MySQLAdapter,
     "mariadb": MySQLAdapter,  # MariaDB uses same adapter as MySQL

@@ -7,7 +7,6 @@ appropriate retry strategies and handling for different types of errors.
 
 import logging
 import re
-from typing import Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +175,7 @@ def classify_database_error(error: Exception) -> str:
     return "UNKNOWN_ERROR"
 
 
-def get_retry_strategy(error_classification: str) -> Dict:
+def get_retry_strategy(error_classification: str) -> dict:
     """
     Get retry strategy based on error classification.
 
@@ -255,7 +254,7 @@ def get_retry_strategy(error_classification: str) -> Dict:
     return strategies.get(error_classification, strategies["UNKNOWN_ERROR"])
 
 
-def should_retry_operation(error: Exception) -> Tuple[bool, Dict]:
+def should_retry_operation(error: Exception) -> tuple[bool, dict]:
     """
     Determine if an operation should be retried based on the error.
 
@@ -279,7 +278,7 @@ class ErrorClassifier:
     """
 
     def __init__(self):
-        self.error_counts: Dict[str, int] = {}
+        self.error_counts: dict[str, int] = {}
         self.total_errors = 0
 
     def classify_and_log(self, error: Exception) -> str:
@@ -308,7 +307,7 @@ class ErrorClassifier:
 
         return classification
 
-    def get_error_stats(self) -> Dict:
+    def get_error_stats(self) -> dict:
         """Get error classification statistics."""
         return {
             "total_errors": self.total_errors,

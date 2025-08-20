@@ -2,9 +2,9 @@
 Pydantic model for Binance Futures Kline (candlestick) data.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -102,7 +102,7 @@ class KlineModel(BaseSymbolModel):
 
     @classmethod
     def from_binance_kline(
-        cls, kline_data: List[Any], symbol: str, interval: str
+        cls, kline_data: list[Any], symbol: str, interval: str
     ) -> "KlineModel":
         """
         Create KlineModel from Binance API kline data array.
@@ -123,8 +123,8 @@ class KlineModel(BaseSymbolModel):
             ignore               # 11
         ]
         """
-        open_time = datetime.fromtimestamp(int(kline_data[0]) / 1000, tz=timezone.utc)
-        close_time = datetime.fromtimestamp(int(kline_data[6]) / 1000, tz=timezone.utc)
+        open_time = datetime.fromtimestamp(int(kline_data[0]) / 1000, tz=UTC)
+        close_time = datetime.fromtimestamp(int(kline_data[6]) / 1000, tz=UTC)
 
         # Calculate derived fields
         open_price = Decimal(kline_data[1])
@@ -155,7 +155,7 @@ class KlineModel(BaseSymbolModel):
             price_change_percent=price_change_percent,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database storage."""
         return self.model_dump(exclude={"id"})  # Exclude UUID for storage
 

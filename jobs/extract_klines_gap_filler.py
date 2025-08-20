@@ -11,7 +11,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Optional, cast
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -199,7 +199,7 @@ class GapFillerExtractor:
 
     def __init__(
         self,
-        symbols: List[str],
+        symbols: list[str],
         period: str,
         db_adapter_name: str,
         db_uri: Optional[str] = None,
@@ -220,7 +220,7 @@ class GapFillerExtractor:
         self.logger = get_logger(__name__)
         self._lock = threading.Lock()
 
-        self.stats: Dict[str, Any] = {
+        self.stats: dict[str, Any] = {
             "symbols_processed": 0,
             "symbols_failed": 0,
             "total_gaps_found": 0,
@@ -269,7 +269,7 @@ class GapFillerExtractor:
 
     def split_weekly_chunks(
         self, start_date: datetime, end_date: datetime
-    ) -> List[Tuple[datetime, datetime]]:
+    ) -> list[tuple[datetime, datetime]]:
         """Split a date range into weekly chunks."""
         chunks = []
         current_start = start_date
@@ -285,7 +285,7 @@ class GapFillerExtractor:
 
     def detect_gaps_for_symbol(
         self, symbol: str, db_adapter
-    ) -> List[Tuple[datetime, datetime]]:
+    ) -> list[tuple[datetime, datetime]]:
         """Detect gaps for a single symbol."""
 
         def _detect_gaps():
@@ -338,7 +338,7 @@ class GapFillerExtractor:
         gap_end: datetime,
         binance_client: BinanceClient,
         db_adapter,
-    ) -> Dict:
+    ) -> dict:
         """Fill a single gap chunk with data."""
         chunk_start_time = time.time()
         result = {
@@ -381,7 +381,7 @@ class GapFillerExtractor:
 
                 def _write_data():
                     return db_adapter.write(
-                        cast(List[BaseModel], klines_data), collection_name
+                        cast(list[BaseModel], klines_data), collection_name
                     )
 
                 records_written = retry_with_backoff(
@@ -421,7 +421,7 @@ class GapFillerExtractor:
             self.logger.error(f"❌ Failed to fill gap for {symbol}: {e}")
             return result
 
-    def process_symbol_gaps(self, symbol: str, binance_client: BinanceClient) -> Dict:
+    def process_symbol_gaps(self, symbol: str, binance_client: BinanceClient) -> dict:
         """Process all gaps for a single symbol."""
         symbol_start_time = time.time()
         result = {
@@ -582,7 +582,7 @@ class GapFillerExtractor:
             self.logger.error(f"❌ {symbol} failed after all retries: {e}")
             return result
 
-    def run_gap_filling(self) -> Dict:
+    def run_gap_filling(self) -> dict:
         """Run the gap detection and filling process."""
         try:
             current_tracer = get_tracer("jobs.extract_klines_gap_filler")
@@ -600,7 +600,7 @@ class GapFillerExtractor:
             self.logger.warning(f"Tracing setup failed: {e}, running without tracing")
             return self._run_gap_filling_impl()
 
-    def _run_gap_filling_impl(self) -> Dict:
+    def _run_gap_filling_impl(self) -> dict:
         """Implementation of run_gap_filling method."""
         extraction_start_time = time.time()
 

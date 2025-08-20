@@ -6,7 +6,7 @@ This module provides a MySQL/MariaDB implementation of the BaseAdapter interface
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -75,7 +75,7 @@ class MySQLAdapter(BaseAdapter):
         # SQLAlchemy specific settings
         self.engine: Optional[Engine] = None
         self.metadata = MetaData()
-        self.tables: Dict[str, Table] = {}
+        self.tables: dict[str, Table] = {}
 
         # Circuit breaker for reliability
         self.circuit_breaker = DatabaseCircuitBreaker("mysql")
@@ -247,7 +247,7 @@ class MySQLAdapter(BaseAdapter):
         else:
             raise DatabaseError(f"Unknown collection: {collection}")
 
-    def write(self, model_instances: List[BaseModel], collection: str) -> int:
+    def write(self, model_instances: list[BaseModel], collection: str) -> int:
         """Write model instances to MySQL table with circuit breaker protection."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -305,7 +305,7 @@ class MySQLAdapter(BaseAdapter):
         return self.circuit_breaker.call(_write_operation)
 
     def write_batch(
-        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
+        self, model_instances: list[BaseModel], collection: str, batch_size: int = 1000
     ) -> int:
         """Write model instances in batches."""
         total_written = 0
@@ -331,7 +331,7 @@ class MySQLAdapter(BaseAdapter):
         start: datetime,
         end: datetime,
         symbol: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Query records within time range."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -359,7 +359,7 @@ class MySQLAdapter(BaseAdapter):
 
     def query_latest(
         self, collection: str, symbol: Optional[str] = None, limit: int = 1
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -388,7 +388,7 @@ class MySQLAdapter(BaseAdapter):
         end: datetime,
         interval_minutes: int,
         symbol: Optional[str] = None,
-    ) -> List[Tuple[datetime, datetime]]:
+    ) -> list[tuple[datetime, datetime]]:
         """Find gaps in time series data using efficient database queries."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -400,7 +400,7 @@ class MySQLAdapter(BaseAdapter):
             with engine.connect() as conn:
                 gaps = []
                 expected_interval = timedelta(minutes=interval_minutes)
-                gap_results: List[Tuple[datetime, datetime, float]] = []
+                gap_results: list[tuple[datetime, datetime, float]] = []
 
                 # Build base query conditions
                 base_conditions = [table.c.timestamp >= start, table.c.timestamp < end]
@@ -450,7 +450,7 @@ class MySQLAdapter(BaseAdapter):
                     """
 
                     # Execute gap detection query
-                    gap_params: List[Any] = [start, end]
+                    gap_params: list[Any] = [start, end]
                     if symbol:
                         gap_params.append(symbol)
                     gap_params.append(interval_minutes + 1)  # Allow 1-minute tolerance

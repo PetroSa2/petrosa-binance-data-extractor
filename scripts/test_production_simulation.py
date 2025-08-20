@@ -186,7 +186,7 @@ class ProductionEnvironmentSimulator:
         try:
             config_file = os.path.join(project_root, "k8s/otel-config.yaml")
             if os.path.exists(config_file):
-                with open(config_file, "r", encoding="utf-8") as f:
+                with open(config_file, encoding="utf-8") as f:
                     config_content = f.read()
 
                 # Check for required variables
@@ -221,7 +221,7 @@ class ProductionEnvironmentSimulator:
             cronjob_file = os.path.join(
                 project_root, "k8s/klines-all-timeframes-cronjobs.yaml"
             )
-            with open(cronjob_file, "r", encoding="utf-8") as f:
+            with open(cronjob_file, encoding="utf-8") as f:
                 cronjob_content = f.read()
 
             # Check for environment variable injection

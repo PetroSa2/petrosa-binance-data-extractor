@@ -5,7 +5,7 @@ HTTP client wrapper for Binance API with retry and rate limiting.
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import constants
 from utils.retry import RateLimiter, with_retries_and_rate_limit
@@ -31,7 +31,7 @@ class BinanceAPIError(Exception):
         self,
         message: str,
         status_code: Optional[int] = None,
-        response_data: Optional[Dict[str, Any]] = None,
+        response_data: Optional[dict[str, Any]] = None,
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -103,7 +103,7 @@ class BinanceClient:
         return f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
 
     def _log_request(
-        self, method: str, url: str, params: Optional[Dict[str, Any]] = None
+        self, method: str, url: str, params: Optional[dict[str, Any]] = None
     ) -> None:
         """Log API request details."""
         logger.debug(
@@ -134,8 +134,8 @@ class BinanceClient:
 
     @with_retries_and_rate_limit
     def get(
-        self, endpoint: str, params: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, endpoint: str, params: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
         """
         Make GET request to Binance API.
 
@@ -202,7 +202,7 @@ class BinanceClient:
             logger.warning("Failed to get server time: %s, using local time", e)
             return get_current_utc_time()
 
-    def get_exchange_info(self) -> Dict[str, Any]:
+    def get_exchange_info(self) -> dict[str, Any]:
         """Get exchange information."""
         return self.get("/fapi/v1/exchangeInfo")
 
@@ -222,7 +222,7 @@ class BinanceClient:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         limit: int = 1500,
-    ) -> List[List]:
+    ) -> list[list]:
         """
         Get kline/candlestick data.
 
@@ -250,7 +250,7 @@ class BinanceClient:
 
         return self.get("/fapi/v1/klines", params)
 
-    def get_recent_trades(self, symbol: str, limit: int = 1000) -> List[Dict[str, Any]]:
+    def get_recent_trades(self, symbol: str, limit: int = 1000) -> list[dict[str, Any]]:
         """
         Get recent trades.
 
@@ -267,7 +267,7 @@ class BinanceClient:
 
     def get_historical_trades(
         self, symbol: str, from_id: Optional[int] = None, limit: int = 1000
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get historical trades (requires API key).
 
@@ -291,7 +291,7 @@ class BinanceClient:
 
     def get_funding_rate(
         self, symbol: Optional[str] = None, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get funding rate history.
 
@@ -302,7 +302,7 @@ class BinanceClient:
         Returns:
             List of funding rate data
         """
-        params: Dict[str, Any] = {"limit": min(limit, 1000)}
+        params: dict[str, Any] = {"limit": min(limit, 1000)}
 
         if symbol:
             params["symbol"] = symbol.upper()
@@ -311,7 +311,7 @@ class BinanceClient:
 
     def get_premium_index(
         self, symbol: Optional[str] = None
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    ) -> Union[dict[str, Any], list[dict[str, Any]]]:
         """
         Get mark price and funding rate.
 

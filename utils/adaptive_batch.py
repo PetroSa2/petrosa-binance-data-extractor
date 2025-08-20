@@ -7,7 +7,7 @@ performance metrics and database constraints.
 
 import logging
 import time
-from typing import Dict, List, Optional
+from typing import Optional
 
 import constants
 
@@ -49,7 +49,7 @@ class AdaptiveBatchManager:
         self.min_success_rate = min_success_rate
 
         # Performance tracking
-        self.operation_history: List[Dict] = []
+        self.operation_history: list[dict] = []
         self.max_history_size = 50
 
         # Statistics
@@ -147,7 +147,7 @@ class AdaptiveBatchManager:
         """Get current batch size."""
         return self.current_batch_size
 
-    def get_performance_stats(self) -> Dict:
+    def get_performance_stats(self) -> dict:
         """Get performance statistics."""
         if not self.operation_history:
             return {
@@ -215,7 +215,7 @@ class DatabaseSpecificBatchManager(AdaptiveBatchManager):
             f"Initialized {adapter_type} batch manager for {environment} environment"
         )
 
-    def get_environment_constraints(self) -> Dict:
+    def get_environment_constraints(self) -> dict:
         """Get environment-specific constraints."""
         if self.adapter_type == "mysql" and self.environment == "shared":
             return {

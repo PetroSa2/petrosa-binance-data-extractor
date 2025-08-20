@@ -10,7 +10,7 @@ import re
 def add_nats_prefixes_to_file(file_path):
     """Add NATS subject prefix environment variables to a Kubernetes YAML file."""
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     # Define the NATS subject prefix variables to add

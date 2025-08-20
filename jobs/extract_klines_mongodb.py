@@ -11,8 +11,7 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
-from typing import List
+from datetime import UTC, datetime, timedelta
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -144,7 +143,7 @@ Examples:
     return parser.parse_args()
 
 
-def get_symbols_list(args) -> List[str]:
+def get_symbols_list(args) -> list[str]:
     """Get list of symbols from arguments."""
     if args.symbol:
         return [args.symbol.upper()]
@@ -229,7 +228,7 @@ def extract_klines_for_symbol(
                 last_timestamp = latest_records[0]["timestamp"]
                 # Ensure timezone awareness for the timestamp from database
                 if last_timestamp.tzinfo is None:
-                    last_timestamp = last_timestamp.replace(tzinfo=timezone.utc)
+                    last_timestamp = last_timestamp.replace(tzinfo=UTC)
                 logger.info(f"Last timestamp for {symbol}: {last_timestamp}")
 
                 # Start from 1 period before for safety overlap
@@ -292,7 +291,7 @@ def extract_klines_for_symbol(
             # Cast to List[BaseModel] for type compatibility
             from pydantic import BaseModel  # noqa: E402
 
-            kline_models_cast: List[BaseModel] = kline_models  # type: ignore
+            kline_models_cast: list[BaseModel] = kline_models  # type: ignore
             total_written = db_adapter.write_batch(
                 kline_models_cast, collection_name, batch_size=args.batch_size
             )

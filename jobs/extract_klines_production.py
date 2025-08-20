@@ -17,7 +17,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Optional, cast
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -149,7 +149,7 @@ class ProductionKlinesExtractor:
 
     def __init__(
         self,
-        symbols: List[str],
+        symbols: list[str],
         period: str,
         db_adapter_name: str,
         db_uri: Optional[str] = None,
@@ -170,7 +170,7 @@ class ProductionKlinesExtractor:
         self._lock = threading.Lock()
 
         # Statistics (properly typed)
-        self.stats: Dict[str, Any] = {
+        self.stats: dict[str, Any] = {
             "symbols_processed": 0,
             "symbols_failed": 0,
             "total_records_fetched": 0,
@@ -264,7 +264,7 @@ class ProductionKlinesExtractor:
 
     def calculate_extraction_window(
         self, last_timestamp: datetime
-    ) -> Tuple[datetime, datetime]:
+    ) -> tuple[datetime, datetime]:
         """Calculate the extraction window based on last timestamp."""
         current_time = get_current_utc_time()
 
@@ -296,7 +296,7 @@ class ProductionKlinesExtractor:
 
         return start_time, end_time
 
-    def extract_symbol_data(self, symbol: str, binance_client: BinanceClient) -> Dict:
+    def extract_symbol_data(self, symbol: str, binance_client: BinanceClient) -> dict:
         """Extract data for a single symbol with tracing if available."""
         tracer = get_tracer(__name__)
         if tracer:
@@ -307,7 +307,7 @@ class ProductionKlinesExtractor:
 
     def _extract_symbol_data_impl(
         self, symbol: str, binance_client: BinanceClient, span=None
-    ) -> Dict:
+    ) -> dict:
         """Implementation of extract_symbol_data method."""
         symbol_start_time = time.time()
         result = {
@@ -384,7 +384,7 @@ class ProductionKlinesExtractor:
 
                     def _write_data():
                         return db_adapter.write(
-                            cast(List[BaseModel], klines_data), collection_name
+                            cast(list[BaseModel], klines_data), collection_name
                         )
 
                     records_written = retry_with_backoff(
@@ -496,7 +496,7 @@ class ProductionKlinesExtractor:
             self.logger.error(f"❌ {symbol} failed after all retries: {e}")
             return result
 
-    def run_extraction(self) -> Dict:
+    def run_extraction(self) -> dict:
         tracer = get_tracer(__name__)
         if tracer:
             with tracer.start_as_current_span("run_extraction") as span:
@@ -507,7 +507,7 @@ class ProductionKlinesExtractor:
         else:
             return self._run_extraction_impl()
 
-    def _run_extraction_impl(self) -> Dict:
+    def _run_extraction_impl(self) -> dict:
         """Implementation of run_extraction method."""
         extraction_start_time = time.time()
 

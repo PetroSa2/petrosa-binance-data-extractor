@@ -2,9 +2,9 @@
 Pydantic model for Binance Futures Funding Rate data.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -63,7 +63,7 @@ class FundingRateModel(BaseSymbolModel):
 
     @classmethod
     def from_binance_funding_rate(
-        cls, funding_data: Dict[str, Any], symbol: str
+        cls, funding_data: dict[str, Any], symbol: str
     ) -> "FundingRateModel":
         """
         Create FundingRateModel from Binance API funding rate data.
@@ -77,7 +77,7 @@ class FundingRateModel(BaseSymbolModel):
         }
         """
         funding_time = datetime.fromtimestamp(
-            int(funding_data["fundingTime"]) / 1000, tz=timezone.utc
+            int(funding_data["fundingTime"]) / 1000, tz=UTC
         )
         return cls(
             symbol=symbol,
@@ -95,7 +95,7 @@ class FundingRateModel(BaseSymbolModel):
 
     @classmethod
     def from_binance_premium_index(
-        cls, premium_data: Dict[str, Any], symbol: str
+        cls, premium_data: dict[str, Any], symbol: str
     ) -> "FundingRateModel":
         """
         Create FundingRateModel from Binance premium index data.
@@ -116,7 +116,7 @@ class FundingRateModel(BaseSymbolModel):
             symbol=symbol,
             funding_rate=Decimal(premium_data.get("lastFundingRate", "0")),
             funding_time=datetime.fromtimestamp(
-                int(premium_data["nextFundingTime"]) / 1000, tz=timezone.utc
+                int(premium_data["nextFundingTime"]) / 1000, tz=UTC
             ),
             mark_price=(
                 Decimal(premium_data["markPrice"])
@@ -134,11 +134,11 @@ class FundingRateModel(BaseSymbolModel):
                 else None
             ),
             timestamp=datetime.fromtimestamp(
-                int(premium_data["time"]) / 1000, tz=timezone.utc
+                int(premium_data["time"]) / 1000, tz=UTC
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database storage."""
         return self.model_dump(exclude={"id"})
 

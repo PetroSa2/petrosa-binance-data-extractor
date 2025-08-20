@@ -4,7 +4,7 @@ Unit tests for jobs/extract_klines.py
 """
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 # Add project root to path
@@ -123,8 +123,8 @@ class TestExtractKlinesForSymbol:
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
             period="1h",
-            start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            end_date=datetime(2024, 1, 2, tzinfo=timezone.utc),
+            start_date=datetime(2024, 1, 1, tzinfo=UTC),
+            end_date=datetime(2024, 1, 2, tzinfo=UTC),
             fetcher=fetcher,
             db_adapter=db_adapter,
             args=args,
@@ -151,8 +151,8 @@ class TestExtractKlinesForSymbol:
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
             period="1h",
-            start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            end_date=datetime(2024, 1, 2, tzinfo=timezone.utc),
+            start_date=datetime(2024, 1, 1, tzinfo=UTC),
+            end_date=datetime(2024, 1, 2, tzinfo=UTC),
             fetcher=fetcher,
             db_adapter=db_adapter,
             args=args,
@@ -180,8 +180,8 @@ class TestExtractKlinesForSymbol:
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
             period="1h",
-            start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            end_date=datetime(2024, 1, 2, tzinfo=timezone.utc),
+            start_date=datetime(2024, 1, 1, tzinfo=UTC),
+            end_date=datetime(2024, 1, 2, tzinfo=UTC),
             fetcher=fetcher,
             db_adapter=db_adapter,
             args=args,
@@ -202,8 +202,8 @@ class TestExtractKlinesForSymbol:
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
             period="1h",
-            start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            end_date=datetime(2024, 1, 2, tzinfo=timezone.utc),
+            start_date=datetime(2024, 1, 1, tzinfo=UTC),
+            end_date=datetime(2024, 1, 2, tzinfo=UTC),
             fetcher=fetcher,
             db_adapter=db_adapter,
             args=args,
@@ -224,8 +224,8 @@ class TestExtractKlinesForSymbol:
         result = extract_klines.extract_klines_for_symbol(
             symbol="BTCUSDT",
             period="1h",
-            start_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            end_date=datetime(2024, 1, 2, tzinfo=timezone.utc),
+            start_date=datetime(2024, 1, 1, tzinfo=UTC),
+            end_date=datetime(2024, 1, 2, tzinfo=UTC),
             fetcher=fetcher,
             db_adapter=db_adapter,
             args=args,
@@ -285,10 +285,10 @@ class TestMain:
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
         mock_parse_datetime_string.side_effect = [
-            datetime(2024, 1, 1, tzinfo=timezone.utc)
+            datetime(2024, 1, 1, tzinfo=UTC)
         ]
         mock_get_current_utc_time.return_value = datetime(
-            2024, 1, 2, tzinfo=timezone.utc
+            2024, 1, 2, tzinfo=UTC
         )
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
@@ -359,10 +359,10 @@ class TestMain:
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
         mock_parse_datetime_string.side_effect = [
-            datetime(2024, 1, 1, tzinfo=timezone.utc)
+            datetime(2024, 1, 1, tzinfo=UTC)
         ]
         mock_get_current_utc_time.return_value = datetime(
-            2024, 1, 2, tzinfo=timezone.utc
+            2024, 1, 2, tzinfo=UTC
         )
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
@@ -462,10 +462,10 @@ class TestMain:
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
         mock_parse_datetime_string.side_effect = [
-            datetime(2024, 1, 1, tzinfo=timezone.utc)
+            datetime(2024, 1, 1, tzinfo=UTC)
         ]
         mock_get_current_utc_time.return_value = datetime(
-            2024, 1, 2, tzinfo=timezone.utc
+            2024, 1, 2, tzinfo=UTC
         )
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"

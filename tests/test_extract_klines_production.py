@@ -6,7 +6,7 @@ Tests for production klines extraction.
 import os
 import sys
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -189,7 +189,7 @@ class TestProductionKlinesExtractor:
             mock_adapter, "BTCUSDT"
         )
 
-        assert timestamp == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        assert timestamp == datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC)
         mock_adapter.query_latest.assert_called_once_with(
             "klines_m15", symbol="BTCUSDT", limit=1
         )
@@ -209,25 +209,25 @@ class TestProductionKlinesExtractor:
                 mock_adapter, "BTCUSDT"
             )
 
-        assert timestamp == datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        assert timestamp == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
 
     @patch("jobs.extract_klines_production.get_current_utc_time")
     def test_calculate_extraction_window(self, mock_current_time):
         """Test extraction window calculation."""
         # Mock current time
-        current_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        current_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC)
         mock_current_time.return_value = current_time
 
         # Test with recent timestamp
-        last_timestamp = datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
+        last_timestamp = datetime(2023, 1, 1, 11, 0, 0, tzinfo=UTC)
         start_time, end_time = self.extractor.calculate_extraction_window(
             last_timestamp
         )
 
         # Should start 30 minutes before last timestamp
-        expected_start = datetime(2023, 1, 1, 10, 30, 0, tzinfo=timezone.utc)
+        expected_start = datetime(2023, 1, 1, 10, 30, 0, tzinfo=UTC)
         # Should end 5 minutes before current time
-        expected_end = datetime(2023, 1, 1, 11, 55, 0, tzinfo=timezone.utc)
+        expected_end = datetime(2023, 1, 1, 11, 55, 0, tzinfo=UTC)
 
         assert start_time == expected_start
         assert end_time == expected_end
@@ -236,16 +236,16 @@ class TestProductionKlinesExtractor:
     def test_calculate_extraction_window_old_timestamp(self, mock_current_time):
         """Test extraction window with very old timestamp."""
         # Mock current time
-        current_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        current_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC)
         mock_current_time.return_value = current_time
 
         # Test with very old timestamp (more than 1 day ago)
-        old_timestamp = datetime(2022, 12, 30, 12, 0, 0, tzinfo=timezone.utc)
+        old_timestamp = datetime(2022, 12, 30, 12, 0, 0, tzinfo=UTC)
         start_time, end_time = self.extractor.calculate_extraction_window(old_timestamp)
 
         # Should limit catch-up to 1 day
-        expected_start = datetime(2022, 12, 31, 12, 0, 0, tzinfo=timezone.utc)
-        expected_end = datetime(2023, 1, 1, 11, 55, 0, tzinfo=timezone.utc)
+        expected_start = datetime(2022, 12, 31, 12, 0, 0, tzinfo=UTC)
+        expected_end = datetime(2023, 1, 1, 11, 55, 0, tzinfo=UTC)
 
         assert start_time == expected_start
         assert end_time == expected_end
@@ -254,7 +254,7 @@ class TestProductionKlinesExtractor:
     def test_calculate_extraction_window_timezone_naive(self, mock_current_time):
         """Test extraction window with timezone-naive timestamp."""
         # Mock current time
-        current_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        current_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC)
         mock_current_time.return_value = current_time
 
         # Test with timezone-naive timestamp
@@ -264,8 +264,8 @@ class TestProductionKlinesExtractor:
         )
 
         # Should convert to timezone-aware
-        expected_start = datetime(2023, 1, 1, 10, 30, 0, tzinfo=timezone.utc)
-        expected_end = datetime(2023, 1, 1, 11, 55, 0, tzinfo=timezone.utc)
+        expected_start = datetime(2023, 1, 1, 10, 30, 0, tzinfo=UTC)
+        expected_end = datetime(2023, 1, 1, 11, 55, 0, tzinfo=UTC)
 
         assert start_time == expected_start
         assert end_time == expected_end
@@ -287,7 +287,7 @@ class TestProductionKlinesExtractor:
 
         # Mock database operations
         mock_adapter.query_latest.return_value = [
-            {"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}
+            {"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=UTC)}
         ]
 
         # Mock klines data
@@ -295,9 +295,9 @@ class TestProductionKlinesExtractor:
             KlineModel(
                 symbol="BTCUSDT",
                 interval="15m",
-                timestamp=datetime(2023, 1, 1, 11, 15, 0, tzinfo=timezone.utc),
-                open_time=datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc),
-                close_time=datetime(2023, 1, 1, 11, 15, 0, tzinfo=timezone.utc),
+                timestamp=datetime(2023, 1, 1, 11, 15, 0, tzinfo=UTC),
+                open_time=datetime(2023, 1, 1, 11, 0, 0, tzinfo=UTC),
+                close_time=datetime(2023, 1, 1, 11, 15, 0, tzinfo=UTC),
                 open_price=Decimal("50000"),
                 high_price=Decimal("50100"),
                 low_price=Decimal("49900"),
@@ -362,7 +362,7 @@ class TestProductionKlinesExtractor:
 
         # Mock database operations
         mock_adapter.query_latest.return_value = [
-            {"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=timezone.utc)}
+            {"close_time": datetime(2023, 1, 1, 11, 0, 0, tzinfo=UTC)}
         ]
 
         # Mock API error
@@ -792,7 +792,7 @@ class TestTimezoneHandling:
             "jobs.extract_klines_production.get_current_utc_time"
         ) as mock_current_time:
             mock_current_time.return_value = datetime(
-                2023, 1, 1, 13, 0, 0, tzinfo=timezone.utc
+                2023, 1, 1, 13, 0, 0, tzinfo=UTC
             )
 
             start_time, end_time = extractor.calculate_extraction_window(
@@ -821,7 +821,7 @@ class TestTimezoneHandling:
 
         # Should be timezone-aware
         assert timestamp.tzinfo is not None
-        assert timestamp.tzinfo == timezone.utc
+        assert timestamp.tzinfo == UTC
 
 
 if __name__ == "__main__":

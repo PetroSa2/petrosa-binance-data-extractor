@@ -4,7 +4,7 @@ Base Pydantic models and shared fields for all Binance data models.
 
 import uuid
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -96,7 +96,7 @@ class ExtractionMetadata(BaseModel):
     extraction_duration_seconds: float = Field(
         default=0.0, description="Total extraction time in seconds"
     )
-    errors_encountered: List[str] = Field(
+    errors_encountered: list[str] = Field(
         default_factory=list, description="List of errors encountered during extraction"
     )
 
