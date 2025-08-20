@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Binance Data Extractor
+# Multi-stage Dockerfile for Petrosa TA Bot
 # Optimized for production deployment with security and performance
 
 # Build stage
@@ -39,12 +39,12 @@ ARG COMMIT_SHA=unknown
 ARG BUILD_DATE=unknown
 
 # Metadata labels
-LABEL org.opencontainers.image.title="Binance Data Extractor" \
-      org.opencontainers.image.description="Configurable Binance Futures data extractor" \
+LABEL org.opencontainers.image.title="Petrosa TA Bot" \
+      org.opencontainers.image.description="Technical Analysis bot for cryptocurrency trading" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT_SHA}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
-      org.opencontainers.image.source="https://github.com/petrosa/petrosa-binance-data-extractor" \
+      org.opencontainers.image.source="https://github.com/petrosa/petrosa-bot-ta-analysis" \
       org.opencontainers.image.vendor="Petrosa" \
       org.opencontainers.image.licenses="MIT"
 
@@ -79,17 +79,6 @@ COPY --chown=appuser:appuser . .
 RUN mkdir -p logs tmp && \
     chown -R appuser:appuser /app
 
-# Install OpenTelemetry auto-instrumentation
-# This enables automatic instrumentation of Python applications
-# The opentelemetry-instrument command will be available for use
-RUN pip install opentelemetry-distro opentelemetry-exporter-otlp-proto-grpc \
-    opentelemetry-instrumentation-requests \
-    opentelemetry-instrumentation-pymongo \
-    opentelemetry-instrumentation-sqlalchemy \
-    opentelemetry-instrumentation-logging \
-    opentelemetry-instrumentation-urllib3 \
-    && opentelemetry-bootstrap --action=install
-
 # Switch to non-root user
 USER appuser
 
@@ -98,10 +87,13 @@ ENV PYTHONPATH="/app:$PYTHONPATH"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)"
+    CMD curl -f http://localhost:8080/healthz || exit 1
+
+# Expose health check port
+EXPOSE 8080
 
 # Default command (can be overridden)
-CMD ["python", "jobs/extract_klines.py", "--help"]
+CMD ["python", "-m", "ta_bot.main"]
 
 # Development stage (for local development)
 FROM production AS development
@@ -142,85 +134,3 @@ USER appuser
 
 # Run tests by default
 CMD ["pytest", "tests/", "-v", "--cov=.", "--cov-report=html"]
-
-# Production optimized stage
-FROM production AS optimized
-
-# Use alpine for smaller image size
-FROM python:3.11-alpine AS alpine-builder
-
-# Build arguments
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-ARG BUILD_DATE=unknown
-
-# Install build dependencies
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    libffi-dev \
-    postgresql-dev \
-    mariadb-dev
-
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy and install requirements
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
-
-# Final alpine stage
-FROM python:3.11-alpine AS alpine-production
-
-# Build arguments
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-ARG BUILD_DATE=unknown
-
-# Metadata labels
-LABEL org.opencontainers.image.title="Binance Data Extractor (Alpine)" \
-      org.opencontainers.image.description="Lightweight Binance Futures data extractor" \
-      org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.revision="${COMMIT_SHA}" \
-      org.opencontainers.image.created="${BUILD_DATE}"
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH" \
-    APP_VERSION="${VERSION}"
-
-# Install runtime dependencies
-RUN apk add --no-cache \
-    curl \
-    ca-certificates \
-    postgresql-client \
-    mariadb-client
-
-# Create non-root user
-RUN addgroup -S appuser && adduser -S appuser -G appuser
-
-# Copy virtual environment
-COPY --from=alpine-builder /opt/venv /opt/venv
-
-# Create and set working directory
-WORKDIR /app
-
-# Copy application code
-COPY --chown=appuser:appuser . .
-
-# Create directories and set permissions
-RUN mkdir -p logs tmp && \
-    chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)"
-
-# Default command
-CMD ["python", "jobs/extract_klines.py", "--help"]

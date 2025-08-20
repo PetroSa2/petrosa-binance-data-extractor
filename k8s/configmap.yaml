@@ -1,0 +1,55 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petrosa-socket-client-config
+  namespace: petrosa-apps
+  labels:
+    app: socket-client
+    component: websocket-client
+    version: VERSION_PLACEHOLDER
+data:
+  # Binance WebSocket configuration
+  BINANCE_WS_URL: "wss://stream.binance.com:9443"
+  BINANCE_STREAMS: "btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms,ethusdt@trade,ethusdt@ticker,ethusdt@depth20@100ms"
+
+  # NATS configuration
+  NATS_TOPIC: "binance.websocket.data"
+
+  # WebSocket connection settings
+  WEBSOCKET_RECONNECT_DELAY: "5"
+  WEBSOCKET_MAX_RECONNECT_ATTEMPTS: "10"
+  WEBSOCKET_PING_INTERVAL: "30"
+  WEBSOCKET_PING_TIMEOUT: "10"
+  WEBSOCKET_CLOSE_TIMEOUT: "10"
+
+  # Message processing settings
+  MESSAGE_TTL_SECONDS: "60"
+  MAX_MESSAGE_SIZE: "1048576"
+  MESSAGE_BATCH_SIZE: "100"
+  MESSAGE_BATCH_TIMEOUT: "1.0"
+
+  # Resource limits
+  MAX_MEMORY_MB: "500"
+  MAX_CONCURRENT_CONNECTIONS: "10"
+  MAX_QUEUE_SIZE: "1000"
+
+  # Circuit breaker settings
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_RECOVERY_TIMEOUT: "60"
+
+  # Health check settings
+  HEALTH_CHECK_INTERVAL: "30"
+  HEALTH_CHECK_TIMEOUT: "5"
+  HEALTH_CHECK_PORT: "8080"
+
+  # Performance monitoring
+  ENABLE_METRICS: "true"
+  METRICS_INTERVAL: "60"
+
+  # Message validation
+  ENABLE_MESSAGE_VALIDATION: "true"
+
+  # Backpressure handling
+  ENABLE_BACKPRESSURE: "true"
+  BACKPRESSURE_THRESHOLD: "100"

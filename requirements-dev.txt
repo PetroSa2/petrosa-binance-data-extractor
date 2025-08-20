@@ -2,6 +2,9 @@
 # Include production requirements
 -r requirements.txt
 
+# Async testing utilities
+asynctest>=0.13.0
+
 # Security Scanning
 bandit==1.7.5
 
@@ -49,3 +52,6 @@ types-PyYAML==6.0.12.12
 
 # Type Checking Stubs
 types-requests==2.31.0.20240125
+
+# WebSocket testing
+websockets[test]>=12.0

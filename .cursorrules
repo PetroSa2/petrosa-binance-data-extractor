@@ -5,6 +5,7 @@ This is a unified configuration for all Petrosa systems:
 - **petrosa-bot-ta-analysis**: Technical Analysis bot for crypto trading
 - **petrosa-tradeengine**: Cryptocurrency trading engine system
 - **petrosa-binance-data-extractor**: Cryptocurrency data extraction system
+- **petrosa-socket-client**: Binance WebSocket client for real-time data streaming
 
 All systems use the same remote MicroK8s cluster, CI/CD pipeline patterns, and development workflows.
 
@@ -77,13 +78,16 @@ make k8s-status
 # Note: This is a remote MicroK8s cluster - no local installation needed
 ```
 
-### 4. NumPy Compatibility Issues
+### 4. WebSocket Connection Issues
 ```bash
-# Fix NumPy 2.x compatibility issues
-pip install 'numpy<2.0.0'
+# Check WebSocket connectivity
+python -c "import websockets; print('WebSocket library available')"
 
-# Reinstall dependencies
-pip install -r requirements.txt
+# Test NATS connection
+python -c "import nats; print('NATS library available')"
+
+# Check environment variables
+env | grep -E "(BINANCE|NATS|LOG)"
 ```
 
 ## Development Workflow
@@ -162,7 +166,7 @@ make k8s-clean
 
 ### Namespace
 - **Name**: `petrosa-apps`
-- **Labels**: `app=petrosa-{project-name}`
+- **Labels**: `app=petrosa-socket-client`
 
 ### Components
 - **Deployment**: 3 replicas with health checks
@@ -176,23 +180,14 @@ make k8s-clean
 - `ENVIRONMENT`: Environment name (default: production)
 - `LOG_LEVEL`: Logging level (default: INFO)
 
-### Project-Specific Variables
-
-#### TA Bot
+### Socket Client Specific Variables
+- `BINANCE_WS_URL`: Binance WebSocket URL (default: wss://stream.binance.com:9443)
+- `BINANCE_STREAMS`: Comma-separated list of streams to subscribe to
 - `NATS_URL`: NATS server URL
-- `API_ENDPOINT`: REST API endpoint for signals
-
-#### Trading Engine
-- `MONGODB_URL`: MongoDB connection string
-- `BINANCE_API_KEY`: Binance API key
-- `BINANCE_API_SECRET`: Binance API secret
-- `JWT_SECRET_KEY`: JWT signing secret
-
-#### Data Extractor
-- `DB_ADAPTER`: Database adapter (mysql, mongodb)
-- `MYSQL_URI`: MySQL connection string
-- `BINANCE_API_KEY`: Binance API key
-- `BINANCE_API_SECRET`: Binance API secret
+- `NATS_TOPIC`: NATS topic for publishing messages
+- `WEBSOCKET_RECONNECT_DELAY`: Reconnection delay in seconds (default: 5)
+- `WEBSOCKET_MAX_RECONNECT_ATTEMPTS`: Maximum reconnection attempts (default: 10)
+- `MESSAGE_TTL_SECONDS`: Message TTL in seconds (default: 60)
 
 ## Testing Procedures
 
@@ -314,6 +309,32 @@ When fixing the pipeline, go until it is fully green and stop only when CI/CD on
 - If the GHA pipeline fails, repeat the process until it is green
 - Do not stop until the CI/CD pipeline on GHA is fully fixed
 
+## WebSocket Client Specific Guidelines
+
+### Connection Management
+- Always implement exponential backoff for reconnections
+- Use heartbeat/ping-pong to detect connection health
+- Implement graceful shutdown with proper cleanup
+- Handle connection timeouts and rate limits
+
+### Message Processing
+- Parse JSON messages with proper error handling
+- Implement message validation before publishing to NATS
+- Use structured logging for all WebSocket events
+- Monitor message processing latency
+
+### Resource Management
+- Implement memory limits and monitoring
+- Use connection pooling for NATS
+- Drop messages when backpressure is detected
+- Monitor CPU and memory usage
+
+### Error Handling
+- Log all WebSocket connection errors
+- Implement circuit breaker pattern for repeated failures
+- Use structured error reporting
+- Monitor error rates and alert on thresholds
+
 ## Always Reference
 - Check project-specific `README.md` for detailed documentation
 - Use `Makefile` for all common commands
@@ -324,6 +345,7 @@ When fixing the pipeline, go until it is fully green and stop only when CI/CD on
 - Kubernetes deployment uses namespace `petrosa-apps`
 - Health checks are critical for Kubernetes probes
 - Security scanning is integrated into the pipeline
-- **NumPy compatibility**: Use `numpy<2.0.0` for pandas-ta compatibility
+- **WebSocket connections**: Always implement reconnection logic and error handling
+- **NATS messaging**: Use structured message format with timestamps
 - **GitHub CLI**: Always dump output to `/tmp` files and read from them
 - **VERSION_PLACEHOLDER**: Never replace in Kubernetes manifests - it's part of the deployment system

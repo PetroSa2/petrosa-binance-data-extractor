@@ -7,8 +7,8 @@
 
 # Default target
 help:
-	@echo "🚀 Petrosa Binance Data Extractor - Standardized Development Commands"
-	@echo "=================================================================="
+	@echo "🚀 Petrosa Socket Client - Standardized Development Commands"
+	@echo "=========================================================="
 	@echo ""
 	@echo "📦 Setup & Installation:"
 	@echo "  setup          - Complete environment setup with pre-commit"
@@ -48,6 +48,7 @@ help:
 	@echo "  k8s-status     - Check Kubernetes deployment status"
 	@echo "  k8s-logs       - View Kubernetes logs"
 	@echo "  k8s-clean      - Clean up Kubernetes resources"
+	@echo "  run-local      - Run socket client locally"
 
 # Setup and installation
 setup:
@@ -170,15 +171,15 @@ security:
 # Docker
 build:
 	@echo "🐳 Building Docker image..."
-	docker build -t petrosa-binance-extractor:latest .
+	docker build -t petrosa-ta-bot:latest .
 
 container:
 	@echo "📦 Testing Docker container..."
-	docker run --rm petrosa-binance-extractor:latest --help
+	docker run --rm petrosa-ta-bot:latest python -c "print('TA Bot container is working!')"
 
 docker-clean:
 	@echo "🧹 Cleaning up Docker images..."
-	docker rmi petrosa-binance-extractor:latest 2>/dev/null || true
+	docker rmi petrosa-socket-client:latest 2>/dev/null || true
 	docker system prune -f
 
 # Deployment
@@ -221,17 +222,21 @@ pipeline:
 # Kubernetes utilities
 k8s-status:
 	@echo "📊 Kubernetes deployment status:"
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -l app=binance-extractor
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get svc -n petrosa-apps -l app=binance-extractor
-	kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
+	kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -l app=socket-client
+	kubectl --kubeconfig=k8s/kubeconfig.yaml get svc -n petrosa-apps -l app=socket-client
 
 k8s-logs:
 	@echo "📋 Kubernetes logs:"
-	kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=binance-extractor --tail=50
+	kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps -l app=socket-client --tail=50
 
 k8s-clean:
 	@echo "🧹 Cleaning up Kubernetes resources..."
 	kubectl --kubeconfig=k8s/kubeconfig.yaml delete namespace petrosa-apps 2>/dev/null || true
+
+# Local development
+run-local:
+	@echo "🚀 Running socket client locally..."
+	python -m socket_client.main
 
 # Quick development workflow
 dev: setup format lint type-check test
