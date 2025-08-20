@@ -1,7 +1,6 @@
 # Production Symbol Configuration
 # This file defines the symbols to extract in production environments
 
-from typing import List
 
 # Top 20 cryptocurrency futures symbols by volume
 PRODUCTION_SYMBOLS = [
@@ -36,7 +35,7 @@ DEVELOPMENT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT"]
 # Get symbols based on environment
 
 
-def get_symbols_for_environment(environment: str = "production") -> List[str]:
+def get_symbols_for_environment(environment: str = "production") -> list[str]:
     """
     Get symbols list based on environment.
 

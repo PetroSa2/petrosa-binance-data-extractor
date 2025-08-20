@@ -2,9 +2,9 @@
 Pydantic model for Binance Futures Trade data.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -73,7 +73,7 @@ class TradeModel(BaseSymbolModel):
 
     @classmethod
     def from_binance_trade(
-        cls, trade_data: Dict[str, Any], symbol: str
+        cls, trade_data: dict[str, Any], symbol: str
     ) -> "TradeModel":
         """
         Create TradeModel from Binance API trade data.
@@ -89,7 +89,7 @@ class TradeModel(BaseSymbolModel):
         }
         """
         trade_time = datetime.fromtimestamp(
-            int(trade_data["time"]) / 1000, tz=timezone.utc
+            int(trade_data["time"]) / 1000, tz=UTC
         )
         return cls(
             symbol=symbol,
@@ -105,7 +105,7 @@ class TradeModel(BaseSymbolModel):
             commission_asset=None,  # Not provided in public trade data
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database storage."""
         return self.model_dump(exclude={"id"})
 

@@ -15,7 +15,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 # Add project root to path
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +26,7 @@ class PipelineSimulator:
     """Simulates the complete OpenTelemetry pipeline."""
 
     def __init__(self):
-        self.test_results: Dict[str, Any] = {
+        self.test_results: dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "tests_run": 0,
             "tests_passed": 0,
@@ -255,7 +255,7 @@ class PipelineSimulator:
             try:
                 full_path = os.path.join(project_root, file_path)
                 if os.path.exists(full_path):
-                    with open(full_path, "r") as f:
+                    with open(full_path) as f:
                         content = f.read()
 
                     # Basic validation

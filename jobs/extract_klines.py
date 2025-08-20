@@ -11,7 +11,6 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import List
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -155,7 +154,7 @@ Examples:
     return parser.parse_args()
 
 
-def get_symbols_list(args) -> List[str]:
+def get_symbols_list(args) -> list[str]:
     """Get list of symbols from arguments."""
     if args.symbol:
         return [args.symbol.upper()]

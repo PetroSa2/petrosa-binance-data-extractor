@@ -4,7 +4,7 @@ Klines (candlestick) data fetcher for Binance Futures.
 
 import time
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import constants
 from fetchers.client import BinanceAPIError, BinanceClient
@@ -46,7 +46,7 @@ class KlinesFetcher:
         start_time: datetime,
         end_time: Optional[datetime] = None,
         limit: Optional[int] = None,
-    ) -> List[KlineModel]:
+    ) -> list[KlineModel]:
         """
         Fetch klines for a symbol and time range.
 
@@ -86,7 +86,7 @@ class KlinesFetcher:
             end_time,
         )
 
-        all_klines: List[KlineModel] = []
+        all_klines: list[KlineModel] = []
         current_start = start_time
         interval_delta = get_interval_timedelta(interval)
 
@@ -168,7 +168,7 @@ class KlinesFetcher:
 
     def fetch_latest_klines(
         self, symbol: str, interval: str, count: int = 100
-    ) -> List[KlineModel]:
+    ) -> list[KlineModel]:
         """
         Fetch the most recent klines.
 
@@ -211,7 +211,7 @@ class KlinesFetcher:
         interval: str,
         last_timestamp: datetime,
         max_records: int = 10000,
-    ) -> List[KlineModel]:
+    ) -> list[KlineModel]:
         """
         Fetch klines incrementally from last timestamp.
 
@@ -245,7 +245,7 @@ class KlinesFetcher:
 
     def fetch_multiple_symbols(
         self,
-        symbols: List[str],
+        symbols: list[str],
         interval: str,
         start_time: datetime,
         end_time: Optional[datetime] = None,
@@ -299,11 +299,11 @@ class KlinesFetcher:
 
     def get_missing_intervals(
         self,
-        existing_timestamps: List[datetime],
+        existing_timestamps: list[datetime],
         start_time: datetime,
         end_time: datetime,
         interval: str,
-    ) -> List[Tuple[datetime, datetime]]:
+    ) -> list[tuple[datetime, datetime]]:
         """
         Find missing intervals in existing data.
 

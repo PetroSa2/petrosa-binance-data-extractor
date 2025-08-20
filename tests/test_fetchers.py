@@ -5,7 +5,7 @@ Tests for data fetchers.
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -168,8 +168,8 @@ class TestKlinesFetcher:
         # Mock the client to return data on first call, then empty on subsequent calls
         self.mock_client.get_klines.side_effect = [mock_klines_data, []]
 
-        start_time = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        end_time = datetime(2022, 1, 1, 1, tzinfo=timezone.utc)
+        start_time = datetime(2022, 1, 1, tzinfo=UTC)
+        end_time = datetime(2022, 1, 1, 1, tzinfo=UTC)
 
         klines = self.fetcher.fetch_klines("BTCUSDT", "15m", start_time, end_time)
 
@@ -216,8 +216,8 @@ class TestKlinesFetcher:
     def test_fetch_incremental(self, mock_current_time):
         """Test incremental fetching."""
         # Mock current time to be just a short time after the last timestamp
-        last_timestamp = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        mock_current_time.return_value = datetime(2022, 1, 1, 1, tzinfo=timezone.utc)
+        last_timestamp = datetime(2022, 1, 1, tzinfo=UTC)
+        mock_current_time.return_value = datetime(2022, 1, 1, 1, tzinfo=UTC)
 
         mock_klines_data = [
             [
@@ -289,9 +289,9 @@ class TestKlinesFetcher:
         self.mock_client.get_klines.side_effect = mock_get_klines_multiple
 
         symbols = ["BTCUSDT", "ETHUSDT"]
-        start_time = datetime(2022, 1, 1, tzinfo=timezone.utc)
+        start_time = datetime(2022, 1, 1, tzinfo=UTC)
         end_time = datetime(
-            2022, 1, 1, 0, 15, tzinfo=timezone.utc
+            2022, 1, 1, 0, 15, tzinfo=UTC
         )  # Match mock data range
 
         results = self.fetcher.fetch_multiple_symbols(

@@ -3,7 +3,7 @@ Trades data fetcher for Binance Futures.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 import constants
 from fetchers.client import BinanceAPIError, BinanceClient
@@ -31,7 +31,7 @@ class TradesFetcher:
         self.client = client or BinanceClient()
         self.max_trades_per_request = 1000  # Binance limit
 
-    def fetch_recent_trades(self, symbol: str, limit: int = 1000) -> List[TradeModel]:
+    def fetch_recent_trades(self, symbol: str, limit: int = 1000) -> list[TradeModel]:
         """
         Fetch recent trades for a symbol.
 
@@ -76,7 +76,7 @@ class TradesFetcher:
 
     def fetch_historical_trades(
         self, symbol: str, from_id: Optional[int] = None, limit: int = 1000
-    ) -> List[TradeModel]:
+    ) -> list[TradeModel]:
         """
         Fetch historical trades for a symbol.
 
@@ -131,7 +131,7 @@ class TradesFetcher:
 
     def fetch_trades_batch(
         self, symbol: str, start_id: int, batch_size: int = 1000, max_batches: int = 10
-    ) -> List[TradeModel]:
+    ) -> list[TradeModel]:
         """
         Fetch multiple batches of historical trades.
 
@@ -197,7 +197,7 @@ class TradesFetcher:
         return all_trades
 
     def fetch_multiple_symbols(
-        self, symbols: List[str], limit: int = 1000, use_historical: bool = False
+        self, symbols: list[str], limit: int = 1000, use_historical: bool = False
     ) -> dict:
         """
         Fetch trades for multiple symbols.
@@ -257,7 +257,7 @@ class TradesFetcher:
 
     def fetch_trades_since_id(
         self, symbol: str, since_id: int, max_records: int = 10000
-    ) -> List[TradeModel]:
+    ) -> list[TradeModel]:
         """
         Fetch all trades since a specific trade ID.
 
@@ -286,7 +286,7 @@ class TradesFetcher:
         end_time: datetime,
         total_records: int,
         duration_seconds: float = 0.0,
-        errors: Optional[List[str]] = None,
+        errors: Optional[list[str]] = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.

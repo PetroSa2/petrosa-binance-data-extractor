@@ -4,7 +4,7 @@ Unit tests for jobs/extract_klines_gap_filler.py
 """
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -122,8 +122,8 @@ class TestGapFillerExtractor:
         extractor = gap_filler.GapFillerExtractor(
             ["BTCUSDT"], "15m", "mongodb", weekly_chunk_days=3
         )
-        start_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
-        end_date = datetime(2024, 1, 10, tzinfo=timezone.utc)
+        start_date = datetime(2024, 1, 1, tzinfo=UTC)
+        end_date = datetime(2024, 1, 10, tzinfo=UTC)
         chunks = extractor.split_weekly_chunks(start_date, end_date)
         assert len(chunks) > 0
         for chunk_start, chunk_end in chunks:
@@ -136,8 +136,8 @@ class TestGapFillerExtractor:
         mock_db_adapter = Mock()
         mock_db_adapter.find_gaps.return_value = [
             (
-                datetime(2024, 1, 1, tzinfo=timezone.utc),
-                datetime(2024, 1, 2, tzinfo=timezone.utc),
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 2, tzinfo=UTC),
             )
         ]
         with patch("utils.time_utils.get_interval_minutes", return_value=15):
@@ -170,8 +170,8 @@ class TestGapFillerExtractor:
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         mock_binance_client = Mock()
         mock_db_adapter = Mock()
-        gap_start = datetime(2024, 1, 1, tzinfo=timezone.utc)
-        gap_end = datetime(2024, 1, 2, tzinfo=timezone.utc)
+        gap_start = datetime(2024, 1, 1, tzinfo=UTC)
+        gap_end = datetime(2024, 1, 2, tzinfo=UTC)
         mock_db_adapter.find_gaps.return_value = [(gap_start, gap_end)]
         mock_fetcher = Mock()
 

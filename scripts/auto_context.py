@@ -11,7 +11,7 @@ import sys
 def read_file_safely(filepath, max_lines=30):
     """Read file safely with line limit"""
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             lines = f.readlines()
             return "".join(lines[:max_lines]) + (
                 "..." if len(lines) > max_lines else ""

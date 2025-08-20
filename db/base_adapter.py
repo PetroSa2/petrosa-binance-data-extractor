@@ -6,7 +6,7 @@ This module defines the abstract base class that all database adapters must impl
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -47,7 +47,7 @@ class BaseAdapter(ABC):
         """Close the database connection."""
 
     @abstractmethod
-    def write(self, model_instances: List[BaseModel], collection: str) -> int:
+    def write(self, model_instances: list[BaseModel], collection: str) -> int:
         """
         Write model instances to the specified collection.
 
@@ -64,7 +64,7 @@ class BaseAdapter(ABC):
 
     @abstractmethod
     def write_batch(
-        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
+        self, model_instances: list[BaseModel], collection: str, batch_size: int = 1000
     ) -> int:
         """
         Write model instances in batches for better performance.
@@ -85,7 +85,7 @@ class BaseAdapter(ABC):
         start: datetime,
         end: datetime,
         symbol: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Query records within a time range.
 
@@ -102,7 +102,7 @@ class BaseAdapter(ABC):
     @abstractmethod
     def query_latest(
         self, collection: str, symbol: Optional[str] = None, limit: int = 1
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Query the most recent records.
 
@@ -123,7 +123,7 @@ class BaseAdapter(ABC):
         end: datetime,
         interval_minutes: int,
         symbol: Optional[str] = None,
-    ) -> List[Tuple[datetime, datetime]]:
+    ) -> list[tuple[datetime, datetime]]:
         """
         Find gaps in the data within the specified time range.
 

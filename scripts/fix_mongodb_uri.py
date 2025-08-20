@@ -10,7 +10,7 @@ import re
 def fix_mongodb_uri_in_file(file_path):
     """Fix MongoDB URI references to use secret instead of configmap."""
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     # Replace configmap reference with secret reference

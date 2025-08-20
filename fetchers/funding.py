@@ -4,7 +4,7 @@ Funding rates data fetcher for Binance Futures.
 
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import constants
 from fetchers.client import BinanceAPIError, BinanceClient
@@ -38,7 +38,7 @@ class FundingRatesFetcher:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         limit: int = 1000,
-    ) -> List[FundingRateModel]:
+    ) -> list[FundingRateModel]:
         """
         Fetch funding rate history for a symbol.
 
@@ -99,8 +99,8 @@ class FundingRatesFetcher:
             raise
 
     def fetch_current_funding_rates(
-        self, symbols: Optional[List[str]] = None
-    ) -> List[FundingRateModel]:
+        self, symbols: Optional[list[str]] = None
+    ) -> list[FundingRateModel]:
         """
         Fetch current funding rates for symbols.
 
@@ -181,7 +181,7 @@ class FundingRatesFetcher:
         start_time: datetime,
         end_time: datetime,
         batch_hours: int = 24 * 30,
-    ) -> List[FundingRateModel]:
+    ) -> list[FundingRateModel]:
         """
         Fetch funding rates in time-based batches.
 
@@ -246,11 +246,11 @@ class FundingRatesFetcher:
 
     def fetch_multiple_symbols(
         self,
-        symbols: List[str],
+        symbols: list[str],
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         limit: int = 1000,
-    ) -> Dict[str, List[FundingRateModel]]:
+    ) -> dict[str, list[FundingRateModel]]:
         """
         Fetch funding rates for multiple symbols.
 
@@ -301,8 +301,8 @@ class FundingRatesFetcher:
         return results
 
     def fetch_latest_funding_rates(
-        self, symbols: List[str], limit: int = 10
-    ) -> Dict[str, List[FundingRateModel]]:
+        self, symbols: list[str], limit: int = 10
+    ) -> dict[str, list[FundingRateModel]]:
         """
         Fetch the most recent funding rates for symbols.
 
@@ -332,7 +332,7 @@ class FundingRatesFetcher:
 
         return results
 
-    def get_funding_schedule(self, symbol: str) -> Dict[str, Any]:
+    def get_funding_schedule(self, symbol: str) -> dict[str, Any]:
         """
         Get funding schedule information for a symbol.
 

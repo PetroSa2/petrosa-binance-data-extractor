@@ -3,8 +3,8 @@ Time utility functions for date parsing, timezone conversion, and gap detection.
 """
 
 import re
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Tuple, Union
+from datetime import UTC, datetime, timedelta
+from typing import Optional, Union
 
 import constants
 
@@ -21,32 +21,32 @@ def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
     """
     if isinstance(timestamp, datetime):
         return (
-            timestamp.replace(tzinfo=timezone.utc)
+            timestamp.replace(tzinfo=UTC)
             if timestamp.tzinfo is None
-            else timestamp.astimezone(timezone.utc)
+            else timestamp.astimezone(UTC)
         )
 
     if isinstance(timestamp, str):
         # Try to parse as ISO format first
         try:
             return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(
-                timezone.utc
+                UTC
             )
         except ValueError:
             # Try to parse as timestamp string
             timestamp_float = float(timestamp)
             # Binance uses milliseconds, convert to seconds if needed
             if timestamp_float > 1e10:  # Milliseconds
-                return datetime.fromtimestamp(timestamp_float / 1000, tz=timezone.utc)
+                return datetime.fromtimestamp(timestamp_float / 1000, tz=UTC)
             else:  # Seconds
-                return datetime.fromtimestamp(timestamp_float, tz=timezone.utc)
+                return datetime.fromtimestamp(timestamp_float, tz=UTC)
 
     if isinstance(timestamp, (int, float)):
         # Binance uses milliseconds, convert to seconds if needed
         if timestamp > 1e10:  # Milliseconds
-            return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp / 1000, tz=UTC)
         else:  # Seconds
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
 
     raise ValueError(f"Unable to parse timestamp: {timestamp}")
 
@@ -65,9 +65,9 @@ def ensure_timezone_aware(dt: datetime) -> datetime:
         Timezone-aware datetime in UTC
     """
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     else:
-        return dt.astimezone(timezone.utc)
+        return dt.astimezone(UTC)
 
 
 def parse_datetime_string(date_string: str) -> datetime:
@@ -162,7 +162,7 @@ def get_interval_minutes(interval: str) -> int:
 
 def generate_time_range(
     start: datetime, end: datetime, interval: str
-) -> List[datetime]:
+) -> list[datetime]:
     """
     Generate list of timestamps for the given time range and interval.
 
@@ -219,11 +219,11 @@ def align_timestamp_to_interval(timestamp: datetime, interval: str) -> datetime:
 
 
 def find_time_gaps(
-    timestamps: List[datetime],
+    timestamps: list[datetime],
     interval: str,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
-) -> List[Tuple[datetime, datetime]]:
+) -> list[tuple[datetime, datetime]]:
     """
     Find gaps in a list of timestamps.
 
@@ -285,7 +285,7 @@ def is_market_open(timestamp: datetime) -> bool:
 
 def get_current_utc_time() -> datetime:
     """Get current UTC time."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def format_duration(seconds: float) -> str:
@@ -366,7 +366,7 @@ def get_default_start_time(interval: str) -> datetime:
 
 def chunk_time_range(
     start: datetime, end: datetime, chunk_hours: int = 24
-) -> List[Tuple[datetime, datetime]]:
+) -> list[tuple[datetime, datetime]]:
     """
     Split time range into smaller chunks for API requests.
 

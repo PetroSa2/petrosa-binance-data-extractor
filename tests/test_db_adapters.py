@@ -5,7 +5,7 @@ Tests for database adapters.
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 
@@ -144,7 +144,7 @@ class TestMongoDBAdapter:
         mock_collection.bulk_write.return_value = mock_result
 
         # Create test data
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         klines = [
             KlineModel(
                 symbol="BTCUSDT",
@@ -205,8 +205,8 @@ class TestMongoDBAdapter:
         mock_cursor = MagicMock()
         mock_cursor.__iter__.return_value = iter(
             [
-                {"symbol": "BTCUSDT", "timestamp": datetime.now(timezone.utc)},
-                {"symbol": "BTCUSDT", "timestamp": datetime.now(timezone.utc)},
+                {"symbol": "BTCUSDT", "timestamp": datetime.now(UTC)},
+                {"symbol": "BTCUSDT", "timestamp": datetime.now(UTC)},
             ]
         )
         mock_collection.find.return_value = mock_cursor
@@ -217,8 +217,8 @@ class TestMongoDBAdapter:
         adapter._connected = True
         adapter.database = mock_database
 
-        start = datetime.now(timezone.utc)
-        end = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
+        end = datetime.now(UTC)
 
         result = adapter.query_range("klines_m15", start, end, "BTCUSDT")
 
@@ -250,7 +250,7 @@ class TestMongoDBAdapter:
         mock_result2 = MagicMock()
         mock_result2.inserted_count = 1
         mock_collection.bulk_write.side_effect = [mock_result1, mock_result2]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         klines = [
             KlineModel(
                 symbol="BTCUSDT",
@@ -287,7 +287,7 @@ class TestMongoDBAdapter:
         mock_database.__getitem__.return_value = mock_collection
         mock_cursor = MagicMock()
         mock_cursor.__iter__.return_value = iter(
-            [{"symbol": "BTCUSDT", "timestamp": datetime.now(timezone.utc)}]
+            [{"symbol": "BTCUSDT", "timestamp": datetime.now(UTC)}]
         )
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -316,8 +316,8 @@ class TestMongoDBAdapter:
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
         adapter.database = mock_database
-        start = datetime.now(timezone.utc)
-        end = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
+        end = datetime.now(UTC)
         result = adapter.find_gaps(
             "klines_m15", start, end, interval_minutes=15, symbol="BTCUSDT"
         )
@@ -336,8 +336,8 @@ class TestMongoDBAdapter:
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
         adapter.database = mock_database
-        start = datetime.now(timezone.utc)
-        end = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
+        end = datetime.now(UTC)
         result = adapter.get_record_count(
             "klines_m15", start=start, end=end, symbol="BTCUSDT"
         )
@@ -370,8 +370,8 @@ class TestMongoDBAdapter:
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
         adapter.database = mock_database
-        start = datetime.now(timezone.utc)
-        end = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
+        end = datetime.now(UTC)
         result = adapter.delete_range("klines_m15", start, end, symbol="BTCUSDT")
         assert result == 2
         mock_collection.delete_many.assert_called()
@@ -392,7 +392,7 @@ class TestMongoDBAdapter:
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
         mock_collection.bulk_write.side_effect = Exception("write error")
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         klines = [
             KlineModel(
                 symbol="BTCUSDT",
@@ -461,7 +461,7 @@ class TestMySQLAdapter:
         mock_connection.execute.return_value = mock_result
 
         # Create test data
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         klines = [
             KlineModel(
                 symbol="BTCUSDT",
@@ -586,7 +586,7 @@ class TestMockAdapter:
         adapter.connect()
 
         # Test write operation
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         klines = [
             KlineModel(
                 symbol="BTCUSDT",

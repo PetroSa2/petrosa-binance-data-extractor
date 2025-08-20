@@ -5,7 +5,7 @@ Tests for data models.
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 # Add project root to path
@@ -29,7 +29,7 @@ class TestBaseModels:
     def test_base_timestamped_model_timestamp_parsing(self):
         """Test timestamp parsing from various formats."""
         # Test with datetime
-        dt = datetime.now(timezone.utc)
+        dt = datetime.now(UTC)
         model = BaseTimestampedModel(timestamp=dt)
         assert model.timestamp == dt
 
@@ -47,7 +47,7 @@ class TestBaseModels:
 
     def test_base_symbol_model_symbol_validation(self):
         """Test symbol validation (uppercase conversion)."""
-        model = BaseSymbolModel(timestamp=datetime.now(timezone.utc), symbol="btcusdt")
+        model = BaseSymbolModel(timestamp=datetime.now(UTC), symbol="btcusdt")
         assert model.symbol == "BTCUSDT"
 
 
@@ -56,7 +56,7 @@ class TestKlineModel:
 
     def test_kline_model_creation(self):
         """Test basic KlineModel creation."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         kline = KlineModel(
             symbol="BTCUSDT",
@@ -113,9 +113,9 @@ class TestKlineModel:
         """Test collection name generation."""
         kline = KlineModel(
             symbol="BTCUSDT",
-            timestamp=datetime.now(timezone.utc),
-            open_time=datetime.now(timezone.utc),
-            close_time=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
+            open_time=datetime.now(UTC),
+            close_time=datetime.now(UTC),
             interval="1h",
             open_price=Decimal("50000"),
             high_price=Decimal("50000"),
@@ -136,7 +136,7 @@ class TestTradeModel:
 
     def test_trade_model_creation(self):
         """Test basic TradeModel creation."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         trade = TradeModel(
             symbol="BTCUSDT",
@@ -177,13 +177,13 @@ class TestTradeModel:
         """Test collection name."""
         trade = TradeModel(
             symbol="BTCUSDT",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             trade_id=123456,
             price=Decimal("50000"),
             quantity=Decimal("0.01"),
             quote_quantity=Decimal("500"),
             is_buyer_maker=True,
-            trade_time=datetime.now(timezone.utc),
+            trade_time=datetime.now(UTC),
         )
 
         assert trade.collection_name == "trades"
@@ -194,7 +194,7 @@ class TestFundingRateModel:
 
     def test_funding_rate_model_creation(self):
         """Test basic FundingRateModel creation."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         funding_rate = FundingRateModel(
             symbol="BTCUSDT",
@@ -230,9 +230,9 @@ class TestFundingRateModel:
         """Test funding rate calculations."""
         funding_rate = FundingRateModel(
             symbol="BTCUSDT",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             funding_rate=Decimal("0.0001"),
-            funding_time=datetime.now(timezone.utc),
+            funding_time=datetime.now(UTC),
         )
 
         # Test percentage calculation
@@ -249,7 +249,7 @@ class TestExtractionMetadata:
 
     def test_extraction_metadata_creation(self):
         """Test ExtractionMetadata creation."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         metadata = ExtractionMetadata(
             period="15m",
