@@ -195,7 +195,7 @@ class MySQLAdapter(BaseAdapter):
         if self.engine is not None:
             self.metadata.create_all(self.engine)
 
-    def _create_klines_table(self, interval: str) -> Table:
+    def _create_klines_table(self, interval: str) -> "Table":
         """Create a klines table for specific interval."""
         table_suffix = binance_interval_to_table_suffix(interval)
         table_name = f"klines_{table_suffix}"
@@ -236,7 +236,7 @@ class MySQLAdapter(BaseAdapter):
             table.create(self.engine, checkfirst=True)
         return table
 
-    def _get_table(self, collection: str) -> Table:
+    def _get_table(self, collection: str) -> "Table":
         """Get table object for collection."""
         if collection.startswith("klines_"):
             table_suffix = collection.replace("klines_", "")
