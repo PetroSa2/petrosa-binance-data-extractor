@@ -1,0 +1,179 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: petrosa-socket-client
+  namespace: petrosa-apps
+  labels:
+    app: socket-client
+    component: websocket-client
+    version: VERSION_PLACEHOLDER
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: socket-client
+      component: websocket-client
+  template:
+    metadata:
+      labels:
+        app: socket-client
+        component: websocket-client
+        version: VERSION_PLACEHOLDER
+      annotations:
+        instrumentation.newrelic.com/inject-python: "true"
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: socket-client
+        image: yurisa2/petrosa-socket-client:VERSION_PLACEHOLDER
+        imagePullPolicy: Always
+        command:
+        - opentelemetry-instrument
+        - python
+        - -m
+        - socket_client.main
+        args:
+        - run
+        env:
+        - name: BINANCE_WS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: BINANCE_WS_URL
+        - name: BINANCE_STREAMS
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: BINANCE_STREAMS
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: NATS_URL
+        - name: NATS_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: NATS_TOPIC
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: LOG_LEVEL
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: ENVIRONMENT
+        - name: ENABLE_OTEL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: ENABLE_OTEL
+        - name: OTEL_SERVICE_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_SERVICE_VERSION
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_EXPORTER_OTLP_ENDPOINT
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.name=socket-client,service.version=VERSION_PLACEHOLDER"
+        - name: OTEL_METRICS_EXPORTER
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_METRICS_EXPORTER
+        - name: OTEL_TRACES_EXPORTER
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_TRACES_EXPORTER
+        - name: OTEL_LOGS_EXPORTER
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_LOGS_EXPORTER
+        - name: WEBSOCKET_RECONNECT_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: WEBSOCKET_RECONNECT_DELAY
+        - name: WEBSOCKET_MAX_RECONNECT_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: WEBSOCKET_MAX_RECONNECT_ATTEMPTS
+        - name: MESSAGE_TTL_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: MESSAGE_TTL_SECONDS
+        - name: MAX_MEMORY_MB
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-socket-client-config
+              key: MAX_MEMORY_MB
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
