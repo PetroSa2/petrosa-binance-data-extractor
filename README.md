@@ -264,7 +264,7 @@ petrosa-binance-data-extractor/
 │   ├── logger.py          # Logging configuration
 │   ├── time_utils.py      # Time utilities
 │   └── telemetry.py       # OpenTelemetry setup
-├── socket_client/         # WebSocket client (separate component)
+
 ├── tests/                 # Test suite
 ├── k8s/                   # Kubernetes manifests
 ├── scripts/               # Automation scripts

@@ -4,7 +4,7 @@ Pydantic model for Binance Futures Funding Rate data.
 
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -19,21 +19,13 @@ class FundingRateModel(BaseSymbolModel):
     """
 
     # Funding rate details
-    funding_rate: Decimal = Field(
-        ..., description="Current funding rate", decimal_places=8
-    )
+    funding_rate: Decimal = Field(..., description="Current funding rate")
     funding_time: datetime = Field(..., description="Next funding time")
-    mark_price: Optional[Decimal] = Field(
-        None, description="Current mark price", decimal_places=8
-    )
-    index_price: Optional[Decimal] = Field(
-        None, description="Current index price", decimal_places=8
-    )
+    mark_price: Decimal | None = Field(None, description="Current mark price")
+    index_price: Decimal | None = Field(None, description="Current index price")
 
     # Historical funding rate (if available)
-    last_funding_rate: Optional[Decimal] = Field(
-        None, description="Previous funding rate", decimal_places=8
-    )
+    last_funding_rate: Decimal | None = Field(None, description="Previous funding rate")
 
     # Funding interval (usually 8 hours for most symbols)
     funding_interval_hours: int = Field(

@@ -16,8 +16,8 @@ class TestAdaptiveBatchManager:
 
         assert manager.current_batch_size == 500
         assert manager.min_batch_size == 100
-        assert manager.max_batch_size == 2000
-        assert manager.success_rate_threshold == 0.95
+        assert manager.max_batch_size == 10000
+        assert manager.success_rate_threshold == 0.9
         assert manager.total_operations == 0
 
     def test_record_successful_operation(self):

@@ -1,7 +1,7 @@
 """
-Configuration constants for the Petrosa Socket Client.
-This module contains all configurable parameters including WebSocket URLs,
-NATS configuration, and streaming settings.
+Configuration constants for the Petrosa Binance Data Extractor.
+This module contains all configurable parameters for historical data extraction
+including API URLs, database settings, and extraction parameters.
 """
 
 import os
@@ -11,69 +11,86 @@ from dotenv import load_dotenv
 # Load environment variables from .env file if it exists
 load_dotenv()
 
-# Binance WebSocket settings (Futures focused)
-BINANCE_WS_URL = os.getenv("BINANCE_WS_URL", "wss://fstream.binance.com:9443")
-BINANCE_FUTURES_WS_URL = os.getenv(
-    "BINANCE_FUTURES_WS_URL", "wss://fstream.binance.com:9443"
+# Binance API settings
+BINANCE_API_URL = os.getenv("BINANCE_API_URL", "https://api.binance.com")
+BINANCE_FUTURES_API_URL = os.getenv(
+    "BINANCE_FUTURES_API_URL", "https://fapi.binance.com"
 )
 
-# Default futures streams to subscribe to
-DEFAULT_STREAMS = [
-    "btcusdt@trade",
-    "btcusdt@ticker",
-    "btcusdt@depth20@100ms",
-    "btcusdt@markPrice@1s",
-    "btcusdt@fundingRate@1s",
-    "ethusdt@trade",
-    "ethusdt@ticker",
-    "ethusdt@depth20@100ms",
-    "ethusdt@markPrice@1s",
-    "ethusdt@fundingRate@1s",
+# Default trading symbols
+DEFAULT_SYMBOLS = os.getenv("DEFAULT_SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
+
+# Supported intervals
+SUPPORTED_INTERVALS = [
+    "1m",
+    "3m",
+    "5m",
+    "15m",
+    "30m",
+    "1h",
+    "2h",
+    "4h",
+    "6h",
+    "8h",
+    "12h",
+    "1d",
+    "3d",
+    "1w",
+    "1M",
 ]
+DEFAULT_PERIOD = "15m"
 
+# Date settings
+DEFAULT_START_DATE = "2023-01-01T00:00:00Z"
+BACKFILL = False
+GAP_CHECK_ENABLED = True
 
-# Parse streams from environment variable
-def get_streams() -> list[str]:
-    """Get streams from environment variable or use defaults."""
-    streams_env = os.getenv("BINANCE_STREAMS")
-    if streams_env:
-        return [s.strip() for s in streams_env.split(",")]
-    return DEFAULT_STREAMS
+# API settings
+API_KEY = os.getenv("API_KEY", "")
+API_SECRET = os.getenv("API_SECRET", "")
 
+# NATS settings
+NATS_ENABLED = os.getenv("NATS_ENABLED", "false").lower() == "true"
 
-# NATS configuration
-NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
-NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.futures.websocket.data")
-NATS_CLIENT_NAME = os.getenv("NATS_CLIENT_NAME", "petrosa-socket-client")
+# Database configuration
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+MYSQL_URI = os.getenv("MYSQL_URI", "mysql://user:pass@localhost:3306")
+POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432")
+DB_ADAPTER = os.getenv("DB_ADAPTER", "mysql")
+DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "1000"))
 
-# WebSocket connection settings
-WEBSOCKET_RECONNECT_DELAY = int(os.getenv("WEBSOCKET_RECONNECT_DELAY", "5"))
-WEBSOCKET_MAX_RECONNECT_ATTEMPTS = int(
-    os.getenv("WEBSOCKET_MAX_RECONNECT_ATTEMPTS", "10")
+# Extraction settings
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
+LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "24"))
+API_RATE_LIMIT = int(os.getenv("API_RATE_LIMIT", "1200"))  # requests per minute
+API_RATE_LIMIT_PER_MINUTE = int(
+    os.getenv("API_RATE_LIMIT_PER_MINUTE", "1200")
+)  # requests per minute
+API_TIMEOUT = int(os.getenv("API_TIMEOUT", "30"))
+REQUEST_DELAY_SECONDS = float(os.getenv("REQUEST_DELAY_SECONDS", "0.1"))
+
+# Batch processing settings
+MIN_BATCH_SIZE = int(os.getenv("MIN_BATCH_SIZE", "100"))
+MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "10000"))
+SUCCESS_RATE_THRESHOLD = float(os.getenv("SUCCESS_RATE_THRESHOLD", "0.9"))
+
+# Database-specific configurations
+MYSQL_SHARED_INSTANCE_CONFIG = {
+    "batch_size": 500,
+    "max_connections": 10,
+    "timeout": 30,
+}
+
+MONGODB_ATLAS_FREE_TIER_CONFIG = {
+    "batch_size": 100,
+    "max_connections": 5,
+    "timeout": 60,
+}
+
+# OpenTelemetry resource attributes
+OTEL_RESOURCE_ATTRIBUTES = os.getenv(
+    "OTEL_RESOURCE_ATTRIBUTES", "service.name=binance-data-extractor"
 )
-WEBSOCKET_PING_INTERVAL = int(os.getenv("WEBSOCKET_PING_INTERVAL", "30"))
-WEBSOCKET_PING_TIMEOUT = int(os.getenv("WEBSOCKET_PING_TIMEOUT", "10"))
-WEBSOCKET_CLOSE_TIMEOUT = int(os.getenv("WEBSOCKET_CLOSE_TIMEOUT", "10"))
-
-# Message processing settings
-MESSAGE_TTL_SECONDS = int(os.getenv("MESSAGE_TTL_SECONDS", "60"))
-MAX_MESSAGE_SIZE = int(os.getenv("MAX_MESSAGE_SIZE", "1048576"))  # 1MB
-MESSAGE_BATCH_SIZE = int(os.getenv("MESSAGE_BATCH_SIZE", "100"))
-MESSAGE_BATCH_TIMEOUT = float(os.getenv("MESSAGE_BATCH_TIMEOUT", "1.0"))
-
-# Resource limits
-MAX_MEMORY_MB = int(os.getenv("MAX_MEMORY_MB", "500"))
-MAX_CONCURRENT_CONNECTIONS = int(os.getenv("MAX_CONCURRENT_CONNECTIONS", "10"))
-MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "1000"))
-
-# Circuit breaker settings
-CIRCUIT_BREAKER_FAILURE_THRESHOLD = int(
-    os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", "5")
-)
-CIRCUIT_BREAKER_RECOVERY_TIMEOUT = int(
-    os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", "60")
-)
-CIRCUIT_BREAKER_EXPECTED_EXCEPTION = Exception
 
 # Health check settings
 HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", "30"))
@@ -85,7 +102,10 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = os.getenv("LOG_FORMAT", "json")  # json or text
 
 # OpenTelemetry settings
-OTEL_SERVICE_NAME = "socket-client-futures"
+OTEL_SERVICE_NAME = "binance-data-extractor"
+OTEL_SERVICE_NAME_KLINES = "binance-data-extractor-klines"
+OTEL_SERVICE_NAME_FUNDING = "binance-data-extractor-funding"
+OTEL_SERVICE_NAME_TRADES = "binance-data-extractor-trades"
 OTEL_SERVICE_VERSION = os.getenv("OTEL_SERVICE_VERSION", "1.0.0")
 OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 OTEL_EXPORTER_OTLP_HEADERS = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
@@ -105,21 +125,7 @@ RETRY_BACKOFF_SECONDS = float(os.getenv("RETRY_BACKOFF_SECONDS", "1.0"))
 RETRY_BACKOFF_MULTIPLIER = float(os.getenv("RETRY_BACKOFF_MULTIPLIER", "2.0"))
 
 # Performance monitoring
-ENABLE_METRICS = os.getenv("ENABLE_METRICS", "true").lower() in ("true", "1", "yes")
 METRICS_INTERVAL = int(os.getenv("METRICS_INTERVAL", "60"))
-
-# Message validation
-ENABLE_MESSAGE_VALIDATION = os.getenv("ENABLE_MESSAGE_VALIDATION", "true").lower() in (
-    "true",
-    "1",
-    "yes",
-)
-REQUIRED_MESSAGE_FIELDS = ["stream", "data", "timestamp"]
-
-# Backpressure handling
-ENABLE_BACKPRESSURE = os.getenv("ENABLE_BACKPRESSURE", "true").lower() in (
-    "true",
-    "1",
-    "yes",
-)
-BACKPRESSURE_THRESHOLD = int(os.getenv("BACKPRESSURE_THRESHOLD", "100"))
+PERFORMANCE_ALERT_THRESHOLD = float(
+    os.getenv("PERFORMANCE_ALERT_THRESHOLD", "1000")
+)  # ms

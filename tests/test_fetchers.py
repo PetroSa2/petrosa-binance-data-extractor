@@ -38,7 +38,7 @@ class TestBinanceClient:
 
         assert client.api_key == "test_key"
         assert client.api_secret == "test_secret"
-        assert client.base_url == "https://fapi.binance.com"
+        assert client.base_url == "https://api.binance.com"
         mock_session_class.assert_called_once()
 
     @patch("fetchers.client.requests.Session")

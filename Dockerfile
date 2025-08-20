@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Petrosa TA Bot
+# Multi-stage Dockerfile for Petrosa Binance Data Extractor
 # Optimized for production deployment with security and performance
 
 # Build stage
@@ -39,12 +39,12 @@ ARG COMMIT_SHA=unknown
 ARG BUILD_DATE=unknown
 
 # Metadata labels
-LABEL org.opencontainers.image.title="Petrosa TA Bot" \
-      org.opencontainers.image.description="Technical Analysis bot for cryptocurrency trading" \
+LABEL org.opencontainers.image.title="Petrosa Binance Data Extractor" \
+      org.opencontainers.image.description="Historical data extraction system for Binance cryptocurrency exchange" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT_SHA}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
-      org.opencontainers.image.source="https://github.com/petrosa/petrosa-bot-ta-analysis" \
+      org.opencontainers.image.source="https://github.com/petrosa/petrosa-binance-data-extractor" \
       org.opencontainers.image.vendor="Petrosa" \
       org.opencontainers.image.licenses="MIT"
 
@@ -93,7 +93,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Default command (can be overridden)
-CMD ["python", "-m", "ta_bot.main"]
+CMD ["python", "-m", "jobs.extract_klines_production"]
 
 # Development stage (for local development)
 FROM production AS development
