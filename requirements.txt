@@ -52,4 +52,4 @@ structlog>=23.0.0
 # CLI framework
 typer>=0.9.0
 # WebSocket client
-websockets>=12.0
+websockets>=11.0.3,<12.0

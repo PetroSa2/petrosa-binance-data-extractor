@@ -4,7 +4,7 @@ Pydantic model for Binance Futures Trade data.
 
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -20,23 +20,17 @@ class TradeModel(BaseSymbolModel):
 
     # Trade identification
     trade_id: int = Field(..., description="Unique trade ID from Binance")
-    order_id: Optional[int] = Field(
-        None, description="Order ID that generated this trade"
-    )
+    order_id: int | None = Field(None, description="Order ID that generated this trade")
 
     # Trade details
-    price: Decimal = Field(..., description="Trade execution price", decimal_places=8)
-    quantity: Decimal = Field(..., description="Trade quantity", decimal_places=8)
-    quote_quantity: Decimal = Field(
-        ..., description="Quote asset quantity", decimal_places=8
-    )
+    price: Decimal = Field(..., description="Trade execution price")
+    quantity: Decimal = Field(..., description="Trade quantity")
+    quote_quantity: Decimal = Field(..., description="Quote asset quantity")
 
     # Trade metadata
     is_buyer_maker: bool = Field(..., description="Whether the buyer is the maker")
-    commission: Optional[Decimal] = Field(
-        None, description="Commission amount", decimal_places=8
-    )
-    commission_asset: Optional[str] = Field(None, description="Commission asset")
+    commission: Decimal | None = Field(None, description="Commission amount")
+    commission_asset: str | None = Field(None, description="Commission asset")
 
     # Timing
     trade_time: datetime = Field(..., description="Trade execution time")

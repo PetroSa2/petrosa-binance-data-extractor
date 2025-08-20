@@ -54,4 +54,4 @@ types-PyYAML==6.0.12.12
 types-requests==2.31.0.20240125
 
 # WebSocket testing
-websockets[test]>=12.0
+websockets[test]>=11.0.3,<12.0

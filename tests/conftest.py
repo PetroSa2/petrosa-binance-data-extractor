@@ -1,139 +1,134 @@
 """
-Pytest configuration and fixtures for the Socket Client service.
+Pytest configuration and fixtures for the Binance Data Extractor service.
 """
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import Mock
 
 import pytest
 
-from socket_client.core.client import BinanceWebSocketClient
+from jobs.extract_klines_production import ProductionKlinesExtractor
 
 
 @pytest.fixture
-def sample_trade_message() -> dict:
-    """Sample trade message from Binance WebSocket."""
-    return {
-        "stream": "btcusdt@trade",
-        "data": {
-            "e": "trade",
-            "E": 123456789,
-            "s": "BTCUSDT",
-            "t": 12345,
-            "p": "0.001",
-            "q": "100",
-            "b": 88,
-            "a": 50,
-            "T": 123456785,
-            "m": True,
-            "M": True,
+def sample_klines_data() -> list[dict]:
+    """Sample klines data from Binance API."""
+    return [
+        {
+            "openTime": 1234567890000,
+            "open": "0.001",
+            "high": "0.002",
+            "low": "0.0005",
+            "close": "0.0015",
+            "volume": "1000",
+            "closeTime": 1234567949999,
+            "quoteAssetVolume": "1.5",
+            "numberOfTrades": 100,
+            "takerBuyBaseAssetVolume": "500",
+            "takerBuyQuoteAssetVolume": "0.75",
         },
-    }
-
-
-@pytest.fixture
-def sample_ticker_message() -> dict:
-    """Sample ticker message from Binance WebSocket."""
-    return {
-        "stream": "btcusdt@ticker",
-        "data": {
-            "e": "24hrTicker",
-            "E": 123456789,
-            "s": "BTCUSDT",
-            "p": "0.0015",
-            "P": "250.00",
-            "w": "0.0018",
-            "x": "0.0009",
-            "c": "0.0025",
-            "Q": "10",
-            "b": "4.00000000",
-            "B": "431.00000000",
-            "a": "4.00000200",
-            "A": "12.00000000",
-            "o": "0.00150000",
-            "h": "0.00250000",
-            "l": "0.00100000",
-            "v": "10000.00000000",
-            "q": "18.00000000",
-            "O": 0,
-            "C": 86400000,
-            "F": 0,
-            "L": 18150,
-            "n": 18151,
+        {
+            "openTime": 1234567950000,
+            "open": "0.0015",
+            "high": "0.003",
+            "low": "0.001",
+            "close": "0.0025",
+            "volume": "1500",
+            "closeTime": 1234568009999,
+            "quoteAssetVolume": "3.0",
+            "numberOfTrades": 150,
+            "takerBuyBaseAssetVolume": "750",
+            "takerBuyQuoteAssetVolume": "1.5",
         },
-    }
+    ]
 
 
 @pytest.fixture
-def sample_depth_message() -> dict:
-    """Sample depth message from Binance WebSocket."""
-    return {
-        "stream": "btcusdt@depth20@100ms",
-        "data": {
-            "e": "depthUpdate",
-            "E": 123456789,
-            "s": "BTCUSDT",
-            "U": 1,
-            "u": 2,
-            "b": [["0.0024", "10"], ["0.0022", "5"]],
-            "a": [["0.0026", "100"], ["0.0028", "50"]],
+def sample_funding_data() -> list[dict]:
+    """Sample funding rate data from Binance API."""
+    return [
+        {
+            "symbol": "BTCUSDT",
+            "fundingRate": "0.0001",
+            "fundingTime": 1234567890000,
+            "nextFundingTime": 1234567890000 + 28800000,  # 8 hours
         },
-    }
+        {
+            "symbol": "ETHUSDT",
+            "fundingRate": "0.0002",
+            "fundingTime": 1234567890000,
+            "nextFundingTime": 1234567890000 + 28800000,  # 8 hours
+        },
+    ]
 
 
 @pytest.fixture
-def mock_websocket():
-    """Mock WebSocket connection."""
-    mock_ws = AsyncMock()
-    mock_ws.closed = False
-    mock_ws.send = AsyncMock()
-    mock_ws.close = AsyncMock()
-    return mock_ws
+def sample_trades_data() -> list[dict]:
+    """Sample trades data from Binance API."""
+    return [
+        {
+            "id": 12345,
+            "price": "0.001",
+            "qty": "100",
+            "quoteQty": "0.1",
+            "time": 1234567890000,
+            "isBuyerMaker": True,
+            "isBestMatch": False,
+        },
+        {
+            "id": 12346,
+            "price": "0.0015",
+            "qty": "200",
+            "quoteQty": "0.3",
+            "time": 1234567891000,
+            "isBuyerMaker": False,
+            "isBestMatch": True,
+        },
+    ]
 
 
 @pytest.fixture
-def mock_nats_client():
-    """Mock NATS client."""
-    mock_nats = AsyncMock()
-    mock_nats.is_closed = False
-    mock_nats.publish = AsyncMock()
-    mock_nats.close = AsyncMock()
-    return mock_nats
+def mock_binance_api():
+    """Mock Binance API client."""
+    mock_api = Mock()
+    mock_api.get_klines = Mock(return_value=sample_klines_data())
+    mock_api.get_funding_rate = Mock(return_value=sample_funding_data())
+    mock_api.get_trades = Mock(return_value=sample_trades_data())
+    return mock_api
 
 
 @pytest.fixture
-def websocket_client(mock_websocket, mock_nats_client):
-    """WebSocket client with mocked dependencies."""
-    client = BinanceWebSocketClient(
-        ws_url="wss://test.binance.com",
-        streams=["btcusdt@trade"],
-        nats_url="nats://localhost:4222",
-        nats_topic="test.topic",
+def mock_database_adapter():
+    """Mock database adapter."""
+    mock_db = Mock()
+    mock_db.insert_many = Mock()
+    mock_db.find = Mock(return_value=[])
+    mock_db.count = Mock(return_value=0)
+    return mock_db
+
+
+@pytest.fixture
+def klines_extractor(mock_binance_api, mock_database_adapter):
+    """Klines extractor with mocked dependencies."""
+    extractor = ProductionKlinesExtractor(
+        symbols=["BTCUSDT", "ETHUSDT"],
+        interval="15m",
+        lookback_hours=24,
     )
-
-    # Mock the connections
-    client.websocket = mock_websocket
-    client.nats_client = mock_nats_client
-
-    return client
-
-
-@pytest.fixture
-def test_streams() -> list[str]:
-    """Test streams for WebSocket client."""
-    return ["btcusdt@trade", "btcusdt@ticker", "ethusdt@trade"]
+    extractor.api_client = mock_binance_api
+    extractor.db_adapter = mock_database_adapter
+    return extractor
 
 
 @pytest.fixture
 def test_config() -> dict:
     """Test configuration."""
     return {
-        "ws_url": "wss://test.binance.com",
-        "nats_url": "nats://localhost:4222",
-        "nats_topic": "test.topic",
-        "streams": ["btcusdt@trade"],
-        "max_reconnect_attempts": 3,
-        "reconnect_delay": 1,
+        "symbols": ["BTCUSDT", "ETHUSDT"],
+        "interval": "15m",
+        "lookback_hours": 24,
+        "max_workers": 2,
+        "batch_size": 100,
     }
 
 
@@ -146,32 +141,52 @@ def event_loop():
 
 
 @pytest.fixture
-def mock_websockets_connect(monkeypatch):
-    """Mock websockets.connect."""
-    mock_connect = AsyncMock()
-    monkeypatch.setattr("websockets.connect", mock_connect)
-    return mock_connect
+def mock_requests_session(monkeypatch):
+    """Mock requests session."""
+    mock_session = Mock()
+    mock_session.get = Mock()
+    mock_session.post = Mock()
 
+    mock_response = Mock()
+    mock_response.json.return_value = {"data": []}
+    mock_response.status_code = 200
+    mock_session.get.return_value = mock_response
+    mock_session.post.return_value = mock_response
 
-@pytest.fixture
-def mock_nats_connect(monkeypatch):
-    """Mock nats.connect."""
-    mock_connect = AsyncMock()
-    monkeypatch.setattr("nats.connect", mock_connect)
-    return mock_connect
-
-
-@pytest.fixture
-def mock_aiohttp_client_session(monkeypatch):
-    """Mock aiohttp ClientSession."""
-    mock_session = AsyncMock()
-    mock_session.get = AsyncMock()
-    mock_session.post = AsyncMock()
-    mock_session.close = AsyncMock()
-
-    mock_client_session = AsyncMock()
-    mock_client_session.__aenter__.return_value = mock_session
-    mock_client_session.__aexit__.return_value = None
-
-    monkeypatch.setattr("aiohttp.ClientSession", mock_client_session)
+    monkeypatch.setattr("requests.Session", lambda: mock_session)
     return mock_session
+
+
+@pytest.fixture
+def mock_pymongo_client(monkeypatch):
+    """Mock PyMongo client."""
+    mock_client = Mock()
+    mock_db = Mock()
+    mock_collection = Mock()
+
+    mock_collection.insert_many = Mock()
+    mock_collection.find = Mock(return_value=[])
+    mock_collection.count_documents = Mock(return_value=0)
+
+    mock_db.__getitem__ = Mock(return_value=mock_collection)
+    mock_client.__getitem__ = Mock(return_value=mock_db)
+
+    monkeypatch.setattr("pymongo.MongoClient", lambda *args, **kwargs: mock_client)
+    return mock_client
+
+
+@pytest.fixture
+def mock_pymysql_connection(monkeypatch):
+    """Mock PyMySQL connection."""
+    mock_connection = Mock()
+    mock_cursor = Mock()
+
+    mock_cursor.execute = Mock()
+    mock_cursor.fetchall = Mock(return_value=[])
+    mock_cursor.fetchone = Mock(return_value=None)
+
+    mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_connection.cursor.return_value.__exit__.return_value = None
+
+    monkeypatch.setattr("pymysql.connect", lambda *args, **kwargs: mock_connection)
+    return mock_connection

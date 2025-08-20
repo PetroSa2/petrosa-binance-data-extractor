@@ -4,7 +4,7 @@ Pydantic model for Binance Futures Kline (candlestick) data.
 
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -24,30 +24,28 @@ class KlineModel(BaseSymbolModel):
     interval: str = Field(..., description="Kline interval (e.g., 1m, 5m, 15m, 1h)")
 
     # OHLCV data
-    open_price: Decimal = Field(..., description="Open price", decimal_places=8)
-    high_price: Decimal = Field(..., description="High price", decimal_places=8)
-    low_price: Decimal = Field(..., description="Low price", decimal_places=8)
-    close_price: Decimal = Field(..., description="Close price", decimal_places=8)
-    volume: Decimal = Field(..., description="Volume", decimal_places=8)
+    open_price: Decimal = Field(..., description="Open price")
+    high_price: Decimal = Field(..., description="High price")
+    low_price: Decimal = Field(..., description="Low price")
+    close_price: Decimal = Field(..., description="Close price")
+    volume: Decimal = Field(..., description="Volume")
 
     # Additional Binance-specific fields
-    quote_asset_volume: Decimal = Field(
-        ..., description="Quote asset volume", decimal_places=8
-    )
+    quote_asset_volume: Decimal = Field(..., description="Quote asset volume")
     number_of_trades: int = Field(..., description="Number of trades in this kline")
     taker_buy_base_asset_volume: Decimal = Field(
-        ..., description="Taker buy base asset volume", decimal_places=8
+        ..., description="Taker buy base asset volume"
     )
     taker_buy_quote_asset_volume: Decimal = Field(
-        ..., description="Taker buy quote asset volume", decimal_places=8
+        ..., description="Taker buy quote asset volume"
     )
 
     # Derived fields
-    price_change: Optional[Decimal] = Field(
-        None, description="Price change (close - open)", decimal_places=8
+    price_change: Decimal | None = Field(
+        None, description="Price change (close - open)"
     )
-    price_change_percent: Optional[Decimal] = Field(
-        None, description="Price change percentage", decimal_places=4
+    price_change_percent: Decimal | None = Field(
+        None, description="Price change percentage"
     )
 
     model_config = ConfigDict(
