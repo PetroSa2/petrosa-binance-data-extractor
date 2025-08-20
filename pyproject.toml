@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "petrosa-socket-client"
+name = "petrosa-binance-data-extractor"
 version = "0.1.0"
-description = "Binance WebSocket client for real-time data streaming"
+description = "Historical data extraction system for Binance cryptocurrency exchange"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [

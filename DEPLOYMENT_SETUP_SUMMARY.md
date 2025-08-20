@@ -1,11 +1,11 @@
-# Petrosa Socket Client - Deployment Configuration Summary
+# Petrosa Binance Data Extractor - Deployment Configuration Summary
 
 ## ✅ Completed Configuration
 
 ### 1. GitHub Actions Workflows
-- ✅ Copied CI/CD workflows from petrosa-binance-data-extractor
-- ✅ Updated Docker image name to `petrosa-socket-client`
-- ✅ Updated Codecov repository slug to `PetroSa2/petrosa-socket-client`
+- ✅ Copied CI/CD workflows from petrosa-socket-client
+- ✅ Updated Docker image name to `petrosa-binance-data-extractor`
+- ✅ Updated Codecov repository slug to `PetroSa2/petrosa-binance-data-extractor`
 - ✅ Configured workflows for:
   - CI Checks (linting, testing, security scanning)
   - Deployment (Docker build, Kubernetes deployment)
@@ -33,7 +33,7 @@ gh secret set DOCKERHUB_USERNAME -b "your-dockerhub-username"
 gh secret set DOCKERHUB_TOKEN -b "your-dockerhub-access-token"
 ```
 
-**Note**: You can get these values from the petrosa-crypto-binance-socket repository or create new ones.
+**Note**: You can get these values from the petrosa-socket-client repository or create new ones.
 
 ### 2. Codecov Token (Optional)
 If you want to use Codecov for coverage reporting:
@@ -81,8 +81,7 @@ gh secret list
 ## 🔗 Related Repositories
 
 This configuration follows the same pattern as:
-- petrosa-binance-data-extractor
-- petrosa-crypto-binance-socket
+- petrosa-socket-client
 - petrosa-tradeengine
 - petrosa-bot-ta-analysis
 
