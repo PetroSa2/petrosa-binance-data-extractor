@@ -26,7 +26,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: data-extractor
-        image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
+        image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
         imagePullPolicy: Always
         command:
         - opentelemetry-instrument
@@ -58,12 +58,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: petrosa-common-config
-              key: LOG_LEVEL
+              key: log-level
         - name: ENVIRONMENT
           valueFrom:
             configMapKeyRef:
               name: petrosa-common-config
-              key: ENVIRONMENT
+              key: environment
         - name: ENABLE_OTEL
           valueFrom:
             configMapKeyRef:
