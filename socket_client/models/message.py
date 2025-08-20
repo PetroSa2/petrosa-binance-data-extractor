@@ -45,8 +45,9 @@ class WebSocketMessage(BaseModel):
             "data": self.data,
             "timestamp": self.timestamp.isoformat() + "Z",
             "message_id": self.message_id,
-            "source": "binance-websocket",
+            "source": "binance-futures-websocket",
             "version": "1.0",
+            "market_type": "futures",
         }
 
     def to_json(self) -> str:
@@ -140,6 +141,49 @@ class DepthMessage(WebSocketMessage):
         }
 
 
+class MarkPriceMessage(WebSocketMessage):
+    """Model for mark price messages (futures only)."""
+
+    class Config:
+        """Pydantic configuration."""
+
+        schema_extra = {
+            "example": {
+                "stream": "btcusdt@markPrice@1s",
+                "data": {
+                    "e": "markPriceUpdate",
+                    "E": 123456789,
+                    "s": "BTCUSDT",
+                    "p": "0.001",
+                    "P": "0.001",
+                    "i": "0.001",
+                    "r": "0.0001",
+                    "T": 123456789,
+                },
+            }
+        }
+
+
+class FundingRateMessage(WebSocketMessage):
+    """Model for funding rate messages (futures only)."""
+
+    class Config:
+        """Pydantic configuration."""
+
+        schema_extra = {
+            "example": {
+                "stream": "btcusdt@fundingRate@1s",
+                "data": {
+                    "e": "fundingRate",
+                    "E": 123456789,
+                    "s": "BTCUSDT",
+                    "r": "0.0001",
+                    "T": 123456789,
+                },
+            }
+        }
+
+
 class HealthMessage(BaseModel):
     """Model for health check messages."""
 
@@ -178,6 +222,10 @@ def create_message(
         return TickerMessage(stream=stream, data=data, message_id=message_id)
     elif "@depth" in stream:
         return DepthMessage(stream=stream, data=data, message_id=message_id)
+    elif "@markPrice" in stream:
+        return MarkPriceMessage(stream=stream, data=data, message_id=message_id)
+    elif "@fundingRate" in stream:
+        return FundingRateMessage(stream=stream, data=data, message_id=message_id)
     else:
         return WebSocketMessage(stream=stream, data=data, message_id=message_id)
 

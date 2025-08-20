@@ -284,12 +284,8 @@ class TestMain:
         mock_args.check_gaps = False
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
-        mock_parse_datetime_string.side_effect = [
-            datetime(2024, 1, 1, tzinfo=UTC)
-        ]
-        mock_get_current_utc_time.return_value = datetime(
-            2024, 1, 2, tzinfo=UTC
-        )
+        mock_parse_datetime_string.side_effect = [datetime(2024, 1, 1, tzinfo=UTC)]
+        mock_get_current_utc_time.return_value = datetime(2024, 1, 2, tzinfo=UTC)
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
         mock_get_adapter.return_value.__enter__.return_value = (
@@ -358,12 +354,8 @@ class TestMain:
         mock_args.check_gaps = False
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
-        mock_parse_datetime_string.side_effect = [
-            datetime(2024, 1, 1, tzinfo=UTC)
-        ]
-        mock_get_current_utc_time.return_value = datetime(
-            2024, 1, 2, tzinfo=UTC
-        )
+        mock_parse_datetime_string.side_effect = [datetime(2024, 1, 1, tzinfo=UTC)]
+        mock_get_current_utc_time.return_value = datetime(2024, 1, 2, tzinfo=UTC)
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
         mock_get_adapter.return_value.__enter__.return_value = (
@@ -461,12 +453,8 @@ class TestMain:
         mock_args.check_gaps = False
         mock_args.backfill = False
         mock_parse_args.return_value = mock_args
-        mock_parse_datetime_string.side_effect = [
-            datetime(2024, 1, 1, tzinfo=UTC)
-        ]
-        mock_get_current_utc_time.return_value = datetime(
-            2024, 1, 2, tzinfo=UTC
-        )
+        mock_parse_datetime_string.side_effect = [datetime(2024, 1, 1, tzinfo=UTC)]
+        mock_get_current_utc_time.return_value = datetime(2024, 1, 2, tzinfo=UTC)
         mock_get_symbols_list.return_value = ["BTCUSDT"]
         mock_get_db_conn_str.return_value = "mongodb://test"
         mock_get_adapter.side_effect = Exception("db fail")

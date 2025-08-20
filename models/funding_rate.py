@@ -133,9 +133,7 @@ class FundingRateModel(BaseSymbolModel):
                 if premium_data.get("lastFundingRate")
                 else None
             ),
-            timestamp=datetime.fromtimestamp(
-                int(premium_data["time"]) / 1000, tz=UTC
-            ),
+            timestamp=datetime.fromtimestamp(int(premium_data["time"]) / 1000, tz=UTC),
         )
 
     def to_dict(self) -> dict[str, Any]:
