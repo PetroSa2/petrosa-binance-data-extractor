@@ -643,7 +643,7 @@ class MySQLAdapter(BaseAdapter):
         except Exception as e:
             raise DatabaseError(f"Failed to delete from {collection}: {e}") from e
 
-    def _ensure_connected(self) -> Engine:
+    def _ensure_connected(self) -> "Engine":
         """Ensure the database engine is connected and return it."""
         if self.engine is None:
             raise DatabaseError("Database engine is not initialized")
