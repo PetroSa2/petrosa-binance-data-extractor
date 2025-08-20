@@ -394,9 +394,7 @@ class TelemetryManager:
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         print(f"DEBUG: OTLP endpoint = {otlp_endpoint}")
         if otlp_endpoint:
-            print(
-                f"DEBUG: Creating OTLP exporter for endpoint: {otlp_endpoint}"
-            )
+            print(f"DEBUG: Creating OTLP exporter for endpoint: {otlp_endpoint}")
             try:
                 headers = self._parse_headers(
                     os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")

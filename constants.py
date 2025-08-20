@@ -11,20 +11,24 @@ from dotenv import load_dotenv
 # Load environment variables from .env file if it exists
 load_dotenv()
 
-# Binance WebSocket settings
-BINANCE_WS_URL = os.getenv("BINANCE_WS_URL", "wss://stream.binance.com:9443")
+# Binance WebSocket settings (Futures focused)
+BINANCE_WS_URL = os.getenv("BINANCE_WS_URL", "wss://fstream.binance.com:9443")
 BINANCE_FUTURES_WS_URL = os.getenv(
-    "BINANCE_FUTURES_WS_URL", "wss://fstream.binance.com"
+    "BINANCE_FUTURES_WS_URL", "wss://fstream.binance.com:9443"
 )
 
-# Default streams to subscribe to
+# Default futures streams to subscribe to
 DEFAULT_STREAMS = [
     "btcusdt@trade",
     "btcusdt@ticker",
     "btcusdt@depth20@100ms",
+    "btcusdt@markPrice@1s",
+    "btcusdt@fundingRate@1s",
     "ethusdt@trade",
     "ethusdt@ticker",
     "ethusdt@depth20@100ms",
+    "ethusdt@markPrice@1s",
+    "ethusdt@fundingRate@1s",
 ]
 
 
@@ -39,7 +43,7 @@ def get_streams() -> list[str]:
 
 # NATS configuration
 NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
-NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.websocket.data")
+NATS_TOPIC = os.getenv("NATS_TOPIC", "binance.futures.websocket.data")
 NATS_CLIENT_NAME = os.getenv("NATS_CLIENT_NAME", "petrosa-socket-client")
 
 # WebSocket connection settings
@@ -81,7 +85,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = os.getenv("LOG_FORMAT", "json")  # json or text
 
 # OpenTelemetry settings
-OTEL_SERVICE_NAME = "socket-client"
+OTEL_SERVICE_NAME = "socket-client-futures"
 OTEL_SERVICE_VERSION = os.getenv("OTEL_SERVICE_VERSION", "1.0.0")
 OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 OTEL_EXPORTER_OTLP_HEADERS = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")

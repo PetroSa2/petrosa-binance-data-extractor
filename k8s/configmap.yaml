@@ -9,12 +9,12 @@ metadata:
     component: websocket-client
     version: VERSION_PLACEHOLDER
 data:
-  # Binance WebSocket configuration
-  BINANCE_WS_URL: "wss://stream.binance.com:9443"
-  BINANCE_STREAMS: "btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms,ethusdt@trade,ethusdt@ticker,ethusdt@depth20@100ms"
+  # Binance WebSocket configuration (Futures only)
+  BINANCE_WS_URL: "wss://fstream.binance.com:9443"
+  BINANCE_STREAMS: "btcusdt@trade,btcusdt@ticker,btcusdt@depth20@100ms,btcusdt@markPrice@1s,btcusdt@fundingRate@1s,ethusdt@trade,ethusdt@ticker,ethusdt@depth20@100ms,ethusdt@markPrice@1s,ethusdt@fundingRate@1s"
 
   # NATS configuration
-  NATS_TOPIC: "binance.websocket.data"
+  NATS_TOPIC: "binance.futures.websocket.data"
 
   # WebSocket connection settings
   WEBSOCKET_RECONNECT_DELAY: "5"

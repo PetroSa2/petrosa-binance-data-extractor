@@ -791,9 +791,7 @@ class TestTimezoneHandling:
         with patch(
             "jobs.extract_klines_production.get_current_utc_time"
         ) as mock_current_time:
-            mock_current_time.return_value = datetime(
-                2023, 1, 1, 13, 0, 0, tzinfo=UTC
-            )
+            mock_current_time.return_value = datetime(2023, 1, 1, 13, 0, 0, tzinfo=UTC)
 
             start_time, end_time = extractor.calculate_extraction_window(
                 naive_timestamp

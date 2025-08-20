@@ -290,9 +290,7 @@ class TestKlinesFetcher:
 
         symbols = ["BTCUSDT", "ETHUSDT"]
         start_time = datetime(2022, 1, 1, tzinfo=UTC)
-        end_time = datetime(
-            2022, 1, 1, 0, 15, tzinfo=UTC
-        )  # Match mock data range
+        end_time = datetime(2022, 1, 1, 0, 15, tzinfo=UTC)  # Match mock data range
 
         results = self.fetcher.fetch_multiple_symbols(
             symbols, "15m", start_time, end_time

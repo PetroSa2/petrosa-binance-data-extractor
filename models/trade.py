@@ -88,9 +88,7 @@ class TradeModel(BaseSymbolModel):
             "isBuyerMaker": true
         }
         """
-        trade_time = datetime.fromtimestamp(
-            int(trade_data["time"]) / 1000, tz=UTC
-        )
+        trade_time = datetime.fromtimestamp(int(trade_data["time"]) / 1000, tz=UTC)
         return cls(
             symbol=symbol,
             timestamp=trade_time,  # Use trade_time as primary timestamp
