@@ -35,7 +35,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             command:
             - opentelemetry-instrument
@@ -206,7 +206,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             command:
             - opentelemetry-instrument
@@ -327,7 +327,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             command:
             - opentelemetry-instrument
@@ -423,7 +423,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: Always
             command:
             - opentelemetry-instrument
@@ -600,7 +600,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: klines-extractor
-            image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
             imagePullPolicy: IfNotPresent
             command:
             - opentelemetry-instrument
