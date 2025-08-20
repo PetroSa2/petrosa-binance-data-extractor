@@ -197,4 +197,4 @@ NATS_URL=nats://localhost:4222
 - [Full Setup Guide](REPOSITORY_SETUP_GUIDE.md)
 - [Operations Guide](OPERATIONS_GUIDE.md)
 - [Deployment Guide](DEPLOYMENT_GUIDE.md)
-- [Local Deployment](LOCAL_DEPLOY.md) 
+- [Local Deployment](LOCAL_DEPLOY.md)

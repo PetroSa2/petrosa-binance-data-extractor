@@ -31,14 +31,24 @@ class KlineModel(BaseSymbolModel):
     volume: Decimal = Field(..., description="Volume", decimal_places=8)
 
     # Additional Binance-specific fields
-    quote_asset_volume: Decimal = Field(..., description="Quote asset volume", decimal_places=8)
+    quote_asset_volume: Decimal = Field(
+        ..., description="Quote asset volume", decimal_places=8
+    )
     number_of_trades: int = Field(..., description="Number of trades in this kline")
-    taker_buy_base_asset_volume: Decimal = Field(..., description="Taker buy base asset volume", decimal_places=8)
-    taker_buy_quote_asset_volume: Decimal = Field(..., description="Taker buy quote asset volume", decimal_places=8)
+    taker_buy_base_asset_volume: Decimal = Field(
+        ..., description="Taker buy base asset volume", decimal_places=8
+    )
+    taker_buy_quote_asset_volume: Decimal = Field(
+        ..., description="Taker buy quote asset volume", decimal_places=8
+    )
 
     # Derived fields
-    price_change: Optional[Decimal] = Field(None, description="Price change (close - open)", decimal_places=8)
-    price_change_percent: Optional[Decimal] = Field(None, description="Price change percentage", decimal_places=4)
+    price_change: Optional[Decimal] = Field(
+        None, description="Price change (close - open)", decimal_places=8
+    )
+    price_change_percent: Optional[Decimal] = Field(
+        None, description="Price change percentage", decimal_places=4
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -91,7 +101,9 @@ class KlineModel(BaseSymbolModel):
         return self
 
     @classmethod
-    def from_binance_kline(cls, kline_data: List[Any], symbol: str, interval: str) -> "KlineModel":
+    def from_binance_kline(
+        cls, kline_data: List[Any], symbol: str, interval: str
+    ) -> "KlineModel":
         """
         Create KlineModel from Binance API kline data array.
 
@@ -118,7 +130,9 @@ class KlineModel(BaseSymbolModel):
         open_price = Decimal(kline_data[1])
         close_price = Decimal(kline_data[4])
         price_change = close_price - open_price
-        price_change_percent = (price_change / open_price * 100) if open_price != 0 else Decimal(0)
+        price_change_percent = (
+            (price_change / open_price * 100) if open_price != 0 else Decimal(0)
+        )
         # Quantize to 4 decimal places to match field constraints
         price_change_percent = price_change_percent.quantize(Decimal("0.0001"))
 

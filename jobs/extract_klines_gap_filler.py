@@ -17,37 +17,45 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import constants
-
-# Initialize OpenTelemetry as early as possible
-try:
-    from utils.telemetry import initialize_telemetry
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
-        service_name = os.getenv("OTEL_SERVICE_NAME_KLINES", constants.OTEL_SERVICE_NAME_KLINES)
-        initialize_telemetry(service_name=service_name, environment="production")
-except ImportError:
-    pass
-
-from db import get_adapter
-from fetchers import BinanceClient, KlinesFetcher
-from models.base import BaseModel
-from utils.logger import (
+import constants  # noqa: E402
+from db import get_adapter  # noqa: E402
+from fetchers import BinanceClient, KlinesFetcher  # noqa: E402
+from models.base import BaseModel  # noqa: E402
+from utils.logger import (  # noqa: E402
     get_logger,
     log_extraction_completion,
     log_extraction_start,
     setup_logging,
 )
-from utils.messaging import publish_extraction_completion_sync
-from utils.telemetry import get_tracer
-from utils.time_utils import (
+from utils.messaging import publish_extraction_completion_sync  # noqa: E402
+from utils.telemetry import get_tracer  # noqa: E402
+from utils.time_utils import (  # noqa: E402
     binance_interval_to_table_suffix,
     format_duration,
     get_current_utc_time,
 )
 
+# Initialize OpenTelemetry as early as possible
+try:
+    from utils.telemetry import initialize_telemetry  # noqa: E402
+
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        service_name = os.getenv(
+            "OTEL_SERVICE_NAME_KLINES", constants.OTEL_SERVICE_NAME_KLINES
+        )
+        initialize_telemetry(service_name=service_name, environment="production")
+except ImportError:
+    pass
+
 
 def retry_with_backoff(
-    func, max_retries=5, base_delay=1.0, max_delay=300.0, logger=None, retry_on_all_errors=False, operation_name="operation"
+    func,
+    max_retries=5,
+    base_delay=1.0,
+    max_delay=300.0,
+    logger=None,
+    retry_on_all_errors=False,
+    operation_name="operation",
 ):
     """
     Retry a function with exponential backoff and jitter.
@@ -134,7 +142,12 @@ def retry_with_backoff(
                 ]
             )
 
-            should_retry = retry_on_all_errors or is_connection_error or is_api_error or is_network_error
+            should_retry = (
+                retry_on_all_errors
+                or is_connection_error
+                or is_api_error
+                or is_network_error
+            )
 
             if should_retry and attempt < max_retries:
                 # Exponential backoff with jitter
@@ -144,17 +157,27 @@ def retry_with_backoff(
 
                 # Additional delay for API rate limiting
                 if is_api_error:
-                    api_delay = random.uniform(30.0, 60.0)  # 30-60 seconds for rate limits
+                    api_delay = random.uniform(
+                        30.0, 60.0
+                    )  # 30-60 seconds for rate limits
                     total_delay += api_delay
 
                 if logger:
                     error_type = (
                         "API rate limit"
                         if is_api_error
-                        else "Connection" if is_connection_error else "Network" if is_network_error else "General"
+                        else "Connection"
+                        if is_connection_error
+                        else "Network"
+                        if is_network_error
+                        else "General"
                     )
-                    logger.warning(f"{error_type} error on {operation_name} attempt {attempt + 1}/{max_retries + 1}: {e}")
-                    logger.info(f"Retrying {operation_name} in {total_delay:.2f} seconds...")
+                    logger.warning(
+                        f"{error_type} error on {operation_name} attempt {attempt + 1}/{max_retries + 1}: {e}"
+                    )
+                    logger.info(
+                        f"Retrying {operation_name} in {total_delay:.2f} seconds..."
+                    )
 
                 time.sleep(total_delay)
                 continue
@@ -163,7 +186,9 @@ def retry_with_backoff(
                     if not should_retry:
                         logger.error(f"Non-retryable error in {operation_name}: {e}")
                     else:
-                        logger.error(f"All {max_retries + 1} attempts failed for {operation_name}. Last error: {e}")
+                        logger.error(
+                            f"All {max_retries + 1} attempts failed for {operation_name}. Last error: {e}"
+                        )
                 break
 
     raise last_exception
@@ -234,25 +259,33 @@ class GapFillerExtractor:
 
     def get_start_date(self) -> datetime:
         """Get the start date from constants."""
-        return datetime.fromisoformat(constants.DEFAULT_START_DATE.replace("Z", "+00:00"))
+        return datetime.fromisoformat(
+            constants.DEFAULT_START_DATE.replace("Z", "+00:00")
+        )
 
     def get_end_date(self) -> datetime:
         """Get the current time as end date."""
         return get_current_utc_time() - timedelta(minutes=5)
 
-    def split_weekly_chunks(self, start_date: datetime, end_date: datetime) -> List[Tuple[datetime, datetime]]:
+    def split_weekly_chunks(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Tuple[datetime, datetime]]:
         """Split a date range into weekly chunks."""
         chunks = []
         current_start = start_date
 
         while current_start < end_date:
-            current_end = min(current_start + timedelta(days=self.weekly_chunk_days), end_date)
+            current_end = min(
+                current_start + timedelta(days=self.weekly_chunk_days), end_date
+            )
             chunks.append((current_start, current_end))
             current_start = current_end
 
         return chunks
 
-    def detect_gaps_for_symbol(self, symbol: str, db_adapter) -> List[Tuple[datetime, datetime]]:
+    def detect_gaps_for_symbol(
+        self, symbol: str, db_adapter
+    ) -> List[Tuple[datetime, datetime]]:
         """Detect gaps for a single symbol."""
 
         def _detect_gaps():
@@ -261,9 +294,13 @@ class GapFillerExtractor:
             end_date = self.get_end_date()
             interval_minutes = self.period_to_minutes()
 
-            self.logger.info(f"Detecting gaps for {symbol} from {start_date} to {end_date}")
+            self.logger.info(
+                f"Detecting gaps for {symbol} from {start_date} to {end_date}"
+            )
 
-            gaps = db_adapter.find_gaps(collection_name, start_date, end_date, interval_minutes, symbol=symbol)
+            gaps = db_adapter.find_gaps(
+                collection_name, start_date, end_date, interval_minutes, symbol=symbol
+            )
 
             # Filter out gaps that are too large
             filtered_gaps = []
@@ -273,7 +310,8 @@ class GapFillerExtractor:
                     filtered_gaps.append((gap_start, gap_end))
                 else:
                     self.logger.warning(
-                        f"Skipping large gap for {symbol}: {gap_start} to {gap_end} " f"(duration: {gap_duration.days} days)"
+                        f"Skipping large gap for {symbol}: {gap_start} to {gap_end} "
+                        f"(duration: {gap_duration.days} days)"
                     )
 
             return filtered_gaps
@@ -288,11 +326,18 @@ class GapFillerExtractor:
                 operation_name=f"gap detection for {symbol}",
             )
         except Exception as e:
-            self.logger.error(f"Failed to detect gaps for {symbol} after all retries: {e}")
+            self.logger.error(
+                f"Failed to detect gaps for {symbol} after all retries: {e}"
+            )
             return []
 
     def fill_gap_chunk(
-        self, symbol: str, gap_start: datetime, gap_end: datetime, binance_client: BinanceClient, db_adapter
+        self,
+        symbol: str,
+        gap_start: datetime,
+        gap_end: datetime,
+        binance_client: BinanceClient,
+        db_adapter,
     ) -> Dict:
         """Fill a single gap chunk with data."""
         chunk_start_time = time.time()
@@ -335,7 +380,9 @@ class GapFillerExtractor:
                 collection_name = self.get_collection_name()
 
                 def _write_data():
-                    return db_adapter.write(cast(List[BaseModel], klines_data), collection_name)
+                    return db_adapter.write(
+                        cast(List[BaseModel], klines_data), collection_name
+                    )
 
                 records_written = retry_with_backoff(
                     _write_data,
@@ -400,7 +447,9 @@ class GapFillerExtractor:
                     db_uri = constants.POSTGRESQL_URI
 
                 if not db_uri:
-                    raise ValueError(f"No database URI available for adapter: {self.db_adapter_name}")
+                    raise ValueError(
+                        f"No database URI available for adapter: {self.db_adapter_name}"
+                    )
 
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
 
@@ -430,7 +479,9 @@ class GapFillerExtractor:
 
                 # Add additional validation for gaps
                 if len(gaps) > 100:  # Sanity check for too many gaps
-                    self.logger.warning(f"Found {len(gaps)} gaps for {symbol}, this seems excessive. Limiting to first 50.")
+                    self.logger.warning(
+                        f"Found {len(gaps)} gaps for {symbol}, this seems excessive. Limiting to first 50."
+                    )
                     gaps = gaps[:50]
 
                 for gap_start, gap_end in gaps:
@@ -442,11 +493,21 @@ class GapFillerExtractor:
                             time.sleep(delay)
 
                         try:
-                            chunk_result = self.fill_gap_chunk(symbol, chunk_start, chunk_end, binance_client, db_adapter)
+                            chunk_result = self.fill_gap_chunk(
+                                symbol,
+                                chunk_start,
+                                chunk_end,
+                                binance_client,
+                                db_adapter,
+                            )
 
                             result["weekly_chunks_processed"] += 1
-                            result["total_records_fetched"] += chunk_result["records_fetched"]
-                            result["total_records_written"] += chunk_result["records_written"]
+                            result["total_records_fetched"] += chunk_result[
+                                "records_fetched"
+                            ]
+                            result["total_records_written"] += chunk_result[
+                                "records_written"
+                            ]
 
                             if chunk_result["success"]:
                                 result["gaps_filled"] += 1
@@ -456,7 +517,9 @@ class GapFillerExtractor:
                                 )
 
                         except Exception as chunk_error:
-                            self.logger.error(f"Exception during chunk processing for {symbol}: {chunk_error}")
+                            self.logger.error(
+                                f"Exception during chunk processing for {symbol}: {chunk_error}"
+                            )
                             result["weekly_chunks_processed"] += 1
                             # Continue with next chunk instead of failing entire symbol
 
@@ -489,7 +552,9 @@ class GapFillerExtractor:
                             use_gap_filler_prefix=True,
                         )
                     except Exception as e:
-                        self.logger.warning(f"Failed to send NATS message for {symbol}: {e}")
+                        self.logger.warning(
+                            f"Failed to send NATS message for {symbol}: {e}"
+                        )
 
                 return result
 
@@ -497,7 +562,9 @@ class GapFillerExtractor:
                 try:
                     db_adapter.disconnect()
                 except Exception as disconnect_error:
-                    self.logger.warning(f"Error disconnecting from database: {disconnect_error}")
+                    self.logger.warning(
+                        f"Error disconnecting from database: {disconnect_error}"
+                    )
 
         try:
             return retry_with_backoff(
@@ -520,7 +587,9 @@ class GapFillerExtractor:
         try:
             current_tracer = get_tracer("jobs.extract_klines_gap_filler")
             if current_tracer:
-                with current_tracer.start_as_current_span("klines_gap_filling_run") as span:
+                with current_tracer.start_as_current_span(
+                    "klines_gap_filling_run"
+                ) as span:
                     span.set_attribute("extraction.period", self.period)
                     span.set_attribute("extraction.symbols_count", len(self.symbols))
                     span.set_attribute("extraction.max_workers", self.max_workers)
@@ -535,9 +604,13 @@ class GapFillerExtractor:
         """Implementation of run_gap_filling method."""
         extraction_start_time = time.time()
 
-        self.logger.info(f"Starting gap detection and filling for {len(self.symbols)} symbols")
+        self.logger.info(
+            f"Starting gap detection and filling for {len(self.symbols)} symbols"
+        )
         self.logger.info(f"Period: {self.period}, Max workers: {self.max_workers}")
-        self.logger.info(f"Weekly chunk days: {self.weekly_chunk_days}, Max gap size: {self.max_gap_size_days} days")
+        self.logger.info(
+            f"Weekly chunk days: {self.weekly_chunk_days}, Max gap size: {self.max_gap_size_days} days"
+        )
 
         # Initialize Binance client with retry logic
         def _init_binance_client():
@@ -561,7 +634,9 @@ class GapFillerExtractor:
             )
             self.logger.info("✅ Successfully connected to Binance API")
         except Exception as e:
-            self.logger.error(f"❌ Failed to initialize Binance client after all retries: {e}")
+            self.logger.error(
+                f"❌ Failed to initialize Binance client after all retries: {e}"
+            )
             return {
                 "success": False,
                 "total_symbols": len(self.symbols),
@@ -581,7 +656,10 @@ class GapFillerExtractor:
         try:
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 future_to_symbol = {
-                    executor.submit(self.process_symbol_gaps, symbol, binance_client): symbol for symbol in self.symbols
+                    executor.submit(
+                        self.process_symbol_gaps, symbol, binance_client
+                    ): symbol
+                    for symbol in self.symbols
                 }
 
                 for future in as_completed(future_to_symbol):
@@ -595,12 +673,20 @@ class GapFillerExtractor:
                                 self.stats["symbols_processed"] += 1
                                 self.stats["total_gaps_found"] += result["gaps_found"]
                                 self.stats["total_gaps_filled"] += result["gaps_filled"]
-                                self.stats["total_records_fetched"] += result["total_records_fetched"]
-                                self.stats["total_records_written"] += result["total_records_written"]
-                                self.stats["total_weekly_chunks_processed"] += result["weekly_chunks_processed"]
+                                self.stats["total_records_fetched"] += result[
+                                    "total_records_fetched"
+                                ]
+                                self.stats["total_records_written"] += result[
+                                    "total_records_written"
+                                ]
+                                self.stats["total_weekly_chunks_processed"] += result[
+                                    "weekly_chunks_processed"
+                                ]
                             else:
                                 self.stats["symbols_failed"] += 1
-                                self.stats["errors"].append(f"{symbol}: {result['error']}")
+                                self.stats["errors"].append(
+                                    f"{symbol}: {result['error']}"
+                                )
 
                     except Exception as e:
                         self.logger.error(f"Failed to get result for {symbol}: {e}")
@@ -620,9 +706,15 @@ class GapFillerExtractor:
         self.logger.info(f"❌ Symbols failed: {self.stats['symbols_failed']}")
         self.logger.info(f"🔍 Total gaps found: {self.stats['total_gaps_found']}")
         self.logger.info(f"🔧 Total gaps filled: {self.stats['total_gaps_filled']}")
-        self.logger.info(f"📈 Total records fetched: {self.stats['total_records_fetched']}")
-        self.logger.info(f"💾 Total records written: {self.stats['total_records_written']}")
-        self.logger.info(f"📅 Weekly chunks processed: {self.stats['total_weekly_chunks_processed']}")
+        self.logger.info(
+            f"📈 Total records fetched: {self.stats['total_records_fetched']}"
+        )
+        self.logger.info(
+            f"💾 Total records written: {self.stats['total_records_written']}"
+        )
+        self.logger.info(
+            f"📅 Weekly chunks processed: {self.stats['total_weekly_chunks_processed']}"
+        )
         self.logger.info(f"⏱️  Total duration: {format_duration(total_duration)}")
 
         if self.stats["errors"]:
@@ -639,7 +731,9 @@ class GapFillerExtractor:
             "total_gaps_filled": self.stats["total_gaps_filled"],
             "total_records_fetched": self.stats["total_records_fetched"],
             "total_records_written": self.stats["total_records_written"],
-            "total_weekly_chunks_processed": self.stats["total_weekly_chunks_processed"],
+            "total_weekly_chunks_processed": self.stats[
+                "total_weekly_chunks_processed"
+            ],
             "duration_seconds": total_duration,
             "errors": self.stats["errors"],
         }
@@ -667,13 +761,31 @@ Examples:
         "--period",
         type=str,
         choices=[
-            "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"
+            "1m",
+            "3m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "2h",
+            "4h",
+            "6h",
+            "8h",
+            "12h",
+            "1d",
+            "3d",
+            "1w",
+            "1M",
         ],
         default=constants.DEFAULT_PERIOD,
         help="Kline interval (default: 15m)",
     )
 
-    parser.add_argument("--symbols", type=str, help="Comma-separated list of trading symbols (default: from config)")
+    parser.add_argument(
+        "--symbols",
+        type=str,
+        help="Comma-separated list of trading symbols (default: from config)",
+    )
 
     parser.add_argument(
         "--max-workers",
@@ -682,11 +794,26 @@ Examples:
         help="Maximum number of parallel workers (default: 3, lower to avoid rate limiting)",
     )
 
-    parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE, help="Database batch size (default: 1000)")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=constants.DB_BATCH_SIZE,
+        help="Database batch size (default: 1000)",
+    )
 
-    parser.add_argument("--weekly-chunk-days", type=int, default=7, help="Number of days per weekly chunk (default: 7)")
+    parser.add_argument(
+        "--weekly-chunk-days",
+        type=int,
+        default=7,
+        help="Number of days per weekly chunk (default: 7)",
+    )
 
-    parser.add_argument("--max-gap-size-days", type=int, default=365, help="Maximum gap size in days to process (default: 365)")
+    parser.add_argument(
+        "--max-gap-size-days",
+        type=int,
+        default=365,
+        help="Maximum gap size in days to process (default: 365)",
+    )
 
     parser.add_argument(
         "--db-adapter",
@@ -696,7 +823,9 @@ Examples:
         help="Database adapter to use",
     )
 
-    parser.add_argument("--db-uri", type=str, help="Database connection URI (overrides default)")
+    parser.add_argument(
+        "--db-uri", type=str, help="Database connection URI (overrides default)"
+    )
 
     parser.add_argument(
         "--log-level",
@@ -706,7 +835,11 @@ Examples:
         help="Logging level",
     )
 
-    parser.add_argument("--dry-run", action="store_true", help="Perform dry run without writing to database")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Perform dry run without writing to database",
+    )
 
     return parser.parse_args()
 
@@ -719,13 +852,17 @@ def main():
         current_tracer = get_tracer("jobs.extract_klines_gap_filler")
 
         if current_tracer:
-            with current_tracer.start_as_current_span("klines_gap_filling_main") as span:
+            with current_tracer.start_as_current_span(
+                "klines_gap_filling_main"
+            ) as span:
                 span.set_attribute("extraction.type", "klines_gap_filling")
                 span.set_attribute("service.name", "binance-klines-gap-filler")
                 # Force span context to be active for logging
                 span_context = span.get_span_context()
                 if span_context.trace_id != 0:
-                    print(f"Main span created with trace_id: {format(span_context.trace_id, '032x')}")
+                    print(
+                        f"Main span created with trace_id: {format(span_context.trace_id, '032x')}"
+                    )
                 _main_impl()
         else:
             print("Tracer not available, running without tracing")
@@ -802,7 +939,9 @@ def _main_impl():
             logger.info("🎉 Gap filling completed successfully!")
             sys.exit(0)
         else:
-            logger.error(f"❌ Gap filling completed with {result['symbols_failed']} failures")
+            logger.error(
+                f"❌ Gap filling completed with {result['symbols_failed']} failures"
+            )
             sys.exit(1)
 
     except KeyboardInterrupt:
@@ -810,7 +949,7 @@ def _main_impl():
         sys.exit(130)
     except Exception as e:
         logger.error(f"💥 Fatal error during gap filling: {e}")
-        import traceback
+        import traceback  # noqa: E402
 
         traceback.print_exc()
         sys.exit(1)

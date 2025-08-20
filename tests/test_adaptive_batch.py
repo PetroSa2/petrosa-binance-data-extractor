@@ -65,9 +65,7 @@ class TestAdaptiveBatchManager:
     def test_batch_size_stays_within_limits(self):
         """Test batch size stays within configured limits."""
         manager = AdaptiveBatchManager(
-            initial_batch_size=1000,
-            min_batch_size=100,
-            max_batch_size=1500
+            initial_batch_size=1000, min_batch_size=100, max_batch_size=1500
         )
 
         # Try to increase beyond max
@@ -163,7 +161,7 @@ class TestAdaptiveBatchManager:
 class TestDatabaseSpecificBatchManager:
     """Test database-specific batch manager."""
 
-    @patch('utils.adaptive_batch.constants')
+    @patch("utils.adaptive_batch.constants")
     def test_mysql_shared_environment(self, mock_constants):
         """Test MySQL shared environment configuration."""
         mock_constants.MYSQL_SHARED_INSTANCE_CONFIG = {"batch_size": 500}
@@ -175,7 +173,7 @@ class TestDatabaseSpecificBatchManager:
         assert manager.environment == "shared"
         assert manager.current_batch_size == 500
 
-    @patch('utils.adaptive_batch.constants')
+    @patch("utils.adaptive_batch.constants")
     def test_mongodb_free_tier_environment(self, mock_constants):
         """Test MongoDB free tier environment configuration."""
         mock_constants.MONGODB_ATLAS_FREE_TIER_CONFIG = {"batch_size": 200}
@@ -187,7 +185,7 @@ class TestDatabaseSpecificBatchManager:
         assert manager.environment == "free_tier"
         assert manager.current_batch_size == 200
 
-    @patch('utils.adaptive_batch.constants')
+    @patch("utils.adaptive_batch.constants")
     def test_default_environment(self, mock_constants):
         """Test default environment configuration."""
         mock_constants.DB_BATCH_SIZE = 1000

@@ -5,7 +5,7 @@ This document summarizes the unification of configuration, Kubernetes cluster ma
 
 ## Systems Unified
 1. **petrosa-bot-ta-analysis**: Technical Analysis bot for crypto trading
-2. **petrosa-tradeengine**: Cryptocurrency trading engine system  
+2. **petrosa-tradeengine**: Cryptocurrency trading engine system
 3. **petrosa-binance-data-extractor**: Cryptocurrency data extraction system
 
 ## What Has Been Unified

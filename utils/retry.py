@@ -64,7 +64,9 @@ def exponential_backoff(
                     last_exception = e
 
                     if attempt == max_retries:  # Last attempt
-                        logger.error(f"Max retries ({max_retries}) exceeded for {func.__name__}: {e}")
+                        logger.error(
+                            f"Max retries ({max_retries}) exceeded for {func.__name__}: {e}"
+                        )
                         raise
 
                     # Calculate delay for next attempt
@@ -117,7 +119,9 @@ def simple_retry(
                     if attempt == max_retries:
                         raise
 
-                    logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {delay}s...")
+                    logger.warning(
+                        f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {delay}s..."
+                    )
                     time.sleep(delay)
 
             raise last_exception or Exception("Unexpected retry loop exit")
@@ -161,7 +165,9 @@ class RateLimiter:
                 if len(self.calls) >= self.max_calls:
                     sleep_time = self.calls[0] + self.time_window - time.time()
                     if sleep_time > 0:
-                        logger.info(f"Rate limit reached, sleeping for {sleep_time:.2f} seconds")
+                        logger.info(
+                            f"Rate limit reached, sleeping for {sleep_time:.2f} seconds"
+                        )
                         time.sleep(sleep_time)
                         self._cleanup_old_calls()
 
@@ -169,12 +175,18 @@ class RateLimiter:
         else:
             # No threading available, simplified version
             current_time = time.time()
-            self.calls = [call_time for call_time in self.calls if current_time - call_time < self.time_window]
+            self.calls = [
+                call_time
+                for call_time in self.calls
+                if current_time - call_time < self.time_window
+            ]
 
             if len(self.calls) >= self.max_calls:
                 sleep_time = self.calls[0] + self.time_window - current_time
                 if sleep_time > 0:
-                    logger.info(f"Rate limit reached, sleeping for {sleep_time:.2f} seconds")
+                    logger.info(
+                        f"Rate limit reached, sleeping for {sleep_time:.2f} seconds"
+                    )
                     time.sleep(sleep_time)
 
             self.calls.append(current_time)
@@ -182,7 +194,11 @@ class RateLimiter:
     def _cleanup_old_calls(self):
         """Remove calls outside the time window."""
         current_time = time.time()
-        self.calls = [call_time for call_time in self.calls if current_time - call_time < self.time_window]
+        self.calls = [
+            call_time
+            for call_time in self.calls
+            if current_time - call_time < self.time_window
+        ]
 
 
 def rate_limited(rate_limiter: RateLimiter):
@@ -205,7 +221,9 @@ def rate_limited(rate_limiter: RateLimiter):
 
 
 # Global rate limiter instance
-default_rate_limiter = RateLimiter(max_calls=constants.API_RATE_LIMIT_PER_MINUTE, time_window=60)
+default_rate_limiter = RateLimiter(
+    max_calls=constants.API_RATE_LIMIT_PER_MINUTE, time_window=60
+)
 
 # Convenience decorators using default settings
 retry_on_failure = exponential_backoff()
@@ -226,7 +244,9 @@ def with_retries_and_rate_limit(func: Callable) -> Callable:
 
 
 # HTTP-specific retry decorator
-def retry_on_http_errors(max_retries: Optional[int] = None, base_delay: Optional[float] = None):
+def retry_on_http_errors(
+    max_retries: Optional[int] = None, base_delay: Optional[float] = None
+):
     """
     Retry decorator specifically for HTTP errors.
 
@@ -257,7 +277,10 @@ def retry_on_http_errors(max_retries: Optional[int] = None, base_delay: Optional
     try:
         from aiohttp import ClientError, ServerTimeoutError
 
-        http_retryable_exceptions = http_retryable_exceptions + (ClientError, ServerTimeoutError)
+        http_retryable_exceptions = http_retryable_exceptions + (
+            ClientError,
+            ServerTimeoutError,
+        )
     except ImportError:
         pass
 

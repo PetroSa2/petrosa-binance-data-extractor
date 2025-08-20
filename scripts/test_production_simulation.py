@@ -113,7 +113,7 @@ class ProductionEnvironmentSimulator:
             importlib.reload(constants)
 
             # Test service name configuration
-            print(f"✅ Service names configured:")
+            print("✅ Service names configured:")
             print(f"   - Klines: {constants.OTEL_SERVICE_NAME_KLINES}")
             print(f"   - Funding: {constants.OTEL_SERVICE_NAME_FUNDING}")
             print(f"   - Trades: {constants.OTEL_SERVICE_NAME_TRADES}")
@@ -167,7 +167,9 @@ class ProductionEnvironmentSimulator:
                 # Verify constants are accessible
                 import constants
 
-                print(f"   - Service name: {getattr(constants, 'OTEL_SERVICE_NAME_KLINES', 'N/A')}")
+                print(
+                    f"   - Service name: {getattr(constants, 'OTEL_SERVICE_NAME_KLINES', 'N/A')}"
+                )
 
             except Exception as e:
                 print(f"❌ {job_name}: Failed - {e}")
@@ -200,7 +202,9 @@ class ProductionEnvironmentSimulator:
 
                 missing_vars = []
             else:
-                print("⚠️  otel-config.yaml not found - this is expected in local testing")
+                print(
+                    "⚠️  otel-config.yaml not found - this is expected in local testing"
+                )
                 print("   - In production, this file would be created by Kubernetes")
                 return True
             for var in required_vars:
@@ -214,12 +218,17 @@ class ProductionEnvironmentSimulator:
                 print("✅ ConfigMap/Secret configuration complete")
 
             # Test CronJob file
-            cronjob_file = os.path.join(project_root, "k8s/klines-all-timeframes-cronjobs.yaml")
+            cronjob_file = os.path.join(
+                project_root, "k8s/klines-all-timeframes-cronjobs.yaml"
+            )
             with open(cronjob_file, "r", encoding="utf-8") as f:
                 cronjob_content = f.read()
 
             # Check for environment variable injection
-            if "configMapKeyRef" in cronjob_content and "secretKeyRef" in cronjob_content:
+            if (
+                "configMapKeyRef" in cronjob_content
+                and "secretKeyRef" in cronjob_content
+            ):
                 print("✅ CronJob environment variable injection configured")
             else:
                 print("❌ CronJob missing environment variable injection")
@@ -305,7 +314,7 @@ class ProductionEnvironmentSimulator:
             from otel_init import setup_telemetry
 
             # Test telemetry setup in Kubernetes environment
-            result = setup_telemetry(service_name="kubernetes-test")
+            setup_telemetry(service_name="kubernetes-test")
             print("✅ OpenTelemetry Kubernetes detection successful")
             return True
         except Exception as e:

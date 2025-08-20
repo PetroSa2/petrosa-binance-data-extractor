@@ -213,7 +213,7 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petros
    ```bash
    # Check system status
    kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
-   
+
    # Check recent events
    kubectl --kubeconfig=k8s/kubeconfig.yaml get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
    ```

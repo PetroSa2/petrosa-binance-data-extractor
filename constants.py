@@ -44,7 +44,9 @@ SUPPORTED_INTERVALS = ["5m", "15m", "30m", "1h", "1d"]
 # Database URIs (pluggable)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/binance")
 MYSQL_URI = os.getenv("MYSQL_URI", "mysql+pymysql://user:pass@localhost:3306/binance")
-POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432/binance")
+POSTGRESQL_URI = os.getenv(
+    "POSTGRESQL_URI", "postgresql://user:pass@localhost:5432/binance"
+)
 
 # Database settings
 DB_ADAPTER = os.getenv("DB_ADAPTER", "mongodb")  # mongodb, mysql, postgresql
@@ -69,7 +71,11 @@ MONGODB_ATLAS_FREE_TIER_CONFIG = {
 }
 
 # Adaptive batch sizing settings
-ADAPTIVE_BATCH_ENABLED = os.getenv("ADAPTIVE_BATCH_ENABLED", "true").lower() in ("true", "1", "yes")
+ADAPTIVE_BATCH_ENABLED = os.getenv("ADAPTIVE_BATCH_ENABLED", "true").lower() in (
+    "true",
+    "1",
+    "yes",
+)
 MIN_BATCH_SIZE = int(os.getenv("MIN_BATCH_SIZE", "100"))
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "2000"))
 SUCCESS_RATE_THRESHOLD = float(os.getenv("SUCCESS_RATE_THRESHOLD", "0.95"))
@@ -121,5 +127,9 @@ NATS_ENABLED = os.getenv("NATS_ENABLED", "true").lower() in ("true", "1", "yes")
 NATS_SUBJECT_PREFIX = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
 
 # Service-specific NATS subject prefixes (now configurable via configmap)
-NATS_SUBJECT_PREFIX_PRODUCTION = os.getenv("NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production")
-NATS_SUBJECT_PREFIX_GAP_FILLER = os.getenv("NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler")
+NATS_SUBJECT_PREFIX_PRODUCTION = os.getenv(
+    "NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production"
+)
+NATS_SUBJECT_PREFIX_GAP_FILLER = os.getenv(
+    "NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler"
+)

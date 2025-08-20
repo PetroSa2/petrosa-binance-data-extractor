@@ -16,7 +16,9 @@ ADAPTERS: Dict[str, Type[BaseAdapter]] = {
 }
 
 
-def get_adapter(adapter_type: str, connection_string: Optional[str] = None, **kwargs) -> BaseAdapter:
+def get_adapter(
+    adapter_type: str, connection_string: Optional[str] = None, **kwargs
+) -> BaseAdapter:
     """
     Factory function to get the appropriate database adapter.
 
@@ -32,7 +34,9 @@ def get_adapter(adapter_type: str, connection_string: Optional[str] = None, **kw
         ValueError: If adapter type is not supported
     """
     if adapter_type not in ADAPTERS:
-        raise ValueError(f"Unsupported adapter type: {adapter_type}. Available: {list(ADAPTERS.keys())}")
+        raise ValueError(
+            f"Unsupported adapter type: {adapter_type}. Available: {list(ADAPTERS.keys())}"
+        )
 
     if connection_string is None:
         raise ValueError("connection_string is required")

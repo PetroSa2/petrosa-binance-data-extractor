@@ -396,4 +396,4 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petros
 - **Cluster Issues**: Check MicroK8s status
 - **Database Issues**: Verify RDS/MySQL connectivity
 - **Application Issues**: Check pod logs and events
-- **Deployment Issues**: Review deployment scripts and manifests 
+- **Deployment Issues**: Review deployment scripts and manifests

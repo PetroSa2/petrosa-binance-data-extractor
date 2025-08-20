@@ -78,4 +78,4 @@ The gap filler CronJob includes:
 - **Rate Limit Handling**: Smart delays for API rate limiting
 - **Long Runtime Support**: 6-hour timeout for daily operations
 - **Resource Management**: Appropriate CPU/memory limits
-- **Telemetry Integration**: Full OpenTelemetry support 
+- **Telemetry Integration**: Full OpenTelemetry support

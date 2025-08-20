@@ -16,7 +16,12 @@ def test_job_telemetry_setup():
     """Test that each job properly sets up telemetry."""
     print("🧪 Testing Job Telemetry Setup...")
 
-    jobs = ["jobs.extract_klines_production", "jobs.extract_klines", "jobs.extract_funding", "jobs.extract_trades"]
+    jobs = [
+        "jobs.extract_klines_production",
+        "jobs.extract_klines",
+        "jobs.extract_funding",
+        "jobs.extract_trades",
+    ]
 
     for job_module in jobs:
         try:
@@ -98,7 +103,11 @@ def test_kubernetes_readiness():
     """Test Kubernetes deployment readiness."""
     print("\n☸️  Testing Kubernetes Readiness...")
 
-    k8s_files = ["k8s/otel-config.yaml", "k8s/klines-all-timeframes-cronjobs.yaml", "scripts/deploy-otel.sh"]
+    k8s_files = [
+        "k8s/otel-config.yaml",
+        "k8s/klines-all-timeframes-cronjobs.yaml",
+        "scripts/deploy-otel.sh",
+    ]
 
     all_ready = True
     for file_path in k8s_files:

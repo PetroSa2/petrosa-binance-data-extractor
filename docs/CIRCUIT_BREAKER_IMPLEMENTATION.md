@@ -58,7 +58,7 @@ The circuit breaker is implemented in `utils/circuit_breaker.py`:
 
 ```python
 class CircuitBreaker:
-    def __init__(self, failure_threshold=5, recovery_timeout=60, 
+    def __init__(self, failure_threshold=5, recovery_timeout=60,
                  expected_exception=Exception):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
@@ -259,7 +259,7 @@ def _on_failure(self):
     with self._lock:
         self.failure_count += 1
         self.last_failure_time = time.time()
-        
+
         if self.failure_count >= self.failure_threshold:
             self.state = CircuitState.OPEN
             logger.warning(f"Circuit breaker opened after {self.failure_count} failures")
@@ -326,7 +326,7 @@ db_circuit_breaker = CircuitBreaker(
 def custom_error_handler(func):
     """Custom error handler with circuit breaker"""
     circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60)
-    
+
     def wrapper(*args, **kwargs):
         try:
             return circuit_breaker(func)(*args, **kwargs)
@@ -334,7 +334,7 @@ def custom_error_handler(func):
             logger.error(f"Operation failed: {e}")
             # Custom error handling logic
             raise
-    
+
     return wrapper
 
 @custom_error_handler
@@ -354,19 +354,19 @@ class CircuitBreakerMetrics:
         self.failure_count = 0
         self.success_count = 0
         self.total_requests = 0
-    
+
     def record_state_transition(self, from_state, to_state):
         self.state_transitions += 1
         logger.info(f"Circuit breaker state transition: {from_state} -> {to_state}")
-    
+
     def record_failure(self):
         self.failure_count += 1
         self.total_requests += 1
-    
+
     def record_success(self):
         self.success_count += 1
         self.total_requests += 1
-    
+
     def get_success_rate(self):
         if self.total_requests == 0:
             return 0.0
@@ -382,11 +382,11 @@ def circuit_breaker_span(func):
     """Add OpenTelemetry tracing to circuit breaker operations"""
     def wrapper(*args, **kwargs):
         tracer = trace.get_tracer(__name__)
-        
+
         with tracer.start_as_current_span("circuit_breaker_operation") as span:
             span.set_attribute("circuit_breaker.state", circuit_breaker.state.value)
             span.set_attribute("circuit_breaker.failure_count", circuit_breaker.failure_count)
-            
+
             try:
                 result = func(*args, **kwargs)
                 span.set_attribute("circuit_breaker.success", True)
@@ -395,7 +395,7 @@ def circuit_breaker_span(func):
                 span.set_attribute("circuit_breaker.success", False)
                 span.set_attribute("circuit_breaker.error", str(e))
                 raise
-    
+
     return wrapper
 ```
 
@@ -413,33 +413,33 @@ class TestCircuitBreaker:
         cb = CircuitBreaker()
         assert cb.state == CircuitState.CLOSED
         assert cb.failure_count == 0
-    
+
     def test_failure_threshold(self):
         """Test circuit opens after failure threshold"""
         cb = CircuitBreaker(failure_threshold=3)
-        
+
         # Simulate failures
         for _ in range(3):
             try:
                 cb._on_failure()
             except Exception:
                 pass
-        
+
         assert cb.state == CircuitState.OPEN
-    
+
     def test_recovery_timeout(self):
         """Test circuit moves to half-open after recovery timeout"""
         cb = CircuitBreaker(recovery_timeout=1)
         cb.state = CircuitState.OPEN
         cb.last_failure_time = time.time() - 2  # 2 seconds ago
-        
+
         assert cb._should_attempt_reset() == True
-    
+
     def test_success_reset(self):
         """Test circuit closes after successful operation"""
         cb = CircuitBreaker()
         cb.state = CircuitState.HALF_OPEN
-        
+
         cb._on_success()
         assert cb.state == CircuitState.CLOSED
         assert cb.failure_count == 0
@@ -451,28 +451,28 @@ class TestCircuitBreaker:
 def test_database_circuit_breaker():
     """Test circuit breaker with database operations"""
     db_circuit_breaker = CircuitBreaker(failure_threshold=2, recovery_timeout=1)
-    
+
     @db_circuit_breaker
     def failing_operation():
         raise OperationalError("Database connection failed", None, None)
-    
+
     # First failure
     try:
         failing_operation()
     except Exception:
         pass
-    
+
     # Second failure should open circuit
     try:
         failing_operation()
     except Exception:
         pass
-    
+
     assert db_circuit_breaker.state == CircuitState.OPEN
-    
+
     # Wait for recovery timeout
     time.sleep(1.1)
-    
+
     # Should be in half-open state
     assert db_circuit_breaker.state == CircuitState.HALF_OPEN
 ```
@@ -579,18 +579,18 @@ def operation():
 def debug_circuit_breaker(circuit_breaker):
     """Debug circuit breaker state and configuration"""
     info = circuit_breaker.get_state_info()
-    
+
     print("=== Circuit Breaker Debug Info ===")
     print(f"State: {info['state']}")
     print(f"Failure Count: {info['failure_count']}")
     print(f"Failure Threshold: {info['failure_threshold']}")
     print(f"Recovery Timeout: {info['recovery_timeout']}")
     print(f"Last Failure Time: {info['last_failure_time']}")
-    
+
     if info['last_failure_time']:
         time_since_failure = time.time() - info['last_failure_time']
         print(f"Time Since Last Failure: {time_since_failure:.2f}s")
-        
+
         if info['state'] == CircuitState.OPEN.value:
             if time_since_failure >= info['recovery_timeout']:
                 print("⚠️  Circuit should be in HALF_OPEN state")
@@ -605,7 +605,7 @@ debug_circuit_breaker(db_circuit_breaker)
 
 ```sql
 -- Circuit breaker state transitions
-SELECT 
+SELECT
     timestamp,
     state,
     failure_count,
@@ -615,7 +615,7 @@ WHERE timestamp >= NOW() - INTERVAL 1 HOUR
 ORDER BY timestamp DESC;
 
 -- Circuit breaker performance
-SELECT 
+SELECT
     AVG(CASE WHEN success THEN 1 ELSE 0 END) as success_rate,
     COUNT(*) as total_operations,
     AVG(duration_ms) as avg_duration
@@ -632,4 +632,4 @@ Key takeaways:
 - Monitor circuit breaker state and metrics
 - Test circuit breaker behavior thoroughly
 - Use service-specific circuit breakers
-- Document configuration and behavior 
+- Document configuration and behavior

@@ -229,7 +229,7 @@ make k8s-status
 
 ### Configuration Issues
 **Symptoms**: Environment variable errors, connection failures
-**Solutions**: 
+**Solutions**:
 - Check `env.example` for required variables
 - Verify environment setup in `config.py`
 - Ensure proper secret management in Kubernetes

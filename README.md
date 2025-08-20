@@ -199,7 +199,7 @@ python -m jobs.extract_klines_gap_filler \
 
 **Retry Strategy:**
 - **Data Fetching**: 7 retries with 3-300 second delays
-- **Database Operations**: 5 retries with 2-180 second delays  
+- **Database Operations**: 5 retries with 2-180 second delays
 - **Gap Detection**: 5 retries with 2-120 second delays
 - **Symbol Processing**: 5 retries with 3-240 second delays
 - **API Rate Limits**: Additional 30-60 second delays
@@ -314,7 +314,7 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/binance_data
     depends_on:
       - mongo
-    
+
   mongo:
     image: mongo:7
     ports:
@@ -511,7 +511,7 @@ All configuration is centralized in `constants.py` and loaded from environment v
 BINANCE_API_URL = "https://fapi.binance.com"
 API_RATE_LIMIT_PER_MINUTE = 1200
 
-# Database Configuration  
+# Database Configuration
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/binance")
 MYSQL_URI = os.getenv("MYSQL_URI", "mysql+pymysql://user:pass@localhost:3306/binance")
 POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432/binance")
@@ -546,7 +546,7 @@ The system supports multiple databases through pluggable adapters:
   "interval": "15m",
   "open_price": "43000.50",
   "high_price": "43250.75",
-  "low_price": "42800.25", 
+  "low_price": "42800.25",
   "close_price": "43100.00",
   "volume": "1234.56789",
   "number_of_trades": 1500
@@ -557,7 +557,7 @@ The system supports multiple databases through pluggable adapters:
 
 ```python
 {
-  "symbol": "BTCUSDT", 
+  "symbol": "BTCUSDT",
   "timestamp": "2024-01-01T00:00:00Z",
   "trade_id": 28457,
   "price": "43000.50",
@@ -571,7 +571,7 @@ The system supports multiple databases through pluggable adapters:
 ```python
 {
   "symbol": "BTCUSDT",
-  "timestamp": "2024-01-01T00:00:00Z", 
+  "timestamp": "2024-01-01T00:00:00Z",
   "funding_rate": "0.00010000",
   "mark_price": "43000.50000000",
   "funding_interval_hours": 8
@@ -638,7 +638,7 @@ The system uses structured JSON logging with:
 # Check service health
 curl http://localhost:8080/health
 
-# Check readiness  
+# Check readiness
 curl http://localhost:8080/ready
 ```
 
@@ -755,7 +755,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 When reporting issues, please include:
 - Python version and environment details
-- Full error messages and stack traces  
+- Full error messages and stack traces
 - Steps to reproduce the issue
 - Expected vs actual behavior
 - Kubernetes/deployment context if applicable

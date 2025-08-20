@@ -2,9 +2,9 @@
 
 ## 🚀 Pipeline Execution Results
 
-**Date:** June 29, 2025  
-**Branch:** main  
-**Commit:** Latest OpenTelemetry Integration  
+**Date:** June 29, 2025
+**Branch:** main
+**Commit:** Latest OpenTelemetry Integration
 
 ---
 
@@ -168,6 +168,6 @@
 
 ---
 
-**Generated:** June 29, 2025  
-**CI/CD Pipeline Version:** v1.0  
-**OpenTelemetry Integration:** v1.0  
+**Generated:** June 29, 2025
+**CI/CD Pipeline Version:** v1.0
+**OpenTelemetry Integration:** v1.0

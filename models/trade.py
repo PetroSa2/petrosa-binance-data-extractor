@@ -20,16 +20,22 @@ class TradeModel(BaseSymbolModel):
 
     # Trade identification
     trade_id: int = Field(..., description="Unique trade ID from Binance")
-    order_id: Optional[int] = Field(None, description="Order ID that generated this trade")
+    order_id: Optional[int] = Field(
+        None, description="Order ID that generated this trade"
+    )
 
     # Trade details
     price: Decimal = Field(..., description="Trade execution price", decimal_places=8)
     quantity: Decimal = Field(..., description="Trade quantity", decimal_places=8)
-    quote_quantity: Decimal = Field(..., description="Quote asset quantity", decimal_places=8)
+    quote_quantity: Decimal = Field(
+        ..., description="Quote asset quantity", decimal_places=8
+    )
 
     # Trade metadata
     is_buyer_maker: bool = Field(..., description="Whether the buyer is the maker")
-    commission: Optional[Decimal] = Field(None, description="Commission amount", decimal_places=8)
+    commission: Optional[Decimal] = Field(
+        None, description="Commission amount", decimal_places=8
+    )
     commission_asset: Optional[str] = Field(None, description="Commission asset")
 
     # Timing
@@ -66,7 +72,9 @@ class TradeModel(BaseSymbolModel):
         return v
 
     @classmethod
-    def from_binance_trade(cls, trade_data: Dict[str, Any], symbol: str) -> "TradeModel":
+    def from_binance_trade(
+        cls, trade_data: Dict[str, Any], symbol: str
+    ) -> "TradeModel":
         """
         Create TradeModel from Binance API trade data.
 
@@ -80,7 +88,9 @@ class TradeModel(BaseSymbolModel):
             "isBuyerMaker": true
         }
         """
-        trade_time = datetime.fromtimestamp(int(trade_data["time"]) / 1000, tz=timezone.utc)
+        trade_time = datetime.fromtimestamp(
+            int(trade_data["time"]) / 1000, tz=timezone.utc
+        )
         return cls(
             symbol=symbol,
             timestamp=trade_time,  # Use trade_time as primary timestamp

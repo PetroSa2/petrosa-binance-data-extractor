@@ -14,6 +14,7 @@ from typing import Optional
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def setup_opentelemetry():
     """Setup OpenTelemetry with proper configuration."""
     try:
@@ -30,11 +31,13 @@ def setup_opentelemetry():
         )
 
         # Create resource with service information
-        resource = Resource.create({
-            "service.name": "binance-data-extractor",
-            "service.version": "1.0.0",
-            "deployment.environment": os.getenv("ENVIRONMENT", "production")
-        })
+        resource = Resource.create(
+            {
+                "service.name": "binance-data-extractor",
+                "service.version": "1.0.0",
+                "deployment.environment": os.getenv("ENVIRONMENT", "production"),
+            }
+        )
 
         # Create tracer provider
         provider = TracerProvider(resource=resource)
@@ -44,7 +47,7 @@ def setup_opentelemetry():
             # Use OTLP exporter if endpoint is configured
             otlp_exporter = GRPCSpanExporter(
                 endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-                headers=os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
+                headers=os.getenv("OTEL_EXPORTER_OTLP_HEADERS", ""),
             )
             provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             logger.info("OTLP exporter configured")
@@ -68,7 +71,12 @@ def setup_opentelemetry():
         logger.error(f"Failed to setup OpenTelemetry: {e}")
         return False
 
-def setup_telemetry(service_name: Optional[str] = None, service_version: Optional[str] = None, environment: Optional[str] = None):
+
+def setup_telemetry(
+    service_name: Optional[str] = None,
+    service_version: Optional[str] = None,
+    environment: Optional[str] = None,
+):
     """Alias for setup_opentelemetry for backward compatibility."""
     # Update environment variables if provided
     if service_name:
@@ -80,6 +88,7 @@ def setup_telemetry(service_name: Optional[str] = None, service_version: Optiona
 
     return setup_opentelemetry()
 
+
 def main():
     """Main entry point for OpenTelemetry initialization."""
     logger.info("Starting OpenTelemetry initialization...")
@@ -90,6 +99,7 @@ def main():
     else:
         logger.error("OpenTelemetry setup failed")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

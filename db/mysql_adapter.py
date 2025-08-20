@@ -65,7 +65,9 @@ class MySQLAdapter(BaseAdapter):
             **kwargs: Additional SQLAlchemy engine options
         """
         if not SQLALCHEMY_AVAILABLE:
-            raise ImportError("SQLAlchemy and MySQL driver are required. Install with: pip")
+            raise ImportError(
+                "SQLAlchemy and MySQL driver are required. Install with: pip"
+            )
 
         connection_string = connection_string or constants.MYSQL_URI
         super().__init__(connection_string, **kwargs)
@@ -88,7 +90,7 @@ class MySQLAdapter(BaseAdapter):
             "connect_args": {
                 "charset": "utf8mb4",
                 "autocommit": False,  # Explicit transaction control
-                "sql_mode": "STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
+                "sql_mode": "STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO",
             },
             **kwargs,
         }
@@ -182,7 +184,9 @@ class MySQLAdapter(BaseAdapter):
             Column("total_records", Integer, nullable=False, default=0),
             Column("gaps_detected", Integer, nullable=False, default=0),
             Column("backfill_performed", Boolean, nullable=False, default=False),
-            Column("extraction_duration_seconds", Numeric(10, 3), nullable=False, default=0),
+            Column(
+                "extraction_duration_seconds", Numeric(10, 3), nullable=False, default=0
+            ),
             Column("extracted_at", DateTime, nullable=False),
             Index("idx_extraction_metadata_period_start", "period", "start_time"),
         )
@@ -261,7 +265,9 @@ class MySQLAdapter(BaseAdapter):
                     record = instance.model_dump()
                     # Create unique ID for MySQL
                     if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                        record["id"] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
+                        record[
+                            "id"
+                        ] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
                     records.append(record)
 
                 # Insert records
@@ -289,24 +295,33 @@ class MySQLAdapter(BaseAdapter):
                 logger.warning(f"MySQL write error ({error_classification}): {e}")
 
                 if not should_retry:
-                    raise DatabaseError(f"Non-retryable error in MySQL write: {e}") from e
+                    raise DatabaseError(
+                        f"Non-retryable error in MySQL write: {e}"
+                    ) from e
                 else:
                     raise e
 
         # Use circuit breaker for write operation
         return self.circuit_breaker.call(_write_operation)
 
-    def write_batch(self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000) -> int:
+    def write_batch(
+        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
+    ) -> int:
         """Write model instances in batches."""
         total_written = 0
 
         for i in range(0, len(model_instances), batch_size):
-            batch = model_instances[i:i + batch_size]
+            batch = model_instances[i : i + batch_size]
             written = self.write(batch, collection)
             total_written += written
 
             if i + batch_size < len(model_instances):
-                logger.debug("Written batch %d: %d records to %s", i // batch_size + 1, written, collection)
+                logger.debug(
+                    "Written batch %d: %d records to %s",
+                    i // batch_size + 1,
+                    written,
+                    collection,
+                )
 
         return total_written
 
@@ -325,7 +340,9 @@ class MySQLAdapter(BaseAdapter):
             table = self._get_table(collection)
 
             # Build query
-            query = select(table).where(and_(table.c.timestamp >= start, table.c.timestamp < end))
+            query = select(table).where(
+                and_(table.c.timestamp >= start, table.c.timestamp < end)
+            )
 
             if symbol:
                 query = query.where(table.c.symbol == symbol)
@@ -340,7 +357,9 @@ class MySQLAdapter(BaseAdapter):
         except Exception as e:
             raise DatabaseError(f"Failed to query range from {collection}: {e}") from e
 
-    def query_latest(self, collection: str, symbol: Optional[str] = None, limit: int = 1) -> List[Dict[str, Any]]:
+    def query_latest(
+        self, collection: str, symbol: Optional[str] = None, limit: int = 1
+    ) -> List[Dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
             raise DatabaseError("Not connected to database")
@@ -377,20 +396,17 @@ class MySQLAdapter(BaseAdapter):
         try:
             table = self._get_table(collection)
             engine = self._ensure_connected()
-            
+
             with engine.connect() as conn:
                 gaps = []
                 expected_interval = timedelta(minutes=interval_minutes)
                 gap_results: List[Tuple[datetime, datetime, float]] = []
-                
+
                 # Build base query conditions
-                base_conditions = [
-                    table.c.timestamp >= start,
-                    table.c.timestamp < end
-                ]
+                base_conditions = [table.c.timestamp >= start, table.c.timestamp < end]
                 if symbol:
                     base_conditions.append(table.c.symbol == symbol)
-                
+
                 # Find the first timestamp in range
                 first_query = (
                     select(table.c.timestamp)
@@ -398,63 +414,71 @@ class MySQLAdapter(BaseAdapter):
                     .order_by(table.c.timestamp)
                     .limit(1)
                 )
-                
+
                 first_result = conn.execute(first_query).fetchone()
-                
+
                 if not first_result:
                     # No data in range, entire range is a gap
                     return [(start, end)]
-                
+
                 first_timestamp = first_result[0]
                 first_timestamp = ensure_timezone_aware(first_timestamp)
-                
+
                 # Check for gap at the beginning
                 if first_timestamp > start + expected_interval:
                     gaps.append((start, first_timestamp))
-                
+
                 # Try window function approach first (MySQL 8.0+)
                 try:
                     gap_query = f"""
                     WITH timestamp_pairs AS (
-                        SELECT 
+                        SELECT
                             timestamp as current_ts,
                             LEAD(timestamp) OVER (ORDER BY timestamp) as next_ts
                         FROM {table.name}
                         WHERE timestamp >= %s AND timestamp < %s
-                        {f"AND symbol = %s" if symbol else ""}
+                        {"AND symbol = %s" if symbol else ""}
                         ORDER BY timestamp
                     )
-                    SELECT 
+                    SELECT
                         current_ts,
                         next_ts,
                         TIMESTAMPDIFF(MINUTE, current_ts, next_ts) as gap_minutes
                     FROM timestamp_pairs
-                    WHERE next_ts IS NOT NULL 
+                    WHERE next_ts IS NOT NULL
                     AND TIMESTAMPDIFF(MINUTE, current_ts, next_ts) > %s
                     """
-                    
+
                     # Execute gap detection query
                     gap_params: List[Any] = [start, end]
                     if symbol:
                         gap_params.append(symbol)
                     gap_params.append(interval_minutes + 1)  # Allow 1-minute tolerance
-                    
+
                     raw_results = conn.execute(text(gap_query), gap_params).fetchall()
-                    gap_results = [(ensure_timezone_aware(row[0]), ensure_timezone_aware(row[1]), float(row[2])) for row in raw_results]
-                    
+                    gap_results = [
+                        (
+                            ensure_timezone_aware(row[0]),
+                            ensure_timezone_aware(row[1]),
+                            float(row[2]),
+                        )
+                        for row in raw_results
+                    ]
+
                 except Exception as window_error:
-                    logger.warning(f"Window function approach failed, falling back to chunked processing: {window_error}")
-                    
+                    logger.warning(
+                        f"Window function approach failed, falling back to chunked processing: {window_error}"
+                    )
+
                     # Fallback: Process in chunks to avoid memory issues
                     chunk_size = 10000  # Process 10k records at a time
-                    
+
                     # Get total count for chunking
-                    count_query = (
-                        select(func.count(table.c.timestamp))
-                        .where(and_(*base_conditions))
+                    count_query = select(func.count(table.c.timestamp)).where(
+                        and_(*base_conditions)
                     )
                     total_count = conn.execute(count_query).scalar()
-                    
+
                     if total_count is not None and total_count > chunk_size:
                         # Process in chunks
                         offset = 0
@@ -466,19 +490,27 @@ class MySQLAdapter(BaseAdapter):
                                 .limit(chunk_size)
                                 .offset(offset)
                             )
-                            
+
                             chunk_results = conn.execute(chunk_query).fetchall()
-                            timestamps = [ensure_timezone_aware(row[0]) for row in chunk_results]
-                            
+                            timestamps = [
+                                ensure_timezone_aware(row[0]) for row in chunk_results
+                            ]
+
                             # Find gaps within this chunk
                             for i in range(len(timestamps) - 1):
                                 current_ts = timestamps[i]
                                 next_ts = timestamps[i + 1]
                                 expected_next = current_ts + expected_interval
-                                
+
                                 if next_ts > expected_next + timedelta(minutes=1):
-                                    gap_results.append((current_ts, next_ts, (next_ts - current_ts).total_seconds() / 60))
-                            
+                                    gap_results.append(
+                                        (
+                                            current_ts,
+                                            next_ts,
+                                            (next_ts - current_ts).total_seconds() / 60,
+                                        )
+                                    )
+
                             offset += chunk_size
                     else:
                         # Small dataset, load all at once
@@ -487,25 +519,33 @@ class MySQLAdapter(BaseAdapter):
                             .where(and_(*base_conditions))
                             .order_by(table.c.timestamp)
                         )
-                        
+
                         all_results = conn.execute(all_query).fetchall()
-                        timestamps = [ensure_timezone_aware(row[0]) for row in all_results]
-                        
+                        timestamps = [
+                            ensure_timezone_aware(row[0]) for row in all_results
+                        ]
+
                         # Find gaps
                         for i in range(len(timestamps) - 1):
                             current_ts = timestamps[i]
                             next_ts = timestamps[i + 1]
                             expected_next = current_ts + expected_interval
-                            
+
                             if next_ts > expected_next + timedelta(minutes=1):
-                                gap_results.append((current_ts, next_ts, (next_ts - current_ts).total_seconds() / 60))
-                
+                                gap_results.append(
+                                    (
+                                        current_ts,
+                                        next_ts,
+                                        (next_ts - current_ts).total_seconds() / 60,
+                                    )
+                                )
+
                 for row in gap_results:
                     current_ts = ensure_timezone_aware(row[0])
                     next_ts = ensure_timezone_aware(row[1])
                     expected_next = current_ts + expected_interval
                     gaps.append((expected_next, next_ts))
-                
+
                 # Find the last timestamp in range
                 last_query = (
                     select(table.c.timestamp)
@@ -513,17 +553,17 @@ class MySQLAdapter(BaseAdapter):
                     .order_by(table.c.timestamp.desc())
                     .limit(1)
                 )
-                
+
                 last_result = conn.execute(last_query).fetchone()
                 if last_result:
                     last_timestamp = ensure_timezone_aware(last_result[0])
-                    
+
                     # Check for gap at the end
                     if last_timestamp < end - expected_interval:
                         gaps.append((last_timestamp + expected_interval, end))
-                
+
                 return gaps
-                
+
         except Exception as e:
             raise DatabaseError(f"Failed to find gaps in {collection}: {e}") from e
 

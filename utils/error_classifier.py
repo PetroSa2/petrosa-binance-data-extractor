@@ -35,51 +35,67 @@ def classify_database_error(error: Exception) -> str:
             return "CONNECTION_TIMEOUT"
 
     # Authentication/Authorization (check first as it's most specific)
-    if any(keyword in error_msg for keyword in [
-        "access denied",
-        "authentication failed",
-        "unauthorized",
-        "permission denied",
-        "invalid credentials",
-        "authenticationerror",
-    ]):
+    if any(
+        keyword in error_msg
+        for keyword in [
+            "access denied",
+            "authentication failed",
+            "unauthorized",
+            "permission denied",
+            "invalid credentials",
+            "authenticationerror",
+        ]
+    ):
         return "AUTHENTICATION_ERROR"
 
     # Data integrity (check early as it's specific)
-    if any(keyword in error_msg for keyword in [
-        "duplicate key",
-        "integrity constraint",
-        "unique constraint",
-        "primary key",
-        "duplicate entry",
-        "bulkwriteerror",
-        "duplicatekeyerror",
-    ]) or "duplicatekeyerror" in error_type or "integrityerror" in error_type:
+    if (
+        any(
+            keyword in error_msg
+            for keyword in [
+                "duplicate key",
+                "integrity constraint",
+                "unique constraint",
+                "primary key",
+                "duplicate entry",
+                "bulkwriteerror",
+                "duplicatekeyerror",
+            ]
+        )
+        or "duplicatekeyerror" in error_type
+        or "integrityerror" in error_type
+    ):
         return "DATA_INTEGRITY"
 
     # API rate limiting (specific pattern)
-    if any(keyword in error_msg for keyword in [
-        "rate limit",
-        "too many requests",
-        "429",
-        "rate limit exceeded",
-        "throttling",
-        "quota exceeded",
-    ]):
+    if any(
+        keyword in error_msg
+        for keyword in [
+            "rate limit",
+            "too many requests",
+            "429",
+            "rate limit exceeded",
+            "throttling",
+            "quota exceeded",
+        ]
+    ):
         return "RATE_LIMIT"
 
     # Temporary/Transient errors (specific patterns)
-    if any(keyword in error_msg for keyword in [
-        "temporary failure",
-        "temporary error",
-        "service unavailable",
-        "bad gateway",
-        "gateway timeout",
-        "internal server error",
-        "503",
-        "502",
-        "504",
-    ]):
+    if any(
+        keyword in error_msg
+        for keyword in [
+            "temporary failure",
+            "temporary error",
+            "service unavailable",
+            "bad gateway",
+            "gateway timeout",
+            "internal server error",
+            "503",
+            "502",
+            "504",
+        ]
+    ):
         return "TEMPORARY_ERROR"
 
     # Network errors (specific patterns, use regex for exact match)
@@ -99,44 +115,62 @@ def classify_database_error(error: Exception) -> str:
             return "NETWORK_ERROR"
 
     # MongoDB-specific connection errors
-    if any(keyword in error_msg for keyword in [
-        "server selection timeout",
-        "network timeout",
-        "socket timeout",
-        "read timeout",
-        "write timeout",
-    ]) or "connectionfailure" in error_type:
+    if (
+        any(
+            keyword in error_msg
+            for keyword in [
+                "server selection timeout",
+                "network timeout",
+                "socket timeout",
+                "read timeout",
+                "write timeout",
+            ]
+        )
+        or "connectionfailure" in error_type
+    ):
         return "CONNECTION_TIMEOUT"
 
     # MySQL-specific connection errors
-    if any(keyword in error_msg for keyword in [
-        "lost connection to mysql server",
-        "mysql server has gone away",
-        "connection was killed",
-        "2013", "2006", "2003",  # MySQL error codes
-        "connection refused",
-        "can't connect to mysql server",
-        "operationalerror",
-        "databaseerror",
-        "connection reset by peer",
-        "network is unreachable",
-        "no route to host",
-        "host is unreachable",
-    ]) or "operationalerror" in error_type or "databaseerror" in error_type:
+    if (
+        any(
+            keyword in error_msg
+            for keyword in [
+                "lost connection to mysql server",
+                "mysql server has gone away",
+                "connection was killed",
+                "2013",
+                "2006",
+                "2003",  # MySQL error codes
+                "connection refused",
+                "can't connect to mysql server",
+                "operationalerror",
+                "databaseerror",
+                "connection reset by peer",
+                "network is unreachable",
+                "no route to host",
+                "host is unreachable",
+            ]
+        )
+        or "operationalerror" in error_type
+        or "databaseerror" in error_type
+    ):
         return "CONNECTION_LOST"
 
     # Resource exhaustion (specific patterns, after connection errors)
-    if any(keyword in error_msg for keyword in [
-        "too many connections",
-        "connection limit exceeded",
-        "pool exhausted",
-        "max connections",
-        "connection pool is at maximum capacity",
-        "out of memory",
-        "insufficient memory",
-        "disk space",
-        "storage full",
-    ]):
+    if any(
+        keyword in error_msg
+        for keyword in [
+            "too many connections",
+            "connection limit exceeded",
+            "pool exhausted",
+            "max connections",
+            "connection pool is at maximum capacity",
+            "out of memory",
+            "insufficient memory",
+            "disk space",
+            "storage full",
+        ]
+    ):
         return "RESOURCE_EXHAUSTED"
 
     return "UNKNOWN_ERROR"
@@ -268,7 +302,9 @@ class ErrorClassifier:
         if self.error_counts[classification] == 1:
             logger.info(f"New error classification: {classification}")
         elif self.error_counts[classification] % 10 == 0:
-            logger.warning(f"Error classification {classification} occurred {self.error_counts[classification]} times")
+            logger.warning(
+                f"Error classification {classification} occurred {self.error_counts[classification]} times"
+            )
 
         return classification
 
@@ -280,7 +316,9 @@ class ErrorClassifier:
             "error_distribution": {
                 error_type: count / self.total_errors
                 for error_type, count in self.error_counts.items()
-            } if self.total_errors > 0 else {}
+            }
+            if self.total_errors > 0
+            else {},
         }
 
     def reset_stats(self):

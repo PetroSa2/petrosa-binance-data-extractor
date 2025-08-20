@@ -3,7 +3,7 @@
 Copy this template when asking Cursor for help:
 
 ```
-Please help me with [YOUR REQUEST]. 
+Please help me with [YOUR REQUEST].
 
 IMPORTANT: Follow these rules from .cursorrules:
 - Use kubectl with --kubeconfig=k8s/kubeconfig.yaml
@@ -19,7 +19,7 @@ IMPORTANT: Follow these rules from .cursorrules:
 ## Example Usage:
 
 ```
-Please help me deploy the application to the cluster. 
+Please help me deploy the application to the cluster.
 
 IMPORTANT: Follow these rules from .cursorrules:
 - Use kubectl with --kubeconfig=k8s/kubeconfig.yaml
@@ -30,4 +30,4 @@ IMPORTANT: Follow these rules from .cursorrules:
 - Check docs/REPOSITORY_SETUP_GUIDE.md and docs/QUICK_REFERENCE.md first
 
 I need to deploy the latest version of the data extractor service.
-``` 
+```

@@ -74,7 +74,7 @@ print_section "Configuration Validation"
 
 if [ -f "config/symbols.py" ]; then
     print_check "Symbol configuration exists" "PASS"
-    
+
     # Check for production symbols
     if grep -q "PRODUCTION_SYMBOLS" config/symbols.py; then
         print_check "Production symbols defined" "PASS"
@@ -102,7 +102,7 @@ print_section "Kubernetes Manifests Validation"
 
 if [ -f "k8s/klines-all-timeframes-cronjobs.yaml" ]; then
     print_check "All timeframes CronJobs manifest exists" "PASS"
-    
+
     # Check for all timeframes
     for timeframe in m5 m15 m30 h1 d1; do
         if grep -q "binance-klines-${timeframe}-production" k8s/klines-all-timeframes-cronjobs.yaml; then
@@ -152,20 +152,20 @@ print_section "CI/CD Pipeline Validation"
 
 if [ -f ".github/workflows/ci-cd.yml" ]; then
     print_check "GitHub Actions workflow exists" "PASS"
-    
+
     # Check for key workflow steps
     if grep -q "docker/build-push-action" .github/workflows/ci-cd.yml; then
         print_check "Docker build step configured" "PASS"
     else
         print_check "Docker build step missing" "FAIL"
     fi
-    
+
     if grep -q "kubectl apply" .github/workflows/ci-cd.yml; then
         print_check "Kubernetes deployment step configured" "PASS"
     else
         print_check "Kubernetes deployment step missing" "FAIL"
     fi
-    
+
     if grep -q "klines-all-timeframes-cronjobs.yaml" .github/workflows/ci-cd.yml; then
         print_check "All timeframes deployment configured" "PASS"
     else
@@ -180,14 +180,14 @@ print_section "Production Jobs Validation"
 
 if [ -f "jobs/extract_klines_production.py" ]; then
     print_check "Production extractor exists" "PASS"
-    
+
     # Check for key features
     if grep -q "get_symbols_for_environment" jobs/extract_klines_production.py; then
         print_check "Environment-based symbol selection" "PASS"
     else
         print_check "Environment-based symbol selection missing" "WARN"
     fi
-    
+
     if grep -q "ThreadPoolExecutor" jobs/extract_klines_production.py; then
         print_check "Parallel processing capability" "PASS"
     else

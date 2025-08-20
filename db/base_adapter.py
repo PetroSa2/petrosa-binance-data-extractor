@@ -63,7 +63,9 @@ class BaseAdapter(ABC):
         """
 
     @abstractmethod
-    def write_batch(self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000) -> int:
+    def write_batch(
+        self, model_instances: List[BaseModel], collection: str, batch_size: int = 1000
+    ) -> int:
         """
         Write model instances in batches for better performance.
 
@@ -98,7 +100,9 @@ class BaseAdapter(ABC):
         """
 
     @abstractmethod
-    def query_latest(self, collection: str, symbol: Optional[str] = None, limit: int = 1) -> List[Dict[str, Any]]:
+    def query_latest(
+        self, collection: str, symbol: Optional[str] = None, limit: int = 1
+    ) -> List[Dict[str, Any]]:
         """
         Query the most recent records.
 

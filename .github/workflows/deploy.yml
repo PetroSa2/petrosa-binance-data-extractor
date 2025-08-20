@@ -174,4 +174,4 @@ jobs:
     steps:
     - name: Clean Up Old Images
       run: |
-        echo "Cleaning up old Docker images..." 
+        echo "Cleaning up old Docker images..."

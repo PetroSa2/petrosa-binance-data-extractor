@@ -18,7 +18,7 @@ def test_imports():
     try:
         import constants
 
-        print(f"✅ Constants imported successfully")
+        print("✅ Constants imported successfully")
         print(f"   - OTEL_SERVICE_NAME_KLINES: {constants.OTEL_SERVICE_NAME_KLINES}")
         print(f"   - OTEL_SERVICE_NAME_FUNDING: {constants.OTEL_SERVICE_NAME_FUNDING}")
         print(f"   - OTEL_SERVICE_NAME_TRADES: {constants.OTEL_SERVICE_NAME_TRADES}")
@@ -85,7 +85,9 @@ def test_instrumentation_packages():
         except ImportError as e:
             print(f"❌ {package}: {e}")
 
-    print(f"\n📊 Successfully imported {success_count}/{len(packages_to_test)} packages")
+    print(
+        f"\n📊 Successfully imported {success_count}/{len(packages_to_test)} packages"
+    )
     return success_count == len(packages_to_test)
 
 

@@ -13,7 +13,7 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import jobs.extract_klines_gap_filler as gap_filler
+import jobs.extract_klines_gap_filler as gap_filler  # noqa: E402
 
 
 class TestRetryWithBackoff:
@@ -26,7 +26,9 @@ class TestRetryWithBackoff:
     def test_retry_success_after_failures(self):
         mock_func = Mock(side_effect=[Exception("fail"), Exception("fail"), "success"])
         with patch("time.sleep"):  # Mock sleep to speed up test
-            result = gap_filler.retry_with_backoff(mock_func, max_retries=3, retry_on_all_errors=True)
+            result = gap_filler.retry_with_backoff(
+                mock_func, max_retries=3, retry_on_all_errors=True
+            )
         assert result == "success"
         assert mock_func.call_count == 3
 
@@ -34,7 +36,9 @@ class TestRetryWithBackoff:
         mock_func = Mock(side_effect=Exception("persistent failure"))
         with patch("time.sleep"):  # Mock sleep to speed up test
             with pytest.raises(Exception, match="persistent failure"):
-                gap_filler.retry_with_backoff(mock_func, max_retries=2, retry_on_all_errors=True)
+                gap_filler.retry_with_backoff(
+                    mock_func, max_retries=2, retry_on_all_errors=True
+                )
         assert mock_func.call_count == 3
 
     def test_retry_connection_error(self):
@@ -42,7 +46,9 @@ class TestRetryWithBackoff:
         mock_logger = Mock()
         with patch("time.sleep"):
             with pytest.raises(Exception):
-                gap_filler.retry_with_backoff(mock_func, max_retries=1, logger=mock_logger)
+                gap_filler.retry_with_backoff(
+                    mock_func, max_retries=1, logger=mock_logger
+                )
         assert mock_func.call_count == 2
 
     def test_retry_api_rate_limit(self):
@@ -50,7 +56,9 @@ class TestRetryWithBackoff:
         mock_logger = Mock()
         with patch("time.sleep"):
             with pytest.raises(Exception):
-                gap_filler.retry_with_backoff(mock_func, max_retries=1, logger=mock_logger)
+                gap_filler.retry_with_backoff(
+                    mock_func, max_retries=1, logger=mock_logger
+                )
         assert mock_func.call_count == 2
 
     def test_retry_non_retryable_error(self):
@@ -88,7 +96,10 @@ class TestGapFillerExtractor:
         result = extractor.period_to_minutes()
         assert result == 15
 
-    @patch("jobs.extract_klines_gap_filler.binance_interval_to_table_suffix", return_value="m15")
+    @patch(
+        "jobs.extract_klines_gap_filler.binance_interval_to_table_suffix",
+        return_value="m15",
+    )
     def test_get_collection_name(self, mock_suffix):
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         result = extractor.get_collection_name()
@@ -108,7 +119,9 @@ class TestGapFillerExtractor:
         assert end_date.tzinfo is not None
 
     def test_split_weekly_chunks(self):
-        extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb", weekly_chunk_days=3)
+        extractor = gap_filler.GapFillerExtractor(
+            ["BTCUSDT"], "15m", "mongodb", weekly_chunk_days=3
+        )
         start_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         end_date = datetime(2024, 1, 10, tzinfo=timezone.utc)
         chunks = extractor.split_weekly_chunks(start_date, end_date)
@@ -122,7 +135,10 @@ class TestGapFillerExtractor:
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
         mock_db_adapter = Mock()
         mock_db_adapter.find_gaps.return_value = [
-            (datetime(2024, 1, 1, tzinfo=timezone.utc), datetime(2024, 1, 2, tzinfo=timezone.utc))
+            (
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            )
         ]
         with patch("utils.time_utils.get_interval_minutes", return_value=15):
             gaps = extractor.detect_gaps_for_symbol("BTCUSDT", mock_db_adapter)
@@ -134,13 +150,21 @@ class TestGapFillerExtractor:
     @patch("time.sleep")  # Ensure sleep is mocked
     @patch("random.uniform")  # Mock random delays
     @patch("jobs.extract_klines_gap_filler.retry_with_backoff")  # Mock retry logic
-    def test_process_symbol_gaps(self, mock_retry, mock_random, mock_sleep, mock_kline_model_cls, mock_klines_fetcher_cls):
+    def test_process_symbol_gaps(
+        self,
+        mock_retry,
+        mock_random,
+        mock_sleep,
+        mock_kline_model_cls,
+        mock_klines_fetcher_cls,
+    ):
         # Mock random.uniform to return a small value
         mock_random.return_value = 0.1
 
         # Mock retry_with_backoff to just call the function directly
         def mock_retry_wrapper(func, *args, **kwargs):
             return func()
+
         mock_retry.side_effect = mock_retry_wrapper
 
         extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "mongodb")
@@ -150,16 +174,20 @@ class TestGapFillerExtractor:
         gap_end = datetime(2024, 1, 2, tzinfo=timezone.utc)
         mock_db_adapter.find_gaps.return_value = [(gap_start, gap_end)]
         mock_fetcher = Mock()
+
         class FakeKline:
             def model_dump(self):
                 return {"open": 1}
+
         mock_fetcher.fetch_klines.return_value = [FakeKline(), FakeKline()]
         mock_klines_fetcher_cls.return_value = mock_fetcher
         mock_db_adapter.write.side_effect = lambda *args, **kwargs: 2
 
-        with patch.object(extractor, "get_start_date", return_value=gap_start), \
-             patch.object(extractor, "get_end_date", return_value=gap_end), \
-             patch("jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter):
+        with patch.object(
+            extractor, "get_start_date", return_value=gap_start
+        ), patch.object(extractor, "get_end_date", return_value=gap_end), patch(
+            "jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter
+        ):
             result = extractor.process_symbol_gaps("BTCUSDT", mock_binance_client)
         assert result["success"] is True
         assert result["gaps_found"] == 1
@@ -174,8 +202,13 @@ class TestGapFillerExtractor:
         mock_fetcher.fetch_klines.return_value = []
         mock_binance_client.get_klines_fetcher.return_value = mock_fetcher
 
-        with patch("jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter):
-            with patch("jobs.extract_klines_gap_filler.BinanceClient", return_value=mock_binance_client):
+        with patch(
+            "jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter
+        ):
+            with patch(
+                "jobs.extract_klines_gap_filler.BinanceClient",
+                return_value=mock_binance_client,
+            ):
                 with patch("utils.time_utils.get_interval_minutes", return_value=15):
                     result = extractor.run_gap_filling()
 
@@ -425,4 +458,6 @@ class TestMainFunction:
             with patch("traceback.print_exc"):
                 gap_filler._main_impl()
                 mock_exit.assert_called_with(1)
-                mock_logger.error.assert_called_with("💥 Fatal error during gap filling: test error")
+                mock_logger.error.assert_called_with(
+                    "💥 Fatal error during gap filling: test error"
+                )

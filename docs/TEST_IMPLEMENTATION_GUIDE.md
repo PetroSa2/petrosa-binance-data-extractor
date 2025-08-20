@@ -169,7 +169,7 @@ def test_complete_extraction_workflow():
     with patch('fetchers.client.BinanceClient'), \
          patch('db.mysql_adapter.MySQLAdapter'), \
          patch('utils.logger.get_logger'):
-        
+
         # Test the complete workflow
         result = run_extraction_workflow()
         assert result['success'] is True
@@ -200,11 +200,11 @@ def test_api_rate_limit_error():
 def test_large_dataset_processing():
     """Test processing large datasets."""
     large_dataset = generate_test_data(10000)
-    
+
     start_time = time.time()
     result = process_data(large_dataset)
     end_time = time.time()
-    
+
     assert end_time - start_time < 5.0  # Should complete within 5 seconds
     assert result['processed_count'] == 10000
 ```
@@ -303,4 +303,4 @@ def test_file_operations():
         assert read_data(temp_file.name) == "test data"
 ```
 
-This guide provides a foundation for implementing comprehensive test coverage across all modules in the project. 
+This guide provides a foundation for implementing comprehensive test coverage across all modules in the project.

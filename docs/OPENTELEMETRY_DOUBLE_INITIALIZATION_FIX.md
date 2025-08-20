@@ -108,4 +108,4 @@ The fix has been verified by:
 ## Related Documentation
 
 - [OpenTelemetry Instrumentation Update](OPENTELEMETRY_INSTRUMENTATION_UPDATE.md)
-- [README.md](../README.md#opentelemetry-configuration) 
+- [README.md](../README.md#opentelemetry-configuration)
