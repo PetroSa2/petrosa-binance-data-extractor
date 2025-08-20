@@ -407,13 +407,13 @@ class MongoDBAdapter(BaseAdapter):
         db = self._get_database()
         return db.command("dbStats")
 
-    def _ensure_connected(self) -> Database:
+    def _ensure_connected(self) -> "Database":
         """Ensure the database is connected and return it."""
         if self.database is None:
             raise DatabaseError("Database is not connected")
         return self.database
 
-    def _get_database(self) -> "Database[Any]":
+    def _get_database(self) -> "Database":
         """Get database connection with safety check."""
         if self.database is None:
             raise DatabaseError("Database connection is None. Call connect() first.")
