@@ -20,7 +20,7 @@ data:
   NATS_SUBJECT_PREFIX_GAP_FILLER: "binance.gap_filler"
 
   # OpenTelemetry configuration
-  ENABLE_OTEL: "true"
+  ENABLE_OTEL: "false"
   OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
   OTEL_METRICS_EXPORTER: "otlp"
@@ -30,6 +30,7 @@ data:
 
   # Database configuration
   DB_ADAPTER: "mysql"
+  EXTRACTOR_DB_ADAPTER: "mysql"
 
   # Trading configuration
   simulation-enabled: "false"
