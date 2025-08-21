@@ -123,6 +123,31 @@ spec:
             secretKeyRef:
               name: petrosa-sensitive-credentials
               key: LOG_LEVEL
+        - name: NATS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: NATS_ENABLED
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: NATS_URL
+        - name: NATS_SUBJECT_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: NATS_SUBJECT_PREFIX
+        - name: NATS_SUBJECT_PREFIX_PRODUCTION
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: NATS_SUBJECT_PREFIX_PRODUCTION
+        - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: NATS_SUBJECT_PREFIX_GAP_FILLER
         ports:
         - name: http
           containerPort: 8080
