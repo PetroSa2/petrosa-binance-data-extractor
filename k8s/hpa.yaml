@@ -2,17 +2,17 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: petrosa-socket-client-hpa
+  name: petrosa-binance-data-extractor-hpa
   namespace: petrosa-apps
   labels:
-    app: socket-client
-    component: websocket-client
+    app: binance-data-extractor
+    component: data-extraction
     version: VERSION_PLACEHOLDER
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: petrosa-socket-client
+    name: petrosa-binance-data-extractor
   minReplicas: 2
   maxReplicas: 10
   metrics:
