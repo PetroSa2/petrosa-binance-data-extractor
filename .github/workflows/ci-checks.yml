@@ -64,7 +64,7 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        slug: PetroSa2/petrosa-socket-client
+        slug: PetroSa2/petrosa-binance-data-extractor
 
   security-scan:
     name: Security Scan

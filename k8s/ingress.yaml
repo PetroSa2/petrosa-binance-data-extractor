@@ -2,11 +2,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: petrosa-socket-client-ingress
+  name: petrosa-binance-data-extractor-ingress
   namespace: petrosa-apps
   labels:
-    app: socket-client
-    component: websocket-client
+    app: binance-data-extractor
+    component: data-extraction
     version: VERSION_PLACEHOLDER
   annotations:
     kubernetes.io/ingress.class: "nginx"
@@ -19,16 +19,16 @@ metadata:
 spec:
   tls:
   - hosts:
-    - socket-client.petrosa.local
-    secretName: petrosa-socket-client-tls
+    - data-extractor.petrosa.local
+    secretName: petrosa-binance-data-extractor-tls
   rules:
-  - host: socket-client.petrosa.local
+  - host: data-extractor.petrosa.local
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: petrosa-socket-client
+            name: petrosa-binance-data-extractor-service
             port:
               number: 80
