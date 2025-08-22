@@ -124,3 +124,13 @@
 # - Test in multiple environments (local, Docker, K8s)
 # - Ensure no regressions are introduced
 # - Stop only when all tests pass and the fix is validated
+#
+# GITHUB CLI USAGE RULES:
+# - NEVER use interactive GitHub CLI commands (e.g., `gh pr merge 50 --admin`)
+# - Always use non-interactive alternatives:
+#   - For merging PRs: `gh pr merge 50 --merge --delete-branch --admin`
+#   - For creating PRs: `gh pr create --title "Title" --body "Description" --head branch --base main`
+#   - For reviewing PRs: `gh pr review 50 --approve --body "LGTM"`
+#   - For commenting: `gh pr comment 50 --body "Comment text"`
+# - Use `--help` flag to see all non-interactive options for any gh command
+# - Always specify all required parameters to avoid interactive prompts

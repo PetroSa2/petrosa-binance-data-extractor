@@ -21,14 +21,61 @@ The NATS messaging feature provides real-time notifications about extraction com
 | `NATS_ENABLED` | `true` | Enable/disable NATS messaging |
 | `NATS_SUBJECT_PREFIX` | `binance.extraction` | Subject prefix for messages |
 
+### ⚠️ **CRITICAL: Kubernetes Service Configuration**
+
+**ALWAYS use Kubernetes service names for NATS connections, never external IP addresses.**
+
+#### ✅ **Correct Configuration (Kubernetes)**
+```bash
+# Use Kubernetes service name (cross-namespace)
+export NATS_URL=nats://nats-server.nats:4222
+# or
+export NATS_URL=nats://nats-server.nats.svc.cluster.local:4222
+```
+
+#### ❌ **Incorrect Configuration (External IP)**
+```bash
+# NEVER use external IP addresses
+export NATS_URL=nats://192.168.194.253:4222  # ❌ WRONG
+export NATS_URL=nats://external-server.com:4222  # ❌ WRONG
+```
+
+#### **Why Use Kubernetes Service Names?**
+
+1. **Service Discovery**: Kubernetes automatically resolves service names to the correct pods
+2. **Load Balancing**: Traffic is automatically distributed across NATS replicas
+3. **Network Policies**: Works with Kubernetes network policies and security rules
+4. **Portability**: Configuration works across different environments (dev, staging, prod)
+5. **Reliability**: Survives pod restarts and scaling events
+6. **Security**: Stays within the cluster network, avoiding external network dependencies
+
+#### **Kubernetes Service Name Format**
+- **Cross-namespace (short)**: `nats://nats-server.nats:4222`
+- **Cross-namespace (full DNS)**: `nats://nats-server.nats.svc.cluster.local:4222`
+- **Same namespace (short)**: `nats://nats-server:4222`
+- **Other namespace**: `nats://nats-server.other-namespace.svc.cluster.local:4222`
+
 ### Example Configuration
 
+#### **Kubernetes Environment**
 ```bash
 # Enable NATS messaging
 export NATS_ENABLED=true
 
-# Configure NATS server
-export NATS_URL=nats://nats-server:4222
+# Configure NATS server using Kubernetes service name (cross-namespace)
+export NATS_URL=nats://nats-server.nats.svc.cluster.local:4222
+
+# Optional: Custom subject prefix
+export NATS_SUBJECT_PREFIX=petrosa.binance.extraction
+```
+
+#### **Local Development**
+```bash
+# Enable NATS messaging
+export NATS_ENABLED=true
+
+# Configure NATS server for local development
+export NATS_URL=nats://localhost:4222
 
 # Optional: Custom subject prefix
 export NATS_SUBJECT_PREFIX=petrosa.binance.extraction
@@ -246,14 +293,49 @@ environment:
 
 ### Kubernetes
 
-Add NATS configuration to your Kubernetes deployment:
+Add NATS configuration to your Kubernetes deployment using service names:
 
 ```yaml
 env:
 - name: NATS_ENABLED
   value: "true"
 - name: NATS_URL
-  value: "nats://nats-server:4222"
+  value: "nats://nats-server.nats.svc.cluster.local:4222"  # Use Kubernetes service name
+```
+
+#### **Important Kubernetes Configuration Notes**
+
+1. **Service Name**: Always use the Kubernetes service name, not external IP addresses
+2. **Namespace**: If NATS is in a different namespace, use the full DNS name
+3. **ConfigMap**: Store NATS configuration in ConfigMaps for consistency
+4. **Network Policies**: Ensure network policies allow traffic to NATS service
+
+#### **Example ConfigMap Configuration**
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petrosa-common-config
+  namespace: petrosa-apps
+data:
+  NATS_URL: "nats://nats-server.nats.svc.cluster.local:4222"  # ✅ Correct: Full DNS name
+  NATS_ENABLED: "true"
+  NATS_SUBJECT_PREFIX: "binance"
+```
+
+#### **Example Deployment Configuration**
+```yaml
+env:
+- name: NATS_ENABLED
+  valueFrom:
+    configMapKeyRef:
+      name: petrosa-common-config
+      key: NATS_ENABLED
+- name: NATS_URL
+  valueFrom:
+    configMapKeyRef:
+      name: petrosa-common-config
+      key: NATS_URL  # Should be nats://nats-server.nats.svc.cluster.local:4222
 ```
 
 ## Troubleshooting
@@ -274,6 +356,48 @@ env:
    - NATS messaging is asynchronous
    - Failed messages don't block extraction
    - Consider NATS server performance
+
+### **Kubernetes-Specific Issues**
+
+4. **NATS Service Not Found**
+   ```bash
+   # Check if NATS service exists
+   kubectl get svc -n petrosa-apps | grep nats
+
+   # Check NATS service endpoints
+   kubectl get endpoints -n petrosa-apps nats-server
+
+   # Test connectivity from a pod
+   kubectl run test-nats --rm -it --image=busybox -- nslookup nats-server
+   ```
+
+5. **Network Policy Blocking NATS**
+   ```bash
+   # Check network policies
+   kubectl get networkpolicy -n petrosa-apps
+
+   # Check if NATS pods are reachable
+   kubectl exec -it <pod-name> -- nc -zv nats-server 4222
+   ```
+
+6. **Wrong NATS URL Configuration**
+   ```bash
+   # Check current NATS URL in configmap
+   kubectl get configmap petrosa-common-config -n petrosa-apps -o yaml
+
+   # Verify it's using service name, not external IP
+   # Should be: nats://nats-server:4222
+   # NOT: nats://192.168.194.253:4222
+   ```
+
+7. **Cross-Namespace NATS Access**
+   ```bash
+   # If NATS is in different namespace, use full DNS name
+   # nats://nats-server.nats-namespace.svc.cluster.local:4222
+
+   # Check NATS service in other namespace
+   kubectl get svc -n nats-namespace nats-server
+   ```
 
 ### Logs
 

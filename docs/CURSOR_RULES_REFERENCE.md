@@ -11,6 +11,7 @@ When working with this repository, ALWAYS follow these rules:
 - **ONLY use existing secret**: `petrosa-sensitive-credentials`
 - **ONLY use existing configmap**: `petrosa-common-config`
 - **NEVER create new secrets or configmaps**
+- **NATS Configuration**: Always use Kubernetes service names (`nats://nats-server.nats.svc.cluster.local:4222`), never external IP addresses
 
 ## GitHub CLI
 - **ALWAYS use file-based approach**: `gh command > /tmp/file.json && cat /tmp/file.json`
@@ -31,6 +32,7 @@ When working with this repository, ALWAYS follow these rules:
 - Don't suggest AWS EKS commands (this is MicroK8s)
 - Don't create new Kubernetes secrets/configmaps
 - Don't run GitHub CLI commands directly without file output
+- **NEVER use external IP addresses for NATS in Kubernetes** - Always use service names like `nats://nats-server.nats.svc.cluster.local:4222`
 
 ## Key Files to Check
 - `docs/REPOSITORY_SETUP_GUIDE.md`
