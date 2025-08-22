@@ -171,11 +171,11 @@ security:
 # Docker
 build:
 	@echo "🐳 Building Docker image..."
-	docker build -t petrosa-ta-bot:latest .
+	docker build -t petrosa-binance-extractor:latest .
 
 container:
 	@echo "📦 Testing Docker container..."
-	docker run --rm petrosa-ta-bot:latest python -c "print('TA Bot container is working!')"
+	docker run --rm petrosa-binance-extractor:latest python -c "print('Data Extractor container is working!')"
 
 docker-clean:
 	@echo "🧹 Cleaning up Docker images..."
