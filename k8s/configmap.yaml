@@ -9,8 +9,8 @@ metadata:
     component: data-extraction
     version: VERSION_PLACEHOLDER
 data:
-  # Binance API configuration
-  BINANCE_API_URL: "https://api.binance.com"
+  # Binance API configuration - this service primarily works with futures data
+  BINANCE_API_URL: "https://fapi.binance.com"
   BINANCE_FUTURES_API_URL: "https://fapi.binance.com"
   DEFAULT_SYMBOLS: "BTCUSDT,ETHUSDT,BNBUSDT"
 
@@ -37,3 +37,9 @@ data:
   MAX_RETRIES: "3"
   RETRY_BACKOFF_SECONDS: "1.0"
   RETRY_BACKOFF_MULTIPLIER: "2.0"
+
+  # Additional settings referenced in deployment
+  API_RATE_LIMIT_PER_MINUTE: "1200"
+  REQUEST_DELAY_SECONDS: "0.1"
+  MIN_BATCH_SIZE: "100"
+  MAX_BATCH_SIZE: "5000"

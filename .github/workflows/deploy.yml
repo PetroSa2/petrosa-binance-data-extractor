@@ -87,7 +87,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor
+        images: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor
         tags: |
           type=raw,value=${{ steps.version.outputs.version }}
     - name: Build and Push Docker Image
@@ -131,13 +131,13 @@ jobs:
         find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|VERSION_PLACEHOLDER|${IMAGE_TAG}|g"
 
         # Also replace the image name to use the correct format with secrets
-        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|yurisa2/petrosa-binance-extractor|${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor|g"
+        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|yurisa2/petrosa-binance-data-extractor|${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor|g"
 
-        echo "Updated manifests with image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${IMAGE_TAG}"
+        echo "Updated manifests with image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor:${IMAGE_TAG}"
 
         # Verify the changes
         echo "Verifying image tag updates:"
-        grep -r "image:.*petrosa-binance-extractor" k8s/ || echo "No image references found"
+        grep -r "image:.*petrosa-binance-data-extractor" k8s/ || echo "No image references found"
 
         # Double-check that no VERSION_PLACEHOLDER remain
         PLACEHOLDER_COUNT=$(grep -r "VERSION_PLACEHOLDER" k8s/ | wc -l || echo "0")
@@ -164,7 +164,7 @@ jobs:
         echo ""
         echo "📊 Deployment Summary:"
         echo "  ✅ Kubernetes resources deployed successfully"
-        echo "  🐳 Image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-extractor:${{ needs.build-and-push.outputs.version }}"
+        echo "  🐳 Image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor:${{ needs.build-and-push.outputs.version }}"
         echo "  📍 Namespace: petrosa-apps"
         echo "  🔗 Service: petrosa-binance-data-extractor-service"
         echo "  🌐 Ingress: petrosa-binance-data-extractor-ingress"

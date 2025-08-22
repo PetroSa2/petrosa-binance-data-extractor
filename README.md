@@ -365,6 +365,28 @@ export LOG_LEVEL=DEBUG
 python -m jobs.extract_klines_production --period 15m
 ```
 
+## 📚 Documentation
+
+### Core Documentation
+
+- **[NATS Messaging Integration](docs/NATS_MESSAGING.md)** - Complete guide to NATS messaging features
+- **[NATS Kubernetes Best Practices](docs/NATS_KUBERNETES_BEST_PRACTICES.md)** - ⚠️ **CRITICAL**: Always use Kubernetes service names for NATS
+- **[Bug Investigation Guide](docs/BUG_INVESTIGATION_GUIDE.md)** - Troubleshooting and debugging procedures
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Kubernetes deployment instructions
+- **[Operations Guide](docs/OPERATIONS_GUIDE.md)** - Production operations and monitoring
+
+### Quick References
+
+- **[Quick Reference](docs/QUICK_REFERENCE.md)** - Essential commands and configurations
+- **[Unified Quick Reference](docs/UNIFIED_QUICK_REFERENCE.md)** - Cross-project reference guide
+- **[Bug Investigation Quick Reference](docs/BUG_INVESTIGATION_QUICK_REFERENCE.md)** - Fast troubleshooting steps
+
+### Configuration Guides
+
+- **[Repository Setup Guide](docs/REPOSITORY_SETUP_GUIDE.md)** - Complete environment setup
+- **[Versioning Guide](docs/VERSIONING_GUIDE.md)** - Version management and deployment
+- **[OpenTelemetry Installation Guide](docs/OTEL_INSTALLATION_GUIDE.md)** - Observability setup
+
 ## 📚 API Reference
 
 ### Extraction Jobs

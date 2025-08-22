@@ -9,7 +9,7 @@ metadata:
     component: data-extraction
     version: VERSION_PLACEHOLDER
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: binance-data-extractor
@@ -26,7 +26,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: data-extractor
-        image: yurisa2/petrosa-binance-extractor:VERSION_PLACEHOLDER
+        image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
         imagePullPolicy: Always
         command:
         - opentelemetry-instrument
@@ -38,7 +38,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: petrosa-binance-data-extractor-config
-              key: BINANCE_API_URL
+              key: BINANCE_FUTURES_API_URL
         - name: BINANCE_FUTURES_API_URL
           valueFrom:
             configMapKeyRef:
@@ -103,6 +103,26 @@ spec:
             configMapKeyRef:
               name: petrosa-binance-data-extractor-config
               key: API_TIMEOUT
+        - name: API_RATE_LIMIT_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-binance-data-extractor-config
+              key: API_RATE_LIMIT_PER_MINUTE
+        - name: REQUEST_DELAY_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-binance-data-extractor-config
+              key: REQUEST_DELAY_SECONDS
+        - name: MIN_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-binance-data-extractor-config
+              key: MIN_BATCH_SIZE
+        - name: MAX_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-binance-data-extractor-config
+              key: MAX_BATCH_SIZE
         - name: MYSQL_URI
           valueFrom:
             secretKeyRef:
