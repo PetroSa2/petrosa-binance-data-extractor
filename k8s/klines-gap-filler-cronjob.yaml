@@ -66,13 +66,13 @@ spec:
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
@@ -245,13 +245,13 @@ spec:
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
@@ -424,13 +424,13 @@ spec:
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
@@ -603,13 +603,13 @@ spec:
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
@@ -782,13 +782,13 @@ spec:
                   key: MYSQL_URI
             - name: LOG_LEVEL
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: LOG_LEVEL
             - name: ENVIRONMENT
               valueFrom:
-                secretKeyRef:
-                  name: petrosa-sensitive-credentials
+                configMapKeyRef:
+                  name: petrosa-common-config
                   key: ENVIRONMENT
             - name: DB_ADAPTER
               valueFrom:
