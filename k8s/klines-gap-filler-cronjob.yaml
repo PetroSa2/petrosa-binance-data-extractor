@@ -226,7 +226,7 @@ spec:
             - --max-workers=3
             - --db-adapter=mysql
             - --weekly-chunk-days=7
-            - --max-gap-size-day=3000
+            - --max-gap-size-days=3000
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -405,7 +405,7 @@ spec:
             - --max-workers=3
             - --db-adapter=mysql
             - --weekly-chunk-days=7
-            - --max-gap-size-day=3000
+            - --max-gap-size-days=3000
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -584,7 +584,7 @@ spec:
             - --max-workers=3
             - --db-adapter=mysql
             - --weekly-chunk-days=7
-            - --max-gap-size-day=3000
+            - --max-gap-size-days=3000
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -763,7 +763,7 @@ spec:
             - --max-workers=3
             - --db-adapter=mysql
             - --weekly-chunk-days=7
-            - --max-gap-size-day=3000
+            - --max-gap-size-days=3000
             env:
             - name: BINANCE_API_KEY
               valueFrom:
