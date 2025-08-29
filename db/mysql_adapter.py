@@ -6,7 +6,7 @@ This module provides a MySQL/MariaDB implementation of the BaseAdapter interface
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -56,7 +56,7 @@ class MySQLAdapter(BaseAdapter):
     for time-series data with proper indexing.
     """
 
-    def __init__(self, connection_string: Optional[str] = None, **kwargs):
+    def __init__(self, connection_string: str | None = None, **kwargs):
         """
         Initialize MySQL adapter.
 
@@ -73,7 +73,7 @@ class MySQLAdapter(BaseAdapter):
         super().__init__(connection_string, **kwargs)
 
         # SQLAlchemy specific settings
-        self.engine: Optional[Engine] = None
+        self.engine: Engine | None = None
         self.metadata = MetaData()
         self.tables: dict[str, Table] = {}
 
@@ -330,7 +330,7 @@ class MySQLAdapter(BaseAdapter):
         collection: str,
         start: datetime,
         end: datetime,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> list[dict[str, Any]]:
         """Query records within time range."""
         if not self._connected:
@@ -358,7 +358,7 @@ class MySQLAdapter(BaseAdapter):
             raise DatabaseError(f"Failed to query range from {collection}: {e}") from e
 
     def query_latest(
-        self, collection: str, symbol: Optional[str] = None, limit: int = 1
+        self, collection: str, symbol: str | None = None, limit: int = 1
     ) -> list[dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
@@ -387,7 +387,7 @@ class MySQLAdapter(BaseAdapter):
         start: datetime,
         end: datetime,
         interval_minutes: int,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> list[tuple[datetime, datetime]]:
         """Find gaps in time series data using efficient database queries."""
         if not self._connected:
@@ -570,9 +570,9 @@ class MySQLAdapter(BaseAdapter):
     def get_record_count(
         self,
         collection: str,
-        start: Optional[datetime] = None,
-        end: Optional[datetime] = None,
-        symbol: Optional[str] = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        symbol: str | None = None,
     ) -> int:
         """Get count of records matching criteria."""
         if not self._connected:
@@ -613,7 +613,7 @@ class MySQLAdapter(BaseAdapter):
         collection: str,
         start: datetime,
         end: datetime,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> int:
         """Delete records within time range."""
         if not self._connected:

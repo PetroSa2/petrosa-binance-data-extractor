@@ -19,7 +19,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
@@ -36,9 +36,9 @@ class PipelineRunner:
     def __init__(self, log_level: str = "INFO"):
         """Initialize the pipeline runner."""
         self.log_level = log_level
-        self.logger: Optional[Any] = None
-        self.telemetry_manager: Optional[Any] = None
-        self.start_time: Optional[datetime] = None
+        self.logger: Any | None = None
+        self.telemetry_manager: Any | None = None
+        self.start_time: datetime | None = None
 
         # Job configurations
         self.job_configs = {
@@ -357,7 +357,7 @@ class PipelineRunner:
         }
 
     def run(
-        self, job_name: Optional[str] = None, run_all: bool = False, **kwargs
+        self, job_name: str | None = None, run_all: bool = False, **kwargs
     ) -> dict[str, Any]:
         """Main run method for the pipeline."""
         self.start_time = datetime.now(UTC)

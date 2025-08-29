@@ -4,7 +4,7 @@ Base Pydantic models and shared fields for all Binance data models.
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -25,7 +25,7 @@ class BaseTimestampedModel(BaseModel):
     source: str = Field(default="binance-futures", description="Data source identifier")
 
     # Optional unique identifier
-    id: Optional[str] = Field(
+    id: str | None = Field(
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique record identifier",
     )

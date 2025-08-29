@@ -3,7 +3,6 @@ Trades data fetcher for Binance Futures.
 """
 
 from datetime import datetime
-from typing import Optional
 
 import constants
 from fetchers.client import BinanceAPIError, BinanceClient
@@ -21,7 +20,7 @@ class TradesFetcher:
     Handles recent trades and historical trades extraction.
     """
 
-    def __init__(self, client: Optional[BinanceClient] = None):
+    def __init__(self, client: BinanceClient | None = None):
         """
         Initialize trades fetcher.
 
@@ -75,7 +74,7 @@ class TradesFetcher:
             raise
 
     def fetch_historical_trades(
-        self, symbol: str, from_id: Optional[int] = None, limit: int = 1000
+        self, symbol: str, from_id: int | None = None, limit: int = 1000
     ) -> list[TradeModel]:
         """
         Fetch historical trades for a symbol.
@@ -236,7 +235,7 @@ class TradesFetcher:
 
         return results
 
-    def get_latest_trade_id(self, symbol: str) -> Optional[int]:
+    def get_latest_trade_id(self, symbol: str) -> int | None:
         """
         Get the latest trade ID for a symbol.
 
@@ -286,7 +285,7 @@ class TradesFetcher:
         end_time: datetime,
         total_records: int,
         duration_seconds: float = 0.0,
-        errors: Optional[list[str]] = None,
+        errors: list[str] | None = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.

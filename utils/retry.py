@@ -7,7 +7,7 @@ import random
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Optional
+from typing import Any
 
 import constants
 
@@ -23,10 +23,10 @@ class NonRetryableError(Exception):
 
 
 def exponential_backoff(
-    max_retries: Optional[int] = None,
-    base_delay: Optional[float] = None,
+    max_retries: int | None = None,
+    base_delay: float | None = None,
     max_delay: float = 60.0,
-    exponential_factor: Optional[float] = None,
+    exponential_factor: float | None = None,
     jitter: bool = True,
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
     non_retryable_exceptions: tuple[type[Exception], ...] = (NonRetryableError,),
@@ -246,7 +246,7 @@ def with_retries_and_rate_limit(func: Callable) -> Callable:
 
 # HTTP-specific retry decorator
 def retry_on_http_errors(
-    max_retries: Optional[int] = None, base_delay: Optional[float] = None
+    max_retries: int | None = None, base_delay: float | None = None
 ):
     """
     Retry decorator specifically for HTTP errors.

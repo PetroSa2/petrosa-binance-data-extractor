@@ -9,7 +9,6 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Optional
 
 import nats
 from nats.aio.client import Client as NATSClient
@@ -22,7 +21,7 @@ logger = get_logger(__name__)
 class NATSMessenger:
     """NATS messaging client for sending extraction completion messages."""
 
-    def __init__(self, nats_url: Optional[str] = None):
+    def __init__(self, nats_url: str | None = None):
         """
         Initialize NATS messenger.
 
@@ -31,7 +30,7 @@ class NATSMessenger:
                      or "nats://localhost:4222"
         """
         self.nats_url = nats_url or os.getenv("NATS_URL", "nats://localhost:4222")
-        self.client: Optional[NATSClient] = None
+        self.client: NATSClient | None = None
         self._lock = asyncio.Lock()
 
     async def connect(self) -> None:
@@ -61,7 +60,7 @@ class NATSMessenger:
         records_written: int,
         success: bool,
         duration_seconds: float,
-        errors: Optional[list] = None,
+        errors: list | None = None,
         gaps_found: int = 0,
         gaps_filled: int = 0,
         extraction_type: str = "klines",
@@ -126,7 +125,7 @@ class NATSMessenger:
         total_records_written: int,
         success: bool,
         duration_seconds: float,
-        errors: Optional[list] = None,
+        errors: list | None = None,
         total_gaps_found: int = 0,
         total_gaps_filled: int = 0,
         extraction_type: str = "klines",
@@ -186,7 +185,7 @@ class NATSMessenger:
 
 
 # Global messenger instance
-_messenger: Optional[NATSMessenger] = None
+_messenger: NATSMessenger | None = None
 
 
 def get_messenger() -> NATSMessenger:
@@ -204,7 +203,7 @@ def publish_extraction_completion_sync(
     records_written: int,
     success: bool,
     duration_seconds: float,
-    errors: Optional[list] = None,
+    errors: list | None = None,
     gaps_found: int = 0,
     gaps_filled: int = 0,
     extraction_type: str = "klines",
@@ -271,7 +270,7 @@ def publish_batch_extraction_completion_sync(
     total_records_written: int,
     success: bool,
     duration_seconds: float,
-    errors: Optional[list] = None,
+    errors: list | None = None,
     total_gaps_found: int = 0,
     total_gaps_filled: int = 0,
     extraction_type: str = "klines",

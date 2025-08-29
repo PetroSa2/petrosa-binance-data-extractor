@@ -11,7 +11,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -202,7 +202,7 @@ class GapFillerExtractor:
         symbols: list[str],
         period: str,
         db_adapter_name: str,
-        db_uri: Optional[str] = None,
+        db_uri: str | None = None,
         max_workers: int = 3,
         batch_size: int = 1000,
         weekly_chunk_days: int = 7,

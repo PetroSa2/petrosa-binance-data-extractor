@@ -6,7 +6,7 @@ This module defines the abstract base class that all database adapters must impl
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -84,7 +84,7 @@ class BaseAdapter(ABC):
         collection: str,
         start: datetime,
         end: datetime,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Query records within a time range.
@@ -101,7 +101,7 @@ class BaseAdapter(ABC):
 
     @abstractmethod
     def query_latest(
-        self, collection: str, symbol: Optional[str] = None, limit: int = 1
+        self, collection: str, symbol: str | None = None, limit: int = 1
     ) -> list[dict[str, Any]]:
         """
         Query the most recent records.
@@ -122,7 +122,7 @@ class BaseAdapter(ABC):
         start: datetime,
         end: datetime,
         interval_minutes: int,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> list[tuple[datetime, datetime]]:
         """
         Find gaps in the data within the specified time range.
@@ -142,9 +142,9 @@ class BaseAdapter(ABC):
     def get_record_count(
         self,
         collection: str,
-        start: Optional[datetime] = None,
-        end: Optional[datetime] = None,
-        symbol: Optional[str] = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        symbol: str | None = None,
     ) -> int:
         """
         Get count of records matching the criteria.
@@ -174,7 +174,7 @@ class BaseAdapter(ABC):
         collection: str,
         start: datetime,
         end: datetime,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> int:
         """
         Delete records within a time range.

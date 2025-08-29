@@ -8,7 +8,6 @@ import json
 import logging
 import sys
 from datetime import datetime
-from typing import Optional
 
 import constants
 
@@ -92,8 +91,8 @@ class JSONFormatter(logging.Formatter):
 
 
 def setup_logging(
-    level: Optional[str] = None,
-    format_type: Optional[str] = None,
+    level: str | None = None,
+    format_type: str | None = None,
     enable_otel: bool = True,
 ) -> logging.Logger:
     """
@@ -223,7 +222,7 @@ def log_extraction_progress(
     symbol: str,
     records_processed: int,
     total_records: int,
-    current_timestamp: Optional[datetime] = None,
+    current_timestamp: datetime | None = None,
 ):
     """Log extraction progress."""
     progress_pct = (records_processed / total_records * 100) if total_records > 0 else 0
@@ -251,7 +250,7 @@ def log_extraction_completion(
     total_records: int,
     duration_seconds: float,
     gaps_found: int = 0,
-    errors: Optional[list[str]] = None,
+    errors: list[str] | None = None,
 ):
     """Log extraction completion with summary."""
     log.info(

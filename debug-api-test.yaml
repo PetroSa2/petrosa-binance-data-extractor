@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: debug-binance-api-test
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    debug: "true"
+spec:
+  template:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        debug: "true"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: debug-test
+        image: yurisa2/petrosa-binance-data-extractor:v1.0.76
+        command: ["/bin/bash"]
+        args: ["-c", "echo '=== Debug Binance API Connectivity ==='; env | grep -E '(BINANCE|API)' | sort; echo ''; echo 'Testing DNS...'; nslookup fapi.binance.com; echo ''; echo 'Testing Python requests...'; python3 -c 'import requests; resp=requests.get(\"https://fapi.binance.com/fapi/v1/ping\", timeout=10); print(\"Status:\", resp.status_code); print(\"Response:\", resp.text)'; echo ''; echo 'Testing client...'; python3 -c 'import sys; sys.path.insert(0, \"/app\"); from fetchers.client import BinanceClient; client = BinanceClient(); print(\"Base URL:\", client.base_url); print(\"Ping result:\", client.ping())'"]
+        env:
+        - name: BINANCE_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-binance-data-extractor-config
+              key: BINANCE_API_URL
+        - name: BINANCE_FUTURES_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-binance-data-extractor-config
+              key: BINANCE_FUTURES_API_URL
+        - name: LOG_LEVEL
+          value: "DEBUG"

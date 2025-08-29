@@ -4,7 +4,6 @@ Klines (candlestick) data fetcher for Binance Futures.
 
 import time
 from datetime import datetime, timedelta
-from typing import Optional
 
 import constants
 from fetchers.client import BinanceAPIError, BinanceClient
@@ -29,7 +28,7 @@ class KlinesFetcher:
     Handles both incremental extraction and backfill operations.
     """
 
-    def __init__(self, client: Optional[BinanceClient] = None):
+    def __init__(self, client: BinanceClient | None = None):
         """
         Initialize klines fetcher.
 
@@ -44,8 +43,8 @@ class KlinesFetcher:
         symbol: str,
         interval: str,
         start_time: datetime,
-        end_time: Optional[datetime] = None,
-        limit: Optional[int] = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
     ) -> list[KlineModel]:
         """
         Fetch klines for a symbol and time range.
@@ -248,7 +247,7 @@ class KlinesFetcher:
         symbols: list[str],
         interval: str,
         start_time: datetime,
-        end_time: Optional[datetime] = None,
+        end_time: datetime | None = None,
     ) -> dict:
         """
         Fetch klines for multiple symbols.
@@ -333,7 +332,7 @@ class KlinesFetcher:
         total_records: int,
         gaps_detected: int = 0,
         duration_seconds: float = 0.0,
-        errors: Optional[list] = None,
+        errors: list | None = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.
