@@ -42,20 +42,20 @@ class TestRetryWithBackoff:
         assert mock_func.call_count == 3
 
     def test_retry_connection_error(self):
-        mock_func = Mock(side_effect=Exception("lost connection to mysql server"))
+        mock_func = Mock(side_effect=ConnectionError("lost connection to mysql server"))
         mock_logger = Mock()
         with patch("time.sleep"):
-            with pytest.raises(Exception):
+            with pytest.raises(ConnectionError):
                 gap_filler.retry_with_backoff(
                     mock_func, max_retries=1, logger=mock_logger
                 )
         assert mock_func.call_count == 2
 
     def test_retry_api_rate_limit(self):
-        mock_func = Mock(side_effect=Exception("rate limit exceeded"))
+        mock_func = Mock(side_effect=RuntimeError("rate limit exceeded"))
         mock_logger = Mock()
         with patch("time.sleep"):
-            with pytest.raises(Exception):
+            with pytest.raises(RuntimeError):
                 gap_filler.retry_with_backoff(
                     mock_func, max_retries=1, logger=mock_logger
                 )

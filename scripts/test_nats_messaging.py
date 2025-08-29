@@ -133,7 +133,9 @@ def main():
     logger.info(f"NATS Enabled: {constants.NATS_ENABLED}")
 
     if not constants.NATS_ENABLED:
-        logger.warning("⚠️ NATS messaging is disabled. Set NATS_ENABLED=true to enable.")
+        logger.warning(
+            "⚠️ NATS messaging is disabled. Set NATS_ENABLED=true to enable."
+        )
         return
 
     # Run tests

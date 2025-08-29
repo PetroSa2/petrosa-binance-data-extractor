@@ -39,10 +39,10 @@ class TestCircuitBreaker:
     def test_failure_below_threshold(self):
         """Test failures below threshold don't open circuit."""
         cb = CircuitBreaker(failure_threshold=3, recovery_timeout=1)
-        mock_func = Mock(side_effect=Exception("test error"))
+        mock_func = Mock(side_effect=ValueError("test error"))
 
         # First failure
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         assert cb.state == "CLOSED"
@@ -53,14 +53,14 @@ class TestCircuitBreaker:
     def test_circuit_opens_after_threshold(self):
         """Test circuit opens after reaching failure threshold."""
         cb = CircuitBreaker(failure_threshold=2, recovery_timeout=1)
-        mock_func = Mock(side_effect=Exception("test error"))
+        mock_func = Mock(side_effect=ValueError("test error"))
 
         # First failure
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         # Second failure - should open circuit
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         assert cb.state == "OPEN"
@@ -69,23 +69,23 @@ class TestCircuitBreaker:
     def test_circuit_blocks_when_open(self):
         """Test circuit blocks calls when open."""
         cb = CircuitBreaker(failure_threshold=1, recovery_timeout=1)
-        mock_func = Mock(side_effect=Exception("test error"))
+        mock_func = Mock(side_effect=ValueError("test error"))
 
         # Trigger circuit to open
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         # Circuit should be open and block calls
-        with pytest.raises(Exception, match="Circuit breaker is OPEN"):
+        with pytest.raises(RuntimeError, match="Circuit breaker is OPEN"):
             cb.call(mock_func)
 
     def test_circuit_recovery(self):
         """Test circuit recovery after timeout."""
         cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
-        mock_func = Mock(side_effect=Exception("test error"))
+        mock_func = Mock(side_effect=ValueError("test error"))
 
         # Trigger circuit to open
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         assert cb.state == "OPEN"
@@ -104,11 +104,11 @@ class TestCircuitBreaker:
     def test_circuit_reset_on_success(self):
         """Test circuit resets to CLOSED on successful operation."""
         cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
-        failing_func = Mock(side_effect=Exception("test error"))
+        failing_func = Mock(side_effect=ValueError("test error"))
         success_func = Mock(return_value="success")
 
         # Trigger circuit to open
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(failing_func)
 
         # Wait for recovery timeout
@@ -124,10 +124,10 @@ class TestCircuitBreaker:
     def test_get_stats(self):
         """Test circuit breaker statistics."""
         cb = CircuitBreaker(failure_threshold=2, recovery_timeout=1)
-        mock_func = Mock(side_effect=Exception("test error"))
+        mock_func = Mock(side_effect=ValueError("test error"))
 
         # Make some calls
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         stats = cb.get_stats()
@@ -143,10 +143,10 @@ class TestCircuitBreaker:
     def test_manual_reset(self):
         """Test manual circuit breaker reset."""
         cb = CircuitBreaker(failure_threshold=1, recovery_timeout=1)
-        mock_func = Mock(side_effect=Exception("test error"))
+        mock_func = Mock(side_effect=ValueError("test error"))
 
         # Trigger circuit to open
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             cb.call(mock_func)
 
         assert cb.state == "OPEN"
