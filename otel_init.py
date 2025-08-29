@@ -6,7 +6,6 @@ and monitoring of the WebSocket client service.
 """
 
 import os
-from typing import Optional
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -23,8 +22,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 def setup_telemetry(
     service_name: str = "socket-client",
-    service_version: Optional[str] = None,
-    otlp_endpoint: Optional[str] = None,
+    service_version: str | None = None,
+    otlp_endpoint: str | None = None,
     enable_metrics: bool = True,
     enable_traces: bool = True,
     enable_logs: bool = True,

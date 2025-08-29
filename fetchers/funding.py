@@ -4,7 +4,7 @@ Funding rates data fetcher for Binance Futures.
 
 import time
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 import constants
 from fetchers.client import BinanceAPIError, BinanceClient
@@ -22,7 +22,7 @@ class FundingRatesFetcher:
     Handles funding rate history and current funding rates.
     """
 
-    def __init__(self, client: Optional[BinanceClient] = None):
+    def __init__(self, client: BinanceClient | None = None):
         """
         Initialize funding rates fetcher.
 
@@ -35,8 +35,8 @@ class FundingRatesFetcher:
     def fetch_funding_rate_history(
         self,
         symbol: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 1000,
     ) -> list[FundingRateModel]:
         """
@@ -99,7 +99,7 @@ class FundingRatesFetcher:
             raise
 
     def fetch_current_funding_rates(
-        self, symbols: Optional[list[str]] = None
+        self, symbols: list[str] | None = None
     ) -> list[FundingRateModel]:
         """
         Fetch current funding rates for symbols.
@@ -247,8 +247,8 @@ class FundingRatesFetcher:
     def fetch_multiple_symbols(
         self,
         symbols: list[str],
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 1000,
     ) -> dict[str, list[FundingRateModel]]:
         """
@@ -375,7 +375,7 @@ class FundingRatesFetcher:
         end_time: datetime,
         total_records: int,
         duration_seconds: float = 0.0,
-        errors: Optional[list] = None,
+        errors: list | None = None,
     ) -> ExtractionMetadata:
         """
         Create extraction metadata for tracking.

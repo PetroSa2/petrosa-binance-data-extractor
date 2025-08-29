@@ -7,7 +7,6 @@ performance metrics and database constraints.
 
 import logging
 import time
-from typing import Optional
 
 import constants
 
@@ -22,9 +21,9 @@ class AdaptiveBatchManager:
     def __init__(
         self,
         initial_batch_size: int = 1000,
-        min_batch_size: Optional[int] = None,
-        max_batch_size: Optional[int] = None,
-        success_rate_threshold: Optional[float] = None,
+        min_batch_size: int | None = None,
+        max_batch_size: int | None = None,
+        success_rate_threshold: float | None = None,
         adjustment_factor: float = 0.1,
         min_success_rate: float = 0.8,
     ):
@@ -58,7 +57,7 @@ class AdaptiveBatchManager:
         self.failed_operations = 0
 
     def record_operation(
-        self, success: bool, duration: float, batch_size: Optional[int] = None
+        self, success: bool, duration: float, batch_size: int | None = None
     ):
         """
         Record operation result for batch size adjustment.

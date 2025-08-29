@@ -17,7 +17,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -152,7 +152,7 @@ class ProductionKlinesExtractor:
         symbols: list[str],
         period: str,
         db_adapter_name: str,
-        db_uri: Optional[str] = None,
+        db_uri: str | None = None,
         max_workers: int = 5,
         lookback_hours: int = 24,
         batch_size: int = constants.DB_BATCH_SIZE,
@@ -205,9 +205,7 @@ class ProductionKlinesExtractor:
         table_suffix = binance_interval_to_table_suffix(self.period)
         return f"klines_{table_suffix}"
 
-    def get_last_timestamp_for_symbol(
-        self, db_adapter, symbol: str
-    ) -> Optional[datetime]:
+    def get_last_timestamp_for_symbol(self, db_adapter, symbol: str) -> datetime | None:
         """Get the last timestamp for a symbol from the database."""
 
         def _get_timestamp():

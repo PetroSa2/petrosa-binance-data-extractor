@@ -7,7 +7,6 @@ with New Relic and other OTLP-compatible backends.
 
 import logging
 import os
-from typing import Optional
 
 # Import constants for tests
 try:
@@ -86,9 +85,9 @@ _initialized = False
 
 
 def initialize_telemetry(
-    service_name: Optional[str] = None,
-    service_version: Optional[str] = None,
-    environment: Optional[str] = None,
+    service_name: str | None = None,
+    service_version: str | None = None,
+    environment: str | None = None,
 ) -> bool:
     """
     Initialize OpenTelemetry with a simple, reliable setup.
@@ -348,9 +347,9 @@ class TelemetryManager:
 
     def _create_resource(
         self,
-        service_name: Optional[str] = None,
-        service_version: Optional[str] = None,
-        environment: Optional[str] = None,
+        service_name: str | None = None,
+        service_version: str | None = None,
+        environment: str | None = None,
     ):
         """Create OpenTelemetry resource."""
         if not OTEL_AVAILABLE:

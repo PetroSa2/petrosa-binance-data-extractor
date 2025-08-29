@@ -2,7 +2,6 @@
 Database adapters package.
 """
 
-from typing import Optional
 
 from .base_adapter import BaseAdapter, DatabaseError
 from .mongodb_adapter import MongoDBAdapter
@@ -17,7 +16,7 @@ ADAPTERS: dict[str, type[BaseAdapter]] = {
 
 
 def get_adapter(
-    adapter_type: str, connection_string: Optional[str] = None, **kwargs
+    adapter_type: str, connection_string: str | None = None, **kwargs
 ) -> BaseAdapter:
     """
     Factory function to get the appropriate database adapter.

@@ -7,7 +7,7 @@ This module provides a MongoDB implementation of the BaseAdapter interface.
 import decimal
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -49,7 +49,7 @@ class MongoDBAdapter(BaseAdapter):
         else:
             return obj
 
-    def __init__(self, connection_string: Optional[str] = None, **kwargs):
+    def __init__(self, connection_string: str | None = None, **kwargs):
         """
         Initialize MongoDB adapter.
 
@@ -66,8 +66,8 @@ class MongoDBAdapter(BaseAdapter):
         super().__init__(connection_string, **kwargs)
 
         # MongoDB specific settings
-        self.client: Optional[MongoClient] = None
-        self.database: Optional[Database] = None
+        self.client: MongoClient | None = None
+        self.database: Database | None = None
 
         # Extract database name from connection string or use default
         self.database_name = kwargs.get("database_name", "binance")
@@ -185,7 +185,7 @@ class MongoDBAdapter(BaseAdapter):
         collection: str,
         start: datetime,
         end: datetime,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> list[dict[str, Any]]:
         """Query records within time range."""
         if not self._connected:
@@ -209,7 +209,7 @@ class MongoDBAdapter(BaseAdapter):
             raise DatabaseError(f"Failed to query range from {collection}: {e}") from e
 
     def query_latest(
-        self, collection: str, symbol: Optional[str] = None, limit: int = 1
+        self, collection: str, symbol: str | None = None, limit: int = 1
     ) -> list[dict[str, Any]]:
         """Query most recent records."""
         if not self._connected:
@@ -235,7 +235,7 @@ class MongoDBAdapter(BaseAdapter):
         start: datetime,
         end: datetime,
         interval_minutes: int,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> list[tuple[datetime, datetime]]:
         """Find gaps in time series data."""
         if not self._connected:
@@ -285,9 +285,9 @@ class MongoDBAdapter(BaseAdapter):
     def get_record_count(
         self,
         collection: str,
-        start: Optional[datetime] = None,
-        end: Optional[datetime] = None,
-        symbol: Optional[str] = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        symbol: str | None = None,
     ) -> int:
         """Get count of records matching criteria."""
         if not self._connected:
@@ -358,7 +358,7 @@ class MongoDBAdapter(BaseAdapter):
         collection: str,
         start: datetime,
         end: datetime,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
     ) -> int:
         """Delete records within time range."""
         if not self._connected:

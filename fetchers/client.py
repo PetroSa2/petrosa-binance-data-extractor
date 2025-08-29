@@ -5,7 +5,7 @@ HTTP client wrapper for Binance API with retry and rate limiting.
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 
 import constants
 from utils.retry import RateLimiter, with_retries_and_rate_limit
@@ -30,8 +30,8 @@ class BinanceAPIError(Exception):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        response_data: Optional[dict[str, Any]] = None,
+        status_code: int | None = None,
+        response_data: dict[str, Any] | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -45,10 +45,10 @@ class BinanceClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
-        base_url: Optional[str] = None,
-        rate_limiter: Optional[RateLimiter] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
+        base_url: str | None = None,
+        rate_limiter: RateLimiter | None = None,
     ):
         """
         Initialize Binance client.
@@ -103,7 +103,7 @@ class BinanceClient:
         return f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
 
     def _log_request(
-        self, method: str, url: str, params: Optional[dict[str, Any]] = None
+        self, method: str, url: str, params: dict[str, Any] | None = None
     ) -> None:
         """Log API request details."""
         logger.debug(
@@ -134,7 +134,7 @@ class BinanceClient:
 
     @with_retries_and_rate_limit
     def get(
-        self, endpoint: str, params: Optional[dict[str, Any]] = None
+        self, endpoint: str, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """
         Make GET request to Binance API.
@@ -219,8 +219,8 @@ class BinanceClient:
         self,
         symbol: str,
         interval: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 1500,
     ) -> list[list]:
         """
@@ -266,7 +266,7 @@ class BinanceClient:
         return self.get("/fapi/v1/trades", params)
 
     def get_historical_trades(
-        self, symbol: str, from_id: Optional[int] = None, limit: int = 1000
+        self, symbol: str, from_id: int | None = None, limit: int = 1000
     ) -> list[dict[str, Any]]:
         """
         Get historical trades (requires API key).
@@ -290,7 +290,7 @@ class BinanceClient:
         return self.get("/fapi/v1/historicalTrades", params)
 
     def get_funding_rate(
-        self, symbol: Optional[str] = None, limit: int = 100
+        self, symbol: str | None = None, limit: int = 100
     ) -> list[dict[str, Any]]:
         """
         Get funding rate history.
@@ -310,8 +310,8 @@ class BinanceClient:
         return self.get("/fapi/v1/fundingRate", params)
 
     def get_premium_index(
-        self, symbol: Optional[str] = None
-    ) -> Union[dict[str, Any], list[dict[str, Any]]]:
+        self, symbol: str | None = None
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """
         Get mark price and funding rate.
 

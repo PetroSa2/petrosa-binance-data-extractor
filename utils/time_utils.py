@@ -4,12 +4,11 @@ Time utility functions for date parsing, timezone conversion, and gap detection.
 
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Optional, Union
 
 import constants
 
 
-def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
+def parse_binance_timestamp(timestamp: int | str | datetime) -> datetime:
     """
     Parse Binance timestamp to UTC datetime.
 
@@ -41,7 +40,7 @@ def parse_binance_timestamp(timestamp: Union[int, str, datetime]) -> datetime:
             else:  # Seconds
                 return datetime.fromtimestamp(timestamp_float, tz=UTC)
 
-    if isinstance(timestamp, (int, float)):
+    if isinstance(timestamp, int | float):
         # Binance uses milliseconds, convert to seconds if needed
         if timestamp > 1e10:  # Milliseconds
             return datetime.fromtimestamp(timestamp / 1000, tz=UTC)
@@ -221,8 +220,8 @@ def align_timestamp_to_interval(timestamp: datetime, interval: str) -> datetime:
 def find_time_gaps(
     timestamps: list[datetime],
     interval: str,
-    start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
 ) -> list[tuple[datetime, datetime]]:
     """
     Find gaps in a list of timestamps.

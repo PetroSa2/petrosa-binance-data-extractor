@@ -12,7 +12,7 @@ def fix_yaml_manual(file_path):
 
     # Fix the specific lines that have formatting issues
     fixed_lines = []
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         if line.strip() == "key: BINANCE_API_SECRET            - name: MONGODB_URI":
             # Split this into two lines
             fixed_lines.append("                  key: BINANCE_API_SECRET\n")
