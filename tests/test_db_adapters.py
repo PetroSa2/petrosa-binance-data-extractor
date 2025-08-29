@@ -378,9 +378,9 @@ class TestMongoDBAdapter:
 
     @patch("db.mongodb_adapter.MongoClient")
     def test_mongodb_adapter_connect_error(self, mock_mongo_client):
-        mock_mongo_client.side_effect = Exception("connection error")
+        mock_mongo_client.side_effect = ConnectionError("connection error")
         adapter = MongoDBAdapter("mongodb://test:27017/test")
-        with pytest.raises(Exception):
+        with pytest.raises(ConnectionError):
             adapter.connect()
 
     @patch("db.mongodb_adapter.MongoClient")
@@ -391,7 +391,7 @@ class TestMongoDBAdapter:
         mock_mongo_client.return_value = mock_client
         mock_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
-        mock_collection.bulk_write.side_effect = Exception("write error")
+        mock_collection.bulk_write.side_effect = RuntimeError("write error")
         now = datetime.now(UTC)
         klines = [
             KlineModel(
@@ -414,7 +414,7 @@ class TestMongoDBAdapter:
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
         adapter.database = mock_database
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError):
             adapter.write(klines, "klines_m15")
 
 
