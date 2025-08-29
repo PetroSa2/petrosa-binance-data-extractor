@@ -80,9 +80,15 @@ spec:
                   name: petrosa-common-config
                   key: DB_ADAPTER
             - name: LOG_LEVEL
-              value: INFO
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: production
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -253,9 +259,15 @@ spec:
                   name: petrosa-common-config
                   key: DB_ADAPTER
             - name: LOG_LEVEL
-              value: INFO
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: production
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -426,9 +438,15 @@ spec:
                   name: petrosa-common-config
                   key: DB_ADAPTER
             - name: LOG_LEVEL
-              value: INFO
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: production
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -599,9 +617,15 @@ spec:
                   name: petrosa-common-config
                   key: DB_ADAPTER
             - name: LOG_LEVEL
-              value: INFO
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: production
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:
@@ -772,9 +796,15 @@ spec:
                   name: petrosa-common-config
                   key: DB_ADAPTER
             - name: LOG_LEVEL
-              value: INFO
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
             - name: ENVIRONMENT
-              value: production
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
             - name: ENABLE_OTEL
               valueFrom:
                 configMapKeyRef:

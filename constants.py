@@ -57,7 +57,7 @@ MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 MYSQL_URI = os.getenv("MYSQL_URI", "mysql://user:pass@localhost:3306")
 POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432")
 DB_ADAPTER = os.getenv("DB_ADAPTER", "mysql")
-DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "1000"))
+DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "2000"))
 
 # Extraction settings
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
