@@ -1,15 +1,13 @@
-# Core dependencies for Petrosa Socket Client
-# WebSocket and messaging functionality
+# Core dependencies for Petrosa Binance Data Extractor
+# Historical data extraction system
 
-aiohttp>=3.8.0
-
-# Async utilities
-asyncio-mqtt>=0.16.0
+# CLI framework
+click>=8.1.0
 
 # Security
 cryptography>=41.0.0
 
-# NATS messaging
+# Messaging
 nats-py>=2.0.0
 
 # OpenTelemetry Core (verified working packages)
@@ -21,21 +19,25 @@ opentelemetry-exporter-otlp-proto-grpc>=1.20.0
 opentelemetry-exporter-otlp-proto-http>=1.20.0
 opentelemetry-instrumentation>=0.41b0
 opentelemetry-instrumentation-logging>=0.41b0
+opentelemetry-instrumentation-pymongo>=0.41b0
 
 # OpenTelemetry Manual Instrumentations (verified available)
 opentelemetry-instrumentation-requests>=0.41b0
+opentelemetry-instrumentation-sqlalchemy>=0.41b0
 opentelemetry-instrumentation-urllib3>=0.41b0
 opentelemetry-sdk>=1.20.0
 
 # OpenTelemetry Semantic Conventions
 opentelemetry-semantic-conventions>=0.41b0
 
-# JSON handling
-orjson>=3.9.0
+# PostgreSQL adapter (optional)
+psycopg2-binary>=2.9.0
 
-# Circuit breaker pattern
-pybreaker>=1.0.0
+# Core dependencies
 pydantic>=2.0.0,<3.0.0
+
+# Database adapters
+pymongo>=4.0.0
 pymysql>=1.1.0
 
 # Time utilities
@@ -44,10 +46,10 @@ python-dateutil>=2.8.2
 # Configuration and environment
 python-dotenv>=1.0.0
 
-# HTTP client for health checks
+# HTTP client
 requests>=2.31.0
 
-# Database dependencies
+# Database ORM
 sqlalchemy>=2.0.0
 
 # Logging and monitoring
@@ -55,5 +57,3 @@ structlog>=23.0.0
 
 # CLI framework
 typer>=0.9.0
-# WebSocket client
-websockets>=11.0.3,<12.0
