@@ -29,8 +29,6 @@ spec:
           labels:
             app: binance-extractor
             component: klines-gap-filler
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -208,8 +206,6 @@ spec:
           labels:
             app: binance-extractor
             component: klines-gap-filler
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -387,8 +383,6 @@ spec:
           labels:
             app: binance-extractor
             component: klines-gap-filler
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -566,8 +560,6 @@ spec:
           labels:
             app: binance-extractor
             component: klines-gap-filler
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -745,8 +737,6 @@ spec:
           labels:
             app: binance-extractor
             component: klines-gap-filler
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
