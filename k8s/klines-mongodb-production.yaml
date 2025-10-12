@@ -32,8 +32,6 @@ spec:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -221,8 +219,6 @@ spec:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -400,8 +396,6 @@ spec:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -579,8 +573,6 @@ spec:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
@@ -758,8 +750,6 @@ spec:
             app: binance-extractor
             component: klines-extractor
             database: mongodb
-          annotations:
-            instrumentation.newrelic.com/inject-python: "true"
         spec:
           restartPolicy: Never
           containers:
