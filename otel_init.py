@@ -39,6 +39,10 @@ def setup_telemetry(
         enable_traces: Whether to enable traces
         enable_logs: Whether to enable logs
     """
+    # Early return if OTEL disabled
+    if os.getenv("ENABLE_OTEL", "true").lower() not in ("true", "1", "yes"):
+        return
+
     # Get configuration from environment variables
     service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "1.0.0")
     otlp_endpoint = otlp_endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -83,11 +87,17 @@ def setup_telemetry(
             tracer_provider = TracerProvider(resource=resource)
 
             # Create OTLP exporter
+            headers_env = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+            span_headers: dict[str, str] | None = None
+            if headers_env:
+                # Parse headers as "key1=value1,key2=value2" format
+                headers_list = [
+                    tuple(h.split("=", 1)) for h in headers_env.split(",") if "=" in h
+                ]
+                span_headers = dict(headers_list)
             otlp_exporter = OTLPSpanExporter(
                 endpoint=otlp_endpoint,
-                headers=os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "").split(",")
-                if os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
-                else None,
+                headers=span_headers,
             )
 
             # Add batch processor
@@ -105,12 +115,20 @@ def setup_telemetry(
     if enable_metrics and otlp_endpoint:
         try:
             # Create metric reader
+            metric_headers_env = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+            metric_headers: dict[str, str] | None = None
+            if metric_headers_env:
+                # Parse headers as "key1=value1,key2=value2" format
+                metric_headers_list = [
+                    tuple(h.split("=", 1))
+                    for h in metric_headers_env.split(",")
+                    if "=" in h
+                ]
+                metric_headers = dict(metric_headers_list)
             metric_reader = PeriodicExportingMetricReader(
                 OTLPMetricExporter(
                     endpoint=otlp_endpoint,
-                    headers=os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "").split(",")
-                    if os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
-                    else None,
+                    headers=metric_headers,
                 ),
                 export_interval_millis=int(
                     os.getenv("OTEL_METRIC_EXPORT_INTERVAL", "60000")
@@ -179,6 +197,8 @@ def get_meter(name: str = None) -> metrics.Meter:
     return metrics.get_meter(name or "socket-client")
 
 
-# Auto-setup if environment variable is set
-if os.getenv("OTEL_AUTO_SETUP", "true").lower() in ("true", "1", "yes"):
-    setup_telemetry()
+# Auto-setup if environment variable is set and not disabled
+if os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes"):
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        if os.getenv("OTEL_AUTO_SETUP", "true").lower() in ("true", "1", "yes"):
+            setup_telemetry()
