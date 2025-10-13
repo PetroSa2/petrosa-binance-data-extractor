@@ -20,7 +20,7 @@ data:
   NATS_SUBJECT_PREFIX_GAP_FILLER: "binance.gap_filler"
 
   # OpenTelemetry configuration
-  ENABLE_OTEL: "false"
+  ENABLE_OTEL: "true"
   OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
   OTEL_METRICS_EXPORTER: "otlp"
