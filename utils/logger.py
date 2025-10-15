@@ -113,9 +113,17 @@ def setup_logging(
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, level.upper()))
 
-    # Remove existing handlers
+    # Preserve OTLP handlers (if any) before clearing
+    from opentelemetry.sdk._logs import LoggingHandler as OTELLoggingHandler
+
+    otlp_handlers = [
+        h for h in root_logger.handlers if isinstance(h, OTELLoggingHandler)
+    ]
+
+    # Remove existing handlers (except OTLP)
     for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
+        if not isinstance(handler, OTELLoggingHandler):
+            root_logger.removeHandler(handler)
 
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -133,10 +141,15 @@ def setup_logging(
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 
+    # Re-attach preserved OTLP handlers (if any were removed)
+    for otlp_handler in otlp_handlers:
+        if otlp_handler not in root_logger.handlers:
+            root_logger.addHandler(otlp_handler)
+
     # Set up OpenTelemetry if available and enabled
     if OTEL_AVAILABLE and enable_otel and constants.OTEL_EXPORTER_OTLP_ENDPOINT:
         setup_otel_tracing()
-        LoggingInstrumentor().instrument(set_logging_format=True)
+        LoggingInstrumentor().instrument(set_logging_format=False)
 
     # Configure third-party loggers
     logging.getLogger("urllib3").setLevel(logging.WARNING)
