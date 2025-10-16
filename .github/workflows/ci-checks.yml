@@ -12,23 +12,27 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     - name: Set Up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
+        cache: 'pip'
+    - name: Cache virtual environment
+      uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        path: .venv
+        key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements*.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-venv-
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
+        python -m venv .venv
+        source .venv/bin/activate
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
     - name: Run Linting
       run: |
+        source .venv/bin/activate
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv/*,.venv/*,htmlcov/*
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=venv/*,.venv/*,htmlcov/*
     # Temporarily disabled mypy due to type annotation issues
