@@ -334,6 +334,14 @@ def main():
     # Setup logging
     logger = setup_logging(level=args.log_level)
 
+    # Attach OTLP logging handler after logging is configured
+    try:
+        from otel_init import attach_logging_handler_simple
+
+        attach_logging_handler_simple()
+    except Exception as e:
+        logger.warning(f"Failed to attach OTLP logging handler: {e}")
+
     # Get symbols list
     symbols = get_symbols_list(args)
 
