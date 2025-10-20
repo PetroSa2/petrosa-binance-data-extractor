@@ -22,7 +22,7 @@ spec:
         interval: m5
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 300
+      activeDeadlineSeconds: 900
       ttlSecondsAfterFinished: 1800
       template:
         metadata:
@@ -158,6 +158,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "512Mi"
@@ -197,7 +202,7 @@ spec:
         interval: m15
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 600
+      activeDeadlineSeconds: 1200
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -316,7 +321,7 @@ spec:
         interval: m30
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 900
+      activeDeadlineSeconds: 1800
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -410,7 +415,7 @@ spec:
         interval: h1
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 1200
+      activeDeadlineSeconds: 2400
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -546,6 +551,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
