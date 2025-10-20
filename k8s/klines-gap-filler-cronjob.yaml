@@ -57,6 +57,16 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
+            - name: BINANCE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_API_URL
+            - name: BINANCE_FUTURES_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
@@ -234,6 +244,16 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
+            - name: BINANCE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_API_URL
+            - name: BINANCE_FUTURES_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
@@ -411,6 +431,16 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
+            - name: BINANCE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_API_URL
+            - name: BINANCE_FUTURES_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
@@ -588,6 +618,16 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
+            - name: BINANCE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_API_URL
+            - name: BINANCE_FUTURES_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
@@ -765,6 +805,16 @@ spec:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
                   key: BINANCE_API_SECRET
+            - name: BINANCE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_API_URL
+            - name: BINANCE_FUTURES_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
             - name: MYSQL_URI
               valueFrom:
                 secretKeyRef:
