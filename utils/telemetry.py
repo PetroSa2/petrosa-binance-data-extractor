@@ -39,6 +39,42 @@ except ImportError as e:
     logging.getLogger(__name__).warning("OpenTelemetry not available: %s", str(e))
     OTEL_AVAILABLE = False
 
+
+# Custom span processor to filter invalid attributes
+class AttributeFilterSpanProcessor(BatchSpanProcessor):
+    """
+    Custom span processor that filters out invalid attribute values before export.
+
+    OpenTelemetry only allows primitive types (str, int, float, bool, bytes) or None
+    as attribute values. This processor filters out dict and list values.
+    """
+
+    def on_start(self, span, parent_context=None):
+        """Clean attributes when span starts."""
+        super().on_start(span, parent_context)
+        self._clean_attributes(span)
+
+    def on_end(self, span):
+        """Clean attributes when span ends."""
+        self._clean_attributes(span)
+        super().on_end(span)
+
+    def _clean_attributes(self, span):
+        """Remove invalid attribute values from span."""
+        if not hasattr(span, "_attributes") or not span._attributes:
+            return
+
+        # Identify invalid attributes
+        invalid_keys = []
+        for key, value in span._attributes.items():
+            if isinstance(value, dict | list):
+                invalid_keys.append(key)
+
+        # Remove invalid attributes
+        for key in invalid_keys:
+            del span._attributes[key]
+
+
 # Additional imports for tests
 try:
     from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
@@ -138,7 +174,7 @@ def initialize_telemetry(
 
         # Always add console exporter for debugging
         console_exporter = ConsoleSpanExporter()
-        span_processors.append(BatchSpanProcessor(console_exporter))
+        span_processors.append(AttributeFilterSpanProcessor(console_exporter))
 
         # Add OTLP exporter if endpoint is configured
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -156,7 +192,7 @@ def initialize_telemetry(
                 otlp_exporter = GRPCSpanExporter(
                     endpoint=otlp_endpoint, headers=headers
                 )
-                span_processors.append(BatchSpanProcessor(otlp_exporter))
+                span_processors.append(AttributeFilterSpanProcessor(otlp_exporter))
                 logging.getLogger(__name__).info(
                     f"OTLP exporter configured for endpoint: {otlp_endpoint}"
                 )
@@ -176,7 +212,9 @@ def initialize_telemetry(
         try:
             RequestsInstrumentor().instrument()
             SQLAlchemyInstrumentor().instrument()
-            LoggingInstrumentor().instrument(set_logging_format=True)
+            LoggingInstrumentor().instrument(
+                set_logging_format=True, log_level=logging.NOTSET
+            )
             logging.getLogger(__name__).info("Auto-instrumentation enabled")
         except Exception as e:
             logging.getLogger(__name__).warning(
@@ -387,7 +425,7 @@ class TelemetryManager:
 
         # Always add console exporter for debugging
         console_exporter = ConsoleSpanExporter()
-        span_processors.append(BatchSpanProcessor(console_exporter))
+        span_processors.append(AttributeFilterSpanProcessor(console_exporter))
 
         # Add OTLP exporter if endpoint is configured
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -403,7 +441,7 @@ class TelemetryManager:
                     endpoint=otlp_endpoint, headers=headers
                 )
                 print("DEBUG: GRPCSpanExporter created successfully")
-                span_processors.append(BatchSpanProcessor(otlp_exporter))
+                span_processors.append(AttributeFilterSpanProcessor(otlp_exporter))
                 self.logger.info(
                     f"OTLP exporter configured for endpoint: {otlp_endpoint}"
                 )
@@ -433,7 +471,9 @@ class TelemetryManager:
             # Core instrumentors
             RequestsInstrumentor().instrument()
             SQLAlchemyInstrumentor().instrument()
-            LoggingInstrumentor().instrument(set_logging_format=True)
+            LoggingInstrumentor().instrument(
+                set_logging_format=True, log_level=logging.NOTSET
+            )
 
             # Additional instrumentors if available
             if URLLIB3_AVAILABLE:

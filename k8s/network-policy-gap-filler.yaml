@@ -1,0 +1,76 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-binance-gap-filler
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-gap-filler
+spec:
+  podSelector:
+    matchLabels:
+      app: binance-extractor
+      component: klines-gap-filler
+  policyTypes:
+  - Egress
+  egress:
+  # DNS resolution
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # HTTPS for API calls to Binance
+  - ports:
+    - port: 443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # HTTP for API calls (if needed)
+  - ports:
+    - port: 80
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # MySQL database
+  - ports:
+    - port: 3306
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # MongoDB
+  - ports:
+    - port: 27017
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # PostgreSQL
+  - ports:
+    - port: 5432
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # OpenTelemetry collector
+  - ports:
+    - port: 4317
+      protocol: TCP
+    - port: 4318
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  # NATS messaging
+  - ports:
+    - port: 4222
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0

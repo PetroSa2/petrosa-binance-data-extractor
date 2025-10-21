@@ -23,6 +23,50 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
+# MongoDB instrumentation
+try:
+    from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
+
+    PYMONGO_INSTRUMENTATION_AVAILABLE = True
+except ImportError:
+    PYMONGO_INSTRUMENTATION_AVAILABLE = False
+
+
+# Custom span processor to filter invalid attributes
+class AttributeFilterSpanProcessor(BatchSpanProcessor):
+    """
+    Custom span processor that filters out invalid attribute values before export.
+
+    OpenTelemetry only allows primitive types (str, int, float, bool, bytes) or None
+    as attribute values. This processor filters out dict and list values.
+    """
+
+    def on_start(self, span, parent_context=None):
+        """Clean attributes when span starts."""
+        super().on_start(span, parent_context)
+        self._clean_attributes(span)
+
+    def on_end(self, span):
+        """Clean attributes when span ends."""
+        self._clean_attributes(span)
+        super().on_end(span)
+
+    def _clean_attributes(self, span):
+        """Remove invalid attribute values from span."""
+        if not hasattr(span, "_attributes") or not span._attributes:
+            return
+
+        # Identify invalid attributes
+        invalid_keys = []
+        for key, value in span._attributes.items():
+            if isinstance(value, dict | list):
+                invalid_keys.append(key)
+
+        # Remove invalid attributes
+        for key in invalid_keys:
+            del span._attributes[key]
+
+
 # Global logger provider for attaching handlers
 _global_logger_provider = None
 _otlp_logging_handler = None
@@ -108,8 +152,10 @@ def setup_telemetry(
                 headers=span_headers,
             )
 
-            # Add batch processor
-            tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+            # Add custom batch processor with attribute filtering
+            tracer_provider.add_span_processor(
+                AttributeFilterSpanProcessor(otlp_exporter)
+            )
 
             # Set global tracer provider
             trace.set_tracer_provider(tracer_provider)
@@ -161,8 +207,10 @@ def setup_telemetry(
         global _global_logger_provider
         try:
             # Enrich logs with trace context
-            # set_logging_format=False to avoid clearing existing handlers
-            LoggingInstrumentor().instrument(set_logging_format=False)
+            # Use set_logging_format=True to properly inject trace context
+            LoggingInstrumentor().instrument(
+                set_logging_format=True, log_level=logging.NOTSET
+            )
 
             # Parse log headers
             log_headers_env = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
@@ -202,6 +250,18 @@ def setup_telemetry(
 
     except Exception as e:
         print(f"⚠️  Failed to set up OpenTelemetry HTTP instrumentation: {e}")
+
+    # Set up MongoDB instrumentation
+    # The AttributeFilterSpanProcessor will automatically filter invalid attributes
+    if PYMONGO_INSTRUMENTATION_AVAILABLE:
+        try:
+            PymongoInstrumentor().instrument()
+            print(
+                f"✅ OpenTelemetry MongoDB instrumentation enabled for {service_name}"
+            )
+
+        except Exception as e:
+            print(f"⚠️  Failed to set up OpenTelemetry MongoDB instrumentation: {e}")
 
     print(f"🚀 OpenTelemetry setup completed for {service_name} v{service_version}")
 
