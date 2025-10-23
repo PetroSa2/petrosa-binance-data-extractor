@@ -321,23 +321,27 @@ class ProductionKlinesExtractor:
         def _perform_extraction():
             """Inner function that performs the actual extraction."""
             # Get database adapter (each thread needs its own connection)
-            # Ensure we have a valid database URI
-            db_uri = self.db_uri
-            if not db_uri:
-                # Fallback to constants if db_uri is None or empty
-                if self.db_adapter_name == "mysql":
-                    db_uri = constants.MYSQL_URI
-                elif self.db_adapter_name == "mongodb":
-                    db_uri = constants.MONGODB_URI
-                elif self.db_adapter_name == "postgresql":
-                    db_uri = constants.POSTGRESQL_URI
-
+            if self.db_adapter_name == "data_manager":
+                # Data Manager adapter doesn't need a URI
+                db_adapter = get_adapter(self.db_adapter_name, None)
+            else:
+                # Legacy database adapters
+                db_uri = self.db_uri
                 if not db_uri:
-                    raise ValueError(
-                        f"No database URI available for adapter: {self.db_adapter_name}"
-                    )
+                    # Fallback to constants if db_uri is None or empty
+                    if self.db_adapter_name == "mysql":
+                        db_uri = constants.MYSQL_URI
+                    elif self.db_adapter_name == "mongodb":
+                        db_uri = constants.MONGODB_URI
+                    elif self.db_adapter_name == "postgresql":
+                        db_uri = constants.POSTGRESQL_URI
 
-            db_adapter = get_adapter(self.db_adapter_name, db_uri)
+                    if not db_uri:
+                        raise ValueError(
+                            f"No database URI available for adapter: {self.db_adapter_name}"
+                        )
+
+                db_adapter = get_adapter(self.db_adapter_name, db_uri)
 
             # Connect with retry logic
             def _connect_db():
@@ -677,9 +681,9 @@ Examples:
     parser.add_argument(
         "--db-adapter",
         type=str,
-        choices=["mongodb", "mysql", "postgresql"],
-        default=constants.DB_ADAPTER,
-        help="Database adapter to use",
+        choices=["mongodb", "mysql", "postgresql", "data_manager"],
+        default="data_manager",  # Default to Data Manager
+        help="Database adapter to use (data_manager recommended)",
     )
 
     parser.add_argument(
@@ -756,18 +760,26 @@ def _main_impl():
             backfill=False,
         )
 
-        # Determine database URI - use command line arg or fallback to environment/constants
-        db_uri = args.db_uri
-        if db_uri is None:
-            if args.db_adapter == "mysql":
-                db_uri = constants.MYSQL_URI
-            elif args.db_adapter == "mongodb":
-                db_uri = constants.MONGODB_URI
-            elif args.db_adapter == "postgresql":
-                db_uri = constants.POSTGRESQL_URI
-            else:
-                logger.error(f"No database URI found for adapter: {args.db_adapter}")
-                sys.exit(1)
+        # Determine database configuration
+        if args.db_adapter == "data_manager":
+            # Use Data Manager - no URI needed
+            db_uri = None
+            logger.info("Using Data Manager adapter")
+        else:
+            # Legacy database adapters
+            db_uri = args.db_uri
+            if db_uri is None:
+                if args.db_adapter == "mysql":
+                    db_uri = constants.MYSQL_URI
+                elif args.db_adapter == "mongodb":
+                    db_uri = constants.MONGODB_URI
+                elif args.db_adapter == "postgresql":
+                    db_uri = constants.POSTGRESQL_URI
+                else:
+                    logger.error(
+                        f"No database URI found for adapter: {args.db_adapter}"
+                    )
+                    sys.exit(1)
 
         logger.info(f"Using database adapter: {args.db_adapter}")
         logger.info(f"Database URI configured: {'Yes' if db_uri else 'No'}")

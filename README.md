@@ -16,8 +16,8 @@ A production-ready batch processing system that extracts, validates, and stores 
 │                                                                              │
 │  ┌────────────────┐    ┌──────────────────┐    ┌─────────────────────┐    │
 │  │                │    │                  │    │                     │    │
-│  │  Binance API   │───▶│  Data Extractor  │───▶│   MySQL Database    │    │
-│  │  (Historical)  │    │  (THIS SERVICE)  │    │   (Klines, Rates)   │    │
+│  │  Binance API   │───▶│  Data Extractor  │───▶│  Data Manager API   │    │
+│  │  (Historical)  │    │  (THIS SERVICE)  │    │  (Centralized DB)  │    │
 │  │                │    │                  │    │                     │    │
 │  └────────────────┘    └──────────────────┘    └─────────────────────┘    │
 │                                                            │                 │
@@ -44,7 +44,7 @@ A production-ready batch processing system that extracts, validates, and stores 
 │                                                                              │
 │  ┌────────────────────────────────────────────────────────────────────┐    │
 │  │                    Kubernetes (MicroK8s Cluster)                    │    │
-│  │  Namespace: petrosa-apps  │  Database: MySQL/MongoDB               │    │
+│  │  Namespace: petrosa-apps  │  Data Manager: Centralized API        │    │
 │  │  Secrets: petrosa-sensitive-credentials                             │    │
 │  │  CronJobs: Scheduled data extraction (15m, 1h intervals)           │    │
 │  └────────────────────────────────────────────────────────────────────┘    │
@@ -1068,12 +1068,40 @@ print(f"Last kline at: {last_time}")
 
 ## 🚀 Quick Start
 
+### Data Manager Integration
+
+This service now uses **petrosa-data-manager** as the centralized data layer instead of direct database connections. This provides:
+
+- **Centralized Data Access**: All data operations go through the Data Manager API
+- **Consistent Schema**: Unified data models across all services
+- **Better Monitoring**: Centralized logging and metrics
+- **Simplified Deployment**: No direct database credentials needed
+
+#### Environment Variables
+
+```bash
+# Data Manager Configuration (Required)
+DATA_MANAGER_URL=http://petrosa-data-manager:8000
+DATA_MANAGER_TIMEOUT=30
+DATA_MANAGER_MAX_RETRIES=3
+DATA_MANAGER_DATABASE=mongodb
+
+# Legacy Database Configuration (Deprecated)
+# MYSQL_URI=mysql://user:pass@localhost:3306
+# MONGODB_URI=mongodb://localhost:27017
+```
+
+### Quick Start Commands
+
 ```bash
 # Setup
 make setup
 
-# Run extraction
-python -m jobs.extract_klines_production --period 15m
+# Run extraction with Data Manager (Recommended)
+python -m jobs.extract_klines_data_manager --period 15m
+
+# Run extraction with legacy database (Deprecated)
+python -m jobs.extract_klines_production --period 15m --db-adapter data_manager
 
 # Run gap filler
 python -m jobs.extract_klines_gap_filler --period 15m

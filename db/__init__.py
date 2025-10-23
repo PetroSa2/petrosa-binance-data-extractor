@@ -7,12 +7,25 @@ from .base_adapter import BaseAdapter, DatabaseError
 from .mongodb_adapter import MongoDBAdapter
 from .mysql_adapter import MySQLAdapter
 
+# Import Data Manager adapter
+try:
+    from adapters.data_manager_adapter import DataManagerAdapter
+
+    DATA_MANAGER_AVAILABLE = True
+except ImportError:
+    DATA_MANAGER_AVAILABLE = False
+    DataManagerAdapter = None
+
 # Adapter registry
 ADAPTERS: dict[str, type[BaseAdapter]] = {
     "mongodb": MongoDBAdapter,
     "mysql": MySQLAdapter,
     "mariadb": MySQLAdapter,  # MariaDB uses same adapter as MySQL
 }
+
+# Add Data Manager adapter if available
+if DATA_MANAGER_AVAILABLE:
+    ADAPTERS["data_manager"] = DataManagerAdapter
 
 
 def get_adapter(
