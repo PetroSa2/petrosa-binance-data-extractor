@@ -9,12 +9,111 @@ import os
 from datetime import datetime, timedelta
 from typing import Any
 
-from data_manager_client import DataManagerClient as BaseDataManagerClient
-from data_manager_client.exceptions import APIError, ConnectionError, TimeoutError
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+class APIError(Exception):
+    """API error exception."""
+    pass
+
+
+class ConnectionError(Exception):
+    """Connection error exception."""
+    pass
+
+
+class TimeoutError(Exception):
+    """Timeout error exception."""
+    pass
+
+
+class BaseDataManagerClient:
+    """Simple HTTP client for Data Manager API."""
+    
+    def __init__(self, base_url: str, timeout: int = 30, max_retries: int = 3):
+        self.base_url = base_url.rstrip('/')
+        self.timeout = timeout
+        self.session = requests.Session()
+        
+        # Configure retries
+        retry_strategy = Retry(
+            total=max_retries,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "TRACE"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+    
+    def insert(self, database: str, collection: str, records: list[dict]) -> dict:
+        """Insert records via Data Manager API."""
+        url = f"{self.base_url}/api/v1/data/insert"
+        payload = {
+            "database": database,
+            "collection": collection,
+            "records": records
+        }
+        try:
+            response = self.session.post(url, json=payload, timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout as e:
+            raise TimeoutError(f"Request timed out: {e}")
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(f"Connection failed: {e}")
+        except requests.exceptions.HTTPError as e:
+            raise APIError(f"API error: {e}")
+    
+    def query(self, database: str, collection: str, params: dict) -> dict:
+        """Query records via Data Manager API."""
+        url = f"{self.base_url}/api/v1/data/query"
+        payload = {
+            "database": database,
+            "collection": collection,
+            **params
+        }
+        try:
+            response = self.session.post(url, json=payload, timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout as e:
+            raise TimeoutError(f"Request timed out: {e}")
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(f"Connection failed: {e}")
+        except requests.exceptions.HTTPError as e:
+            raise APIError(f"API error: {e}")
+    
+    def insert_one(self, database: str, collection: str, record: dict) -> dict:
+        """Insert a single record via Data Manager API."""
+        return self.insert(database, collection, [record])
+    
+    def update_one(self, database: str, collection: str, filter: dict, update: dict, upsert: bool = False) -> dict:
+        """Update a single record via Data Manager API."""
+        url = f"{self.base_url}/api/v1/data/update"
+        payload = {
+            "database": database,
+            "collection": collection,
+            "filter": filter,
+            "update": update,
+            "upsert": upsert
+        }
+        try:
+            response = self.session.post(url, json=payload, timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout as e:
+            raise TimeoutError(f"Request timed out: {e}")
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(f"Connection failed: {e}")
+        except requests.exceptions.HTTPError as e:
+            raise APIError(f"API error: {e}")
 
 
 class DataManagerClient:
