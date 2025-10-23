@@ -73,7 +73,7 @@ _otlp_logging_handler = None
 
 
 def setup_telemetry(
-    service_name: str = "socket-client",
+    service_name: str = "binance-data-extractor",
     service_version: str | None = None,
     otlp_endpoint: str | None = None,
     enable_metrics: bool = True,
@@ -95,9 +95,25 @@ def setup_telemetry(
     if os.getenv("ENABLE_OTEL", "true").lower() not in ("true", "1", "yes"):
         return
 
+    # Check if OpenTelemetry is already initialized by opentelemetry-instrument
+    if os.getenv("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"):
+        print("🔍 OpenTelemetry already initialized by opentelemetry-instrument")
+        # Just attach the logging handler for OTLP export
+        attach_logging_handler_simple()
+        return
+
     # Get configuration from environment variables
     service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "1.0.0")
     otlp_endpoint = otlp_endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+    # Debug logging for troubleshooting
+    print("🔍 OpenTelemetry setup debug:")
+    print(f"   Service name: {service_name}")
+    print(f"   Service version: {service_version}")
+    print(f"   OTLP endpoint: {otlp_endpoint}")
+    print(f"   Enable traces: {enable_traces}")
+    print(f"   Enable metrics: {enable_metrics}")
+    print(f"   Enable logs: {enable_logs}")
     enable_metrics = enable_metrics and os.getenv("ENABLE_METRICS", "true").lower() in (
         "true",
         "1",
@@ -147,6 +163,10 @@ def setup_telemetry(
                     tuple(h.split("=", 1)) for h in headers_env.split(",") if "=" in h
                 ]
                 span_headers = dict(headers_list)
+
+            print(f"🔍 Creating OTLP exporter with endpoint: {otlp_endpoint}")
+            print(f"🔍 Headers: {span_headers}")
+
             otlp_exporter = OTLPSpanExporter(
                 endpoint=otlp_endpoint,
                 headers=span_headers,
@@ -164,6 +184,9 @@ def setup_telemetry(
 
         except Exception as e:
             print(f"⚠️  Failed to set up OpenTelemetry tracing: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     # Set up metrics if enabled
     if enable_metrics and otlp_endpoint:

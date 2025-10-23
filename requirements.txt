@@ -30,8 +30,6 @@ opentelemetry-sdk>=1.20.0
 
 # OpenTelemetry Semantic Conventions
 opentelemetry-semantic-conventions>=0.41b0
-# Data Manager Client
-petrosa-data-manager-client>=1.0.0
 
 # PostgreSQL adapter (optional)
 psycopg2-binary>=2.9.0

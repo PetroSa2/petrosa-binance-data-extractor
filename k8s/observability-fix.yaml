@@ -1,0 +1,286 @@
+---
+# Observability Fix for Binance Data Extractor
+# This manifest addresses the observability issues identified:
+# 1. OpenTelemetry not working properly (trace_id: 00000000000000000000000000000000)
+# 2. Service name mismatch between logs and OTEL configuration
+# 3. OTEL_NO_AUTO_INIT preventing automatic initialization
+# 4. Missing proper service version in logs
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petrosa-binance-data-extractor-observability-fix
+  namespace: petrosa-apps
+  labels:
+    app: binance-data-extractor
+    component: observability
+    version: VERSION_PLACEHOLDER
+data:
+  # Fixed OpenTelemetry configuration
+  OTEL_SERVICE_NAME: "binance-data-extractor"
+  OTEL_SERVICE_VERSION: "VERSION_PLACEHOLDER"
+  OTEL_RESOURCE_ATTRIBUTES: "service.name=binance-data-extractor,service.version=VERSION_PLACEHOLDER,deployment.environment=production"
+
+  # Enable all observability features
+  ENABLE_OTEL: "true"
+  ENABLE_TRACES: "true"
+  ENABLE_METRICS: "true"
+  ENABLE_LOGS: "true"
+
+  # OTLP configuration
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-alloy.observability.svc.cluster.local:4317"
+  OTEL_EXPORTER_OTLP_HEADERS: ""
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_PROPAGATORS: "tracecontext,baggage"
+
+  # Disable auto-init prevention
+  OTEL_NO_AUTO_INIT: "0"
+
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+
+  # Debug settings for troubleshooting
+  OTEL_DEBUG: "true"
+  OTEL_LOG_LEVEL: "debug"
+---
+# Updated CronJob with fixed observability
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m5-mongodb-production-fixed
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: mongodb
+    interval: 5m
+    version: production
+    observability: fixed
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: mongodb
+        interval: 5m
+        observability: fixed
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 1800
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: mongodb
+            observability: fixed
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: Always
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_mongodb
+            args:
+            - --period=5m
+            - --incremental
+            env:
+            # Binance API credentials
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: BINANCE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
+            - name: BINANCE_FUTURES_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-config
+                  key: BINANCE_FUTURES_API_URL
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: mongodb-connection-string
+            # Database configuration
+            - name: DB_ADAPTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DB_ADAPTER
+            # Logging configuration
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
+            # FIXED OpenTelemetry configuration
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: ENABLE_OTEL
+            - name: ENABLE_TRACES
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: ENABLE_TRACES
+            - name: ENABLE_METRICS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: ENABLE_METRICS
+            - name: ENABLE_LOGS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: ENABLE_LOGS
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_SERVICE_NAME
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_RESOURCE_ATTRIBUTES
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_PROPAGATORS
+            # FIXED: Enable auto-initialization
+            - name: OTEL_NO_AUTO_INIT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_NO_AUTO_INIT
+            # Debug settings
+            - name: OTEL_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_DEBUG
+            - name: OTEL_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-binance-data-extractor-observability-fix
+                  key: OTEL_LOG_LEVEL
+            # NATS configuration
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
+            # Kubernetes metadata
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-m5-mongodb-production-fixed"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "300m"
+              limits:
+                memory: "1Gi"
+                cpu: "800m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
