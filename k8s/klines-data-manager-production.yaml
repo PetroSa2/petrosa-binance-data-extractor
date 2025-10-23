@@ -2,12 +2,12 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: binance-klines-m5-mongodb-production
+  name: binance-klines-m5-data-manager-production
   namespace: petrosa-apps
   labels:
     app: binance-extractor
     component: klines-extractor
-    database: mongodb
+    database: data_manager
     interval: 5m
     version: production
 spec:
@@ -20,7 +20,7 @@ spec:
       labels:
         app: binance-extractor
         component: klines-extractor
-        database: mongodb
+        database: data_manager
         interval: 5m
     spec:
       backoffLimit: 2
@@ -31,7 +31,7 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
-            database: mongodb
+            database: data_manager
         spec:
           restartPolicy: Never
           containers:
@@ -161,7 +161,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: K8S_DEPLOYMENT_NAME
-              value: "binance-klines-m5-mongodb-production"
+              value: "binance-klines-m5-data-manager-production"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
@@ -195,12 +195,12 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: binance-klines-m15-mongodb-production
+  name: binance-klines-m15-data-manager-production
   namespace: petrosa-apps
   labels:
     app: binance-extractor
     component: klines-extractor
-    database: mongodb
+    database: data_manager
     interval: 15m
     version: production
 spec:
@@ -213,7 +213,7 @@ spec:
       labels:
         app: binance-extractor
         component: klines-extractor
-        database: mongodb
+        database: data_manager
         interval: 15m
     spec:
       backoffLimit: 2
@@ -224,7 +224,7 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
-            database: mongodb
+            database: data_manager
         spec:
           restartPolicy: Never
           containers:
@@ -344,7 +344,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: K8S_DEPLOYMENT_NAME
-              value: "binance-klines-m15-mongodb-production"
+              value: "binance-klines-m15-data-manager-production"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
@@ -378,12 +378,12 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: binance-klines-m30-mongodb-production
+  name: binance-klines-m30-data-manager-production
   namespace: petrosa-apps
   labels:
     app: binance-extractor
     component: klines-extractor
-    database: mongodb
+    database: data_manager
     interval: 30m
     version: production
 spec:
@@ -396,7 +396,7 @@ spec:
       labels:
         app: binance-extractor
         component: klines-extractor
-        database: mongodb
+        database: data_manager
         interval: 30m
     spec:
       backoffLimit: 2
@@ -407,7 +407,7 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
-            database: mongodb
+            database: data_manager
         spec:
           restartPolicy: Never
           containers:
@@ -527,7 +527,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: K8S_DEPLOYMENT_NAME
-              value: "binance-klines-m30-mongodb-production"
+              value: "binance-klines-m30-data-manager-production"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
@@ -561,12 +561,12 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: binance-klines-h1-mongodb-production
+  name: binance-klines-h1-data-manager-production
   namespace: petrosa-apps
   labels:
     app: binance-extractor
     component: klines-extractor
-    database: mongodb
+    database: data_manager
     interval: 1h
     version: production
 spec:
@@ -579,7 +579,7 @@ spec:
       labels:
         app: binance-extractor
         component: klines-extractor
-        database: mongodb
+        database: data_manager
         interval: 1h
     spec:
       backoffLimit: 2
@@ -590,7 +590,7 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
-            database: mongodb
+            database: data_manager
         spec:
           restartPolicy: Never
           containers:
@@ -710,7 +710,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: K8S_DEPLOYMENT_NAME
-              value: "binance-klines-h1-mongodb-production"
+              value: "binance-klines-h1-data-manager-production"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
@@ -744,12 +744,12 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: binance-klines-d1-mongodb-production
+  name: binance-klines-d1-data-manager-production
   namespace: petrosa-apps
   labels:
     app: binance-extractor
     component: klines-extractor
-    database: mongodb
+    database: data_manager
     interval: 1d
     version: production
 spec:
@@ -762,7 +762,7 @@ spec:
       labels:
         app: binance-extractor
         component: klines-extractor
-        database: mongodb
+        database: data_manager
         interval: 1d
     spec:
       backoffLimit: 3
@@ -773,7 +773,7 @@ spec:
           labels:
             app: binance-extractor
             component: klines-extractor
-            database: mongodb
+            database: data_manager
         spec:
           restartPolicy: Never
           containers:
@@ -893,7 +893,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: K8S_DEPLOYMENT_NAME
-              value: "binance-klines-d1-mongodb-production"
+              value: "binance-klines-d1-data-manager-production"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
