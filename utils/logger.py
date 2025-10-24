@@ -4,152 +4,78 @@ Logging utilities for the Binance data extractor.
 Provides structured logging with JSON format and OpenTelemetry integration.
 """
 
-import json
 import logging
 import sys
 from datetime import datetime
+from typing import Optional
+
+import structlog
+from structlog.stdlib import LoggerFactory
 
 import constants
-
-# Try to import OpenTelemetry components
-try:
-    from opentelemetry import trace
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-    from opentelemetry.instrumentation.logging import LoggingInstrumentor
-    from opentelemetry.sdk.resources import Resource
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-    OTEL_AVAILABLE = True
-except ImportError:
-    OTEL_AVAILABLE = False
-
-
-class JSONFormatter(logging.Formatter):
-    """
-    Custom JSON formatter for structured logging.
-    """
-
-    def format(self, record: logging.LogRecord) -> str:
-        """Format log record as JSON."""
-        log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "module": record.module,
-            "function": record.funcName,
-            "line": record.lineno,
-        }
-
-        # Add exception info if present
-        if record.exc_info:
-            log_entry["exception"] = self.formatException(record.exc_info)
-
-        # Add extra fields from record
-        for key, value in record.__dict__.items():
-            if key not in [
-                "name",
-                "msg",
-                "args",
-                "levelname",
-                "levelno",
-                "pathname",
-                "filename",
-                "module",
-                "lineno",
-                "funcName",
-                "created",
-                "msecs",
-                "relativeCreated",
-                "thread",
-                "threadName",
-                "processName",
-                "process",
-                "message",
-                "exc_info",
-                "exc_text",
-                "stack_info",
-            ]:
-                log_entry[key] = value
-
-        # Add service information
-        log_entry["service"] = {
-            "name": constants.OTEL_SERVICE_NAME,
-            "version": constants.OTEL_SERVICE_VERSION,
-        }
-
-        # Add trace context if available
-        if OTEL_AVAILABLE:
-            span = trace.get_current_span()
-            if span:
-                span_context = span.get_span_context()
-                log_entry["trace_id"] = format(span_context.trace_id, "032x")
-                log_entry["span_id"] = format(span_context.span_id, "016x")
-
-        return json.dumps(log_entry, default=str)
 
 
 def setup_logging(
     level: str | None = None,
     format_type: str | None = None,
-    enable_otel: bool = True,
-) -> logging.Logger:
+) -> structlog.BoundLogger:
     """
-    Set up logging configuration for the application.
+    Set up structured logging for the application.
 
     Args:
-        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        format_type: Log format ('json' or 'text')
-        enable_otel: Whether to enable OpenTelemetry integration
+        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        format_type: Log format type ("json" or "text")
 
     Returns:
-        Configured logger instance
+        Configured structlog logger instance
     """
     level = level or constants.LOG_LEVEL
     format_type = format_type or constants.LOG_FORMAT
 
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, level.upper()))
+    # Set up standard library logging
+    logging.basicConfig(
+        format="%(message)s",
+        stream=sys.stdout,
+        level=getattr(logging, level.upper()),
+    )
 
-    # Preserve OTLP handlers (if any) before clearing
-    from opentelemetry.sdk._logs import LoggingHandler as OTELLoggingHandler
-
-    otlp_handlers = [
-        h for h in root_logger.handlers if isinstance(h, OTELLoggingHandler)
-    ]
-
-    # Remove existing handlers (except OTLP)
-    for handler in root_logger.handlers[:]:
-        if not isinstance(handler, OTELLoggingHandler):
-            root_logger.removeHandler(handler)
-
-    # Create console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(getattr(logging, level.upper()))
-
-    # Set formatter
+    # Configure structlog processors based on format type
     if format_type.lower() == "json":
-        formatter: logging.Formatter = JSONFormatter()
-    else:
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+        structlog.configure(
+            processors=[
+                structlog.stdlib.filter_by_level,
+                structlog.stdlib.add_logger_name,
+                structlog.stdlib.add_log_level,
+                structlog.stdlib.PositionalArgumentsFormatter(),
+                structlog.processors.TimeStamper(fmt="iso"),
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
+                structlog.processors.UnicodeDecoder(),
+                structlog.processors.JSONRenderer(),
+            ],
+            context_class=dict,
+            logger_factory=LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
+            cache_logger_on_first_use=True,
         )
-
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
-
-    # Re-attach preserved OTLP handlers (if any were removed)
-    for otlp_handler in otlp_handlers:
-        if otlp_handler not in root_logger.handlers:
-            root_logger.addHandler(otlp_handler)
-
-    # Set up OpenTelemetry if available and enabled
-    if OTEL_AVAILABLE and enable_otel and constants.OTEL_EXPORTER_OTLP_ENDPOINT:
-        setup_otel_tracing()
-        LoggingInstrumentor().instrument(set_logging_format=False)
+    else:
+        structlog.configure(
+            processors=[
+                structlog.stdlib.filter_by_level,
+                structlog.stdlib.add_logger_name,
+                structlog.stdlib.add_log_level,
+                structlog.stdlib.PositionalArgumentsFormatter(),
+                structlog.processors.TimeStamper(fmt="iso"),
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
+                structlog.processors.UnicodeDecoder(),
+                structlog.dev.ConsoleRenderer(),
+            ],
+            context_class=dict,
+            logger_factory=LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
+            cache_logger_on_first_use=True,
+        )
 
     # Configure third-party loggers
     logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -157,59 +83,37 @@ def setup_logging(
     logging.getLogger("pymongo").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
-    local_logger = logging.getLogger(__name__)
-    local_logger.info(
-        "Logging configured: level=%s, format=%s, otel=%s",
-        level,
-        format_type,
-        enable_otel and OTEL_AVAILABLE,
+    # Create logger with service context
+    logger = structlog.get_logger(constants.OTEL_SERVICE_NAME)
+    
+    # Add service metadata
+    logger = logger.bind(
+        service_name=constants.OTEL_SERVICE_NAME,
+        service_version=constants.OTEL_SERVICE_VERSION,
+        environment=getattr(constants, "ENVIRONMENT", "production"),
     )
 
-    return local_logger
+    return logger
 
 
-def setup_otel_tracing():
-    """Set up OpenTelemetry tracing."""
-    if not OTEL_AVAILABLE:
-        return
-
-    # Create resource
-    resource = Resource.create(
-        {
-            "service.name": constants.OTEL_SERVICE_NAME,
-            "service.version": constants.OTEL_SERVICE_VERSION,
-        }
-    )
-
-    # Set up tracer provider
-    tracer_provider = TracerProvider(resource=resource)
-    trace.set_tracer_provider(tracer_provider)
-
-    # Set up OTLP exporter
-    if constants.OTEL_EXPORTER_OTLP_ENDPOINT:
-        otlp_exporter = OTLPSpanExporter(
-            endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT,
-            insecure=True,  # Configure based on your setup
-        )
-        span_processor = BatchSpanProcessor(otlp_exporter)
-        tracer_provider.add_span_processor(span_processor)
-
-
-def get_logger(name: str) -> logging.Logger:
+def get_logger(name: Optional[str] = None) -> structlog.BoundLogger:
     """
-    Get a logger instance with the specified name.
+    Get a logger instance.
 
     Args:
-        name: Logger name (usually __name__)
+        name: Logger name (optional)
 
     Returns:
-        Logger instance
+        Configured structlog logger
     """
-    return logging.getLogger(name)
+    if name:
+        return structlog.get_logger(name)
+    else:
+        return structlog.get_logger(constants.OTEL_SERVICE_NAME)
 
 
 def log_extraction_start(
-    log: logging.Logger,
+    log: structlog.BoundLogger,
     extractor_type: str,
     symbols: list,
     period: str,
@@ -219,19 +123,18 @@ def log_extraction_start(
     """Log extraction start with structured data."""
     log.info(
         "Starting data extraction",
-        extra={
-            "extractor_type": extractor_type,
-            "symbols": symbols,
-            "period": period,
-            "start_date": start_date,
-            "backfill": backfill,
-            "extraction_phase": "start",
-        },
+        event="extraction_start",
+        extractor_type=extractor_type,
+        symbols=symbols,
+        period=period,
+        start_date=start_date,
+        backfill=backfill,
+        extraction_phase="start",
     )
 
 
 def log_extraction_progress(
-    log: logging.Logger,
+    log: structlog.BoundLogger,
     symbol: str,
     records_processed: int,
     total_records: int,
@@ -240,25 +143,20 @@ def log_extraction_progress(
     """Log extraction progress."""
     progress_pct = (records_processed / total_records * 100) if total_records > 0 else 0
 
-    extra_data = {
-        "symbol": symbol,
-        "records_processed": records_processed,
-        "total_records": total_records,
-        "progress_percent": round(progress_pct, 2),
-        "extraction_phase": "progress",
-    }
-
-    if current_timestamp:
-        extra_data["current_timestamp"] = current_timestamp.isoformat()
-
     log.info(
-        f"Processing {symbol}: {records_processed}/{total_records} records",
-        extra=extra_data,
+        "Processing extraction",
+        event="extraction_progress",
+        symbol=symbol,
+        records_processed=records_processed,
+        total_records=total_records,
+        progress_percent=round(progress_pct, 2),
+        current_timestamp=current_timestamp.isoformat() if current_timestamp else None,
+        extraction_phase="progress",
     )
 
 
 def log_extraction_completion(
-    log: logging.Logger,
+    log: structlog.BoundLogger,
     extractor_type: str,
     total_records: int,
     duration_seconds: float,
@@ -268,36 +166,34 @@ def log_extraction_completion(
     """Log extraction completion with summary."""
     log.info(
         "Extraction completed",
-        extra={
-            "extractor_type": extractor_type,
-            "total_records": total_records,
-            "duration_seconds": round(duration_seconds, 2),
-            "gaps_found": gaps_found,
-            "errors_count": len(errors) if errors else 0,
-            "errors": errors or [],
-            "extraction_phase": "complete",
-        },
+        event="extraction_complete",
+        extractor_type=extractor_type,
+        total_records=total_records,
+        duration_seconds=round(duration_seconds, 2),
+        gaps_found=gaps_found,
+        errors_count=len(errors) if errors else 0,
+        errors=errors or [],
+        extraction_phase="complete",
     )
 
 
-def log_gap_detection(log: logging.Logger, symbol: str, gaps: list, collection: str):
+def log_gap_detection(log: structlog.BoundLogger, symbol: str, gaps: list, collection: str):
     """Log gap detection results."""
     log.warning(
-        f"Data gaps detected for {symbol}",
-        extra={
-            "symbol": symbol,
-            "collection": collection,
-            "gaps_count": len(gaps),
-            "gaps": [
-                {"start": gap[0].isoformat(), "end": gap[1].isoformat()} for gap in gaps
-            ],
-            "extraction_phase": "gap_detection",
-        },
+        "Data gaps detected",
+        event="gaps_detected",
+        symbol=symbol,
+        collection=collection,
+        gaps_count=len(gaps),
+        gaps=[
+            {"start": gap[0].isoformat(), "end": gap[1].isoformat()} for gap in gaps
+        ],
+        extraction_phase="gap_detection",
     )
 
 
 def log_database_operation(
-    db_logger: logging.Logger,
+    db_logger: structlog.BoundLogger,
     operation: str,
     collection: str,
     records_count: int,
@@ -305,20 +201,28 @@ def log_database_operation(
     success: bool = True,
 ):
     """Log database operations."""
-    log_level = logging.INFO if success else logging.ERROR
-
-    db_logger.log(
-        log_level,
-        f"Database {operation}: {records_count} records in {collection}",
-        extra={
-            "operation": operation,
-            "collection": collection,
-            "records_count": records_count,
-            "duration_seconds": round(duration_seconds, 3),
-            "success": success,
-            "extraction_phase": "database",
-        },
-    )
+    if success:
+        db_logger.info(
+            "Database operation completed",
+            event="database_operation",
+            operation=operation,
+            collection=collection,
+            records_count=records_count,
+            duration_seconds=round(duration_seconds, 3),
+            success=success,
+            extraction_phase="database",
+        )
+    else:
+        db_logger.error(
+            "Database operation failed",
+            event="database_operation_error",
+            operation=operation,
+            collection=collection,
+            records_count=records_count,
+            duration_seconds=round(duration_seconds, 3),
+            success=success,
+            extraction_phase="database",
+        )
 
 
 # Module-level logger for this file
