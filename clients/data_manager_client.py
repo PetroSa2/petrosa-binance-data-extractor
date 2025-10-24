@@ -475,7 +475,7 @@ class DataManagerClient:
             Health status information
         """
         try:
-            health = await self._client.health()
+            health = self._client.health()  # Synchronous call, no await
             logger.info(f"Data Manager health check: {health.get('status', 'unknown')}")
             return health
         except Exception as e:
@@ -485,7 +485,7 @@ class DataManagerClient:
     async def close(self):
         """Close the client connection."""
         try:
-            await self._client.close()
+            self._client.close()  # Synchronous call, no await
             logger.info("Data Manager client closed")
         except Exception as e:
             logger.warning(f"Error closing Data Manager client: {e}")
