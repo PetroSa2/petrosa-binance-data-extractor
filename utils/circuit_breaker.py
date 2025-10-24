@@ -77,7 +77,7 @@ class CircuitBreaker:
                 logger.info(f"{self.name}: Circuit transitioning to HALF_OPEN")
                 self.state = "HALF_OPEN"
             else:
-                raise Exception(f"{self.name}: Circuit breaker is OPEN")
+                raise RuntimeError(f"{self.name}: Circuit breaker is OPEN")
 
         # Execute function
         try:

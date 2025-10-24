@@ -1,19 +1,29 @@
 # Enhanced Pre-commit Configuration for Petrosa Services
-# Version: 2.0 - Ruff-only toolchain with comprehensive security
-# Replaces: black, isort, flake8 with Ruff
+# Version: 2.0 - Security Hardened
+# Works without external tools, provides warnings if tools not installed
 
 repos:
   # ==================================================================
-  # CODE QUALITY - Ruff (All-in-one)
+  # CODE FORMATTING
   # ==================================================================
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: [--line-length=88]
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.15
     hooks:
       - id: ruff
-        args: [--fix]
-        name: Ruff linter (replaces flake8, isort)
-      - id: ruff-format
-        name: Ruff formatter (replaces black)
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
 
   # ==================================================================
   # SECURITY CHECKS - Standard (No external dependencies)
@@ -65,14 +75,23 @@ repos:
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
+      - id: python-check-blanket-noqa
+        name: Check for blanket noqa
+
+      - id: python-check-blanket-type-ignore
+        name: Check for blanket type ignore
+
       - id: python-no-eval
         name: 🔐 Check for eval() usage (security risk)
 
       - id: python-no-log-warn
         name: Check for deprecated log.warn
 
+      - id: text-unicode-replacement-char
+        name: Check for unicode replacement characters
+
   # ==================================================================
-  # SECURITY: Advanced secret detection
+  # SECURITY: Additional secret patterns
   # ==================================================================
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
@@ -91,7 +110,6 @@ repos:
             poetry\.lock$|
             .*\.svg$|
             .*\.backup$|
-            .*\.backup2$|
             .*/tests/.*
           )
 
@@ -108,10 +126,8 @@ repos:
           - .
           - --severity-level=medium
           - --confidence-level=medium
-          - -x
-          - ".venv,.venv/**,venv,venv/**,tests,tests/**"
-        exclude: ^(\.venv/|venv/|tests/)
-        pass_filenames: false
+          - -ll
+        exclude: ^tests/
 
 # ==================================================================
 # LOCAL HOOKS (No external dependencies needed)
@@ -120,7 +136,7 @@ repos:
     hooks:
       - id: check-secrets-patterns
         name: 🔐 Check for common secret patterns
-        entry: bash -c 'grep -rInE "(BINANCE_API_KEY|BINANCE_API_SECRET|DOCKERHUB_TOKEN|JWT_SECRET|mongodb://[^:]+:[^@]+@|password\s*=\s*[\"'\''][^\"'\'']+[\"'\''])" --include="*.py" --include="*.yaml" --include="*.yml" --exclude-dir=.venv --exclude-dir=venv --exclude-dir=.git --exclude-dir=k8s --exclude-dir=.github --exclude-dir=tests --exclude-dir=scripts --exclude="*.backup*" --exclude=".pre-commit-config.yaml" . && echo "⚠️  Found potential secrets in code!" && exit 1 || exit 0'
+        entry: bash -c 'grep -rInE "(BINANCE_API_KEY|BINANCE_API_SECRET|DOCKERHUB_TOKEN|JWT_SECRET|mongodb://[^:]+:[^@]+@|password\s*=\s*[\"'\''][^\"'\'']+[\"'\''])" --include="*.py" --include="*.yaml" --include="*.yml" --exclude-dir=.venv --exclude-dir=venv --exclude-dir=.git . && echo "⚠️  Found potential secrets in code!" && exit 1 || exit 0'
         language: system
         pass_filenames: false
         verbose: true
@@ -133,35 +149,6 @@ repos:
 
       - id: check-kubeconfig
         name: 🔐 Check kubeconfig with credentials not committed
-        entry: bash -c
-        args:
-          - -c
-          - |
-            if git diff --cached --name-only | grep -E "kubeconfig\.yaml"; then
-              if git diff --cached | grep -E "(certificate-authority-data|client-certificate-data|client-key-data|token):"; then
-                echo "⚠️  kubeconfig with credentials should not be committed!"
-                exit 1
-              fi
-            fi
+        entry: bash -c 'if git diff --cached --name-only | grep -E "kubeconfig\.yaml"; then if git diff --cached | grep -E "(certificate-authority-data|client-certificate-data|client-key-data|token):"; then echo "⚠️  kubeconfig with credentials should not be committed!"; exit 1; fi; fi'
         language: system
         pass_filenames: false
-
-      - id: validate-doc-naming
-        name: 🗑️  Validate documentation naming patterns
-        entry: bash -c
-        args:
-          - -c
-          - |
-            temp_docs=$(git diff --cached --name-only --diff-filter=A | grep -E "^docs/[^/]+_(SUMMARY|FIX|COMPLETE|STATUS)\.md$" || true)
-            if [ -n "$temp_docs" ]; then
-              echo "⚠️  Detected temporary documentation files in docs/ root:"
-              echo "$temp_docs" | sed "s/^/  - /"
-              echo ""
-              echo "Please use: docs/archive/{summaries,fixes,investigations}/ or GitHub Issues/PRs"
-              echo "To bypass: git commit --no-verify"
-              exit 1
-            fi
-        language: system
-        pass_filenames: false
-        always_run: false
-        stages: [commit]

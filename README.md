@@ -8,6 +8,8 @@ A production-ready batch processing system that extracts, validates, and stores 
 
 ## 🌐 PETROSA ECOSYSTEM OVERVIEW
 
+> **Note on Scaling**: This service runs as **CronJobs** (batch processing), not Deployments. Scaling is controlled by schedule frequency and job parallelism, **not HPA** (HorizontalPodAutoscaler). See [HPA_REMOVAL.md](docs/HPA_REMOVAL.md) for details.
+
 ### System Architecture
 
 ```
@@ -1063,6 +1065,25 @@ print(f"Last kline at: {last_time}")
    - Reduce `DB_BATCH_SIZE`
    - Limit number of symbols processed in parallel
    - Monitor pod memory in Kubernetes
+
+---
+
+## 📚 Documentation Structure
+
+Core documentation (kept up-to-date):
+- `README.md` - Project overview and quick start
+- `QUICK_REFERENCE.md` - Common commands and workflows
+- `DEPLOYMENT_GUIDE.md` - Production deployment
+- `CI_CD_PIPELINE.md` - CI/CD reference
+- `TESTING.md` - Testing procedures
+- `MAKEFILE.md` - Makefile commands
+
+Archive:
+- `docs/archive/` - Historical documentation for reference only
+  - `docs/archive/summaries/` - Implementation and feature summaries
+  - `docs/archive/fixes/` - Bug fix and resolution reports
+  - `docs/archive/investigations/` - Temporary analysis and diagnostic docs
+  - `docs/archive/migrations/` - Migration and upgrade documentation
 
 ---
 

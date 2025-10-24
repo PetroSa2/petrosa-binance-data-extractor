@@ -1,4 +1,4 @@
-# Quick Reference Card
+# Unified Quick Reference - Petrosa Systems
 
 ## 🚀 Essential Commands
 
@@ -14,29 +14,41 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info
 kubectl --kubeconfig=k8s/kubeconfig.yaml get nodes
 ```
 
-### Local Development
+### Development Setup
 ```bash
-# Start MicroK8s
-microk8s start
-microk8s enable dns storage
-
-# Deploy locally
-./scripts/deploy-local.sh
-
-# Port forward NATS
-kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 4222:4222 &
+# All projects use the same setup pattern
+make setup
+make install-dev
 ```
 
-### Local Deployment
+### Local Development
 ```bash
-# Deploy to local cluster
-./scripts/deploy-local.sh
+# Code quality
+make lint
+make format
+make test
 
-# Or manually deploy
-kubectl --kubeconfig=k8s/kubeconfig.yaml apply -f k8s/namespace.yaml
+# Docker operations
+make build
+make container
+make run-docker
+
+# Complete pipeline
+make pipeline
+```
+
+### Kubernetes Deployment
+```bash
+# Deploy to remote cluster
+export KUBECONFIG=k8s/kubeconfig.yaml
+make deploy
 
 # Check status
-kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
+make k8s-status
+make k8s-logs
+
+# Clean up
+make k8s-clean
 ```
 
 ## 🔍 Debugging Commands
@@ -46,28 +58,25 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
 # Overall status
 kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
 
-# CronJobs
-kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
-
-# Recent jobs
-kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
+# Project-specific deployments
+kubectl --kubeconfig=k8s/kubeconfig.yaml get deployments -n petrosa-apps
 
 # Pod logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/binance-extractor -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/{project-name} -n petrosa-apps
+
+# Recent logs
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=petrosa-{project-name} -n petrosa-apps --since=1h
 ```
 
 ### Common Issues
 
 #### MicroK8s Connection Issues
 ```bash
-# Check MicroK8s status
-microk8s status
-
-# Start MicroK8s if needed
-microk8s start
+# Check cluster connection
+kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info
 
 # Test connection with kubeconfig
-kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info
+kubectl --kubeconfig=k8s/kubeconfig.yaml get nodes
 ```
 
 #### Certificate Issues
@@ -97,25 +106,24 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 42
 ### Run Tests
 ```bash
 # All tests
-python -m pytest tests/ -v
-
-# Specific test
-python -m pytest tests/test_extract_klines.py -v
+make test
 
 # With coverage
-python -m pytest tests/ --cov=. --cov-report=html
+python -m pytest tests/ -v --cov=. --cov-report=term
+
+# Specific test
+python -m pytest tests/test_specific.py -v
 ```
 
-### Integration Tests
+### Pipeline Testing
 ```bash
-# Pipeline simulation
-python scripts/test_pipeline_simulation.py
+# Complete pipeline
+make pipeline
 
-# Production simulation
-python scripts/test_production_simulation.py
-
-# NATS messaging
-python scripts/test_nats_messaging.py
+# Specific stages
+./scripts/local-pipeline.sh lint test
+./scripts/local-pipeline.sh build container
+./scripts/local-pipeline.sh deploy
 ```
 
 ## 📊 Monitoring
@@ -123,13 +131,13 @@ python scripts/test_nats_messaging.py
 ### View Logs
 ```bash
 # Application logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/binance-extractor -n petrosa-apps
-
-# Job logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f job/<job-name> -n petrosa-apps
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/{project-name} -n petrosa-apps
 
 # Recent logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=1h
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=petrosa-{project-name} -n petrosa-apps --since=1h
+
+# Job logs (for data extractor)
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f job/<job-name> -n petrosa-apps
 ```
 
 ### Resource Monitoring
@@ -150,34 +158,43 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod <pod-name> -n petrosa-apps
 - [ ] Python 3.11+ installed
 - [ ] Docker running
 - [ ] kubectl installed
-- [ ] MicroK8s installed and running
 - [ ] Virtual environment activated
 - [ ] Environment variables set
 
 ### Environment Variables
 ```bash
-# Required
-DB_ADAPTER=mysql
-MYSQL_URI=mysql+pymysql://username:password@localhost:3306/binance_data
+# Common (all projects)
+ENVIRONMENT=production
+LOG_LEVEL=INFO
 
-# Optional
+# TA Bot
+NATS_URL=nats://nats-server:4222
+API_ENDPOINT=https://api.example.com/signals
+
+# Trading Engine
+MONGODB_URL=mongodb://mongodb:27017/trading
 BINANCE_API_KEY=your_api_key
 BINANCE_API_SECRET=your_api_secret
-NATS_ENABLED=true
-NATS_URL=nats://localhost:4222
+JWT_SECRET_KEY=your_jwt_secret
+
+# Data Extractor
+DB_ADAPTER=mysql
+MYSQL_URI=mysql+pymysql://username:password@localhost:3306/binance_data
+BINANCE_API_KEY=your_api_key
+BINANCE_API_SECRET=your_api_secret
 ```
 
 ## 🚨 Emergency Procedures
 
 ### Cluster Issues
-1. Check MicroK8s status: `microk8s status`
-2. Start MicroK8s if needed: `microk8s start`
-3. Use repository kubeconfig: `export KUBECONFIG=k8s/kubeconfig.yaml`
+1. Check cluster connection: `kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info`
+2. Verify namespace: `kubectl --kubeconfig=k8s/kubeconfig.yaml get namespace petrosa-apps`
+3. Check all resources: `kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps`
 
 ### Application Issues
-1. Check pod logs: `kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/binance-extractor -n petrosa-apps`
+1. Check pod logs: `kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/{project-name} -n petrosa-apps`
 2. Check pod status: `kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod <pod-name> -n petrosa-apps`
-3. Restart deployment: `kubectl --kubeconfig=k8s/kubeconfig.yaml rollout restart deployment/binance-extractor -n petrosa-apps`
+3. Restart deployment: `kubectl --kubeconfig=k8s/kubeconfig.yaml rollout restart deployment/{project-name} -n petrosa-apps`
 
 ### Database Issues
 1. Test connection from pod
@@ -186,15 +203,112 @@ NATS_URL=nats://localhost:4222
 
 ## 📚 Useful Scripts
 
-- `./scripts/deploy-local.sh` - Local deployment
-- `./scripts/deploy-production.sh` - Production deployment
-- `./scripts/validate-production.sh` - Production validation
-- `./scripts/build-multiarch.sh` - Multi-architecture builds
-- `./scripts/create-release.sh` - Release management
+### All Projects
+- `make setup` - Environment setup
+- `make test` - Run tests
+- `make lint` - Code quality checks
+- `make build` - Build Docker image
+- `make deploy` - Deploy to Kubernetes
+- `make pipeline` - Complete CI/CD pipeline
+
+### Project-Specific
+- `./scripts/local-pipeline.sh` - Local pipeline execution
+- `./scripts/dev-setup.sh` - Development environment setup
+- `./scripts/troubleshoot.sh` - Troubleshooting utilities
 
 ## 🔗 Quick Links
 
-- [Full Setup Guide](REPOSITORY_SETUP_GUIDE.md)
-- [Operations Guide](OPERATIONS_GUIDE.md)
-- [Deployment Guide](DEPLOYMENT_GUIDE.md)
-- [Local Deployment](LOCAL_DEPLOY.md)
+### Documentation
+- [Unified Guide](UNIFIED_GUIDE.md)
+- [Project README](../README.md)
+- [Kubernetes Guide](KUBERNETES.md)
+- [CI/CD Guide](CI_CD.md)
+
+### GitHub CLI
+```bash
+# Get repository info
+gh api repos/owner/repo > /tmp/repo_info.json
+
+# List issues
+gh issue list --repo owner/repo --json number,title,state > /tmp/issues.json
+
+# Get workflow runs
+gh run list --repo owner/repo --json id,status,conclusion > /tmp/runs.json
+
+# Read output
+cat /tmp/repo_info.json | jq '.name'
+```
+
+## ⚠️ Critical Rules
+
+### Kubernetes
+- **ALWAYS use `--kubeconfig=k8s/kubeconfig.yaml`** with kubectl commands
+- **NEVER create new secrets/configmaps** - use existing ones only
+- **NEVER replace VERSION_PLACEHOLDER** - it's part of the deployment system
+- **Use `petrosa-sensitive-credentials`** for all credentials
+- **Use `petrosa-common-config`** for shared configuration
+
+### GitHub CLI
+- **ALWAYS dump output to `/tmp` files** and read from them
+- **Example**: `gh command > /tmp/file.json && cat /tmp/file.json`
+
+### CI/CD Pipeline
+- **Continue until GitHub Actions pipeline is fully green**
+- **Run all tests locally before pushing**
+- **Fix all linting errors before committing**
+
+## 🎯 Project-Specific Quick Commands
+
+### TA Bot
+```bash
+# Run TA strategies locally
+python -m ta_bot.main
+
+# Test signal generation
+python -m pytest tests/test_signal_engine.py -v
+```
+
+### Trading Engine
+```bash
+# Test trading operations
+python -m pytest tests/test_api.py -v
+
+# Check MongoDB connection
+python scripts/check-mongodb.py
+```
+
+### Data Extractor
+```bash
+# Test data extraction
+python -m pytest tests/test_extract_klines.py -v
+
+# Run extraction job
+python jobs/extract_klines.py
+```
+
+## 📋 Common Workflows
+
+### New Feature Development
+1. `make setup` - Setup environment
+2. `make lint` - Check code quality
+3. `make test` - Run tests
+4. `make build` - Build Docker image
+5. `make deploy` - Deploy to cluster
+6. `make k8s-status` - Check deployment
+
+### Bug Fix
+1. `make k8s-logs` - Check application logs
+2. `make test` - Run tests to reproduce
+3. Fix the issue
+4. `make lint` - Check code quality
+5. `make test` - Verify fix
+6. `make deploy` - Deploy fix
+
+### Pipeline Fix
+1. `make test` - Run all tests locally
+2. `make lint` - Fix linting errors
+3. `make security` - Run security scan
+4. `make build` - Build and test container
+5. Commit and push changes
+6. Monitor GitHub Actions pipeline
+7. **Continue until pipeline is green**

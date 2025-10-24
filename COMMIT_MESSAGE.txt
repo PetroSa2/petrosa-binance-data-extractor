@@ -1,0 +1,39 @@
+fix: Remove orphaned HPA for binance-data-extractor (#20)
+
+Remove orphaned HorizontalPodAutoscaler that was generating 57,952+
+FailedGetScale events over 10 days. The HPA was incompatible with the
+service's CronJob-based architecture (batch processing).
+
+Changes:
+- Delete k8s/hpa.yaml (orphaned HPA manifest)
+- Update README.md with CronJob scaling note
+- Add comprehensive documentation (4 files)
+
+Root Cause:
+The binance-data-extractor runs as CronJobs (scheduled batch jobs),
+not Deployments (continuous services). HPA only works with continuous
+workloads and was continuously failing to find the target deployment.
+
+Correct Scaling Approach:
+- Schedule frequency: Adjust CronJob schedule (5m, 15m, 1h, etc.)
+- Job parallelism: Run multiple pods per execution
+- Resource limits: Set per-job CPU/memory limits
+
+Impact:
+Before: 57,952+ FailedGetScale events (~240/hour)
+After:  Zero events, clean logs, clear architecture
+
+Documentation:
+- ISSUE_20_COMPLETE.md - Complete summary
+- docs/HPA_REMOVAL.md - Detailed guide
+- docs/ISSUE_20_RESOLUTION_SUMMARY.md - Quick reference
+- docs/FINAL_VERIFICATION_ISSUE_20.md - Verification
+- GITHUB_ISSUE_20_CLOSE_COMMENT.md - GitHub closure comment
+
+Verification:
+✅ HPA removed from cluster
+✅ No new FailedGetScale events
+✅ CronJobs still running normally
+✅ All acceptance criteria met
+
+Closes #20

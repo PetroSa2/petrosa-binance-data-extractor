@@ -99,40 +99,68 @@ kubectl cluster-info --insecure-skip-tls-verify
 ./scripts/deploy-local.sh
 
 # Or manually deploy
-kubectl --kubeconfig=k8s/kubeconfig.yaml apply -f k8s/namespace.yaml
+kubectl --context=petrosa apply -f k8s/namespace.yaml
 
 # Check deployment status
-kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
+kubectl --context=petrosa get all -n petrosa-apps
 ```
 
 ## 🌐 Production Environment
 
-### Local MicroK8s Cluster Connection
+### Kubernetes Cluster Connection
 
-This repository uses a local MicroK8s cluster with a custom kubeconfig file located at `k8s/kubeconfig.yaml`.
+This repository connects to the **Petrosa MicroK8s cluster** using the centralized kubeconfig at `~/.kube/config`.
 
-#### 1. Using the Repository's Kubeconfig
+**Context name:** `petrosa`
 
-```bash
-# Use the repository's kubeconfig file
-export KUBECONFIG=k8s/kubeconfig.yaml
-
-# Verify connection
-kubectl cluster-info
-kubectl get nodes
-```
-
-#### 2. Alternative: Set KUBECONFIG for this session
+#### 1. Quick Commands
 
 ```bash
-# Set kubeconfig for current session
-export KUBECONFIG=k8s/kubeconfig.yaml
+# Check connection
+kubectl --context=petrosa get nodes
 
-# Or use kubectl with --kubeconfig flag
-kubectl --kubeconfig=k8s/kubeconfig.yaml get nodes
+# View petrosa-apps namespace
+kubectl --context=petrosa get pods -n petrosa-apps
+
+# Set as default context (optional)
+kubectl config use-context petrosa
+
+# Deploy this service
+kubectl --context=petrosa apply -f k8s/
 ```
 
-#### 3. Common Connection Issues
+#### 2. Initial Setup
+
+The MicroK8s cluster credentials should already be merged into your `~/.kube/config`. If not:
+
+```bash
+# 1. Generate fresh credentials
+microk8s config > /tmp/microk8s-config.yaml
+
+# 2. Merge with existing config
+KUBECONFIG=~/.kube/config:/tmp/microk8s-config.yaml kubectl config view --flatten > ~/.kube/config.new
+mv ~/.kube/config.new ~/.kube/config
+
+# 3. Test connection
+kubectl --context=petrosa get nodes
+```
+
+#### 3. Multiple Clusters
+
+If you work with multiple clusters (dev, prod, petrosa), use context switching:
+
+```bash
+# List all contexts
+kubectl config get-contexts
+
+# Switch to petrosa
+kubectl config use-context petrosa
+
+# Or use --context flag
+kubectl --context=petrosa get pods
+```
+
+#### 4. Common Connection Issues
 
 **Issue: "Unable to connect to the server"**
 
@@ -144,24 +172,27 @@ microk8s status
 # 2. Start MicroK8s if needed
 microk8s start
 
-# 3. Verify kubeconfig file exists
-ls -la k8s/kubeconfig.yaml
+# 3. Verify context exists
+kubectl config get-contexts | grep petrosa
 
-# 4. Test connection with explicit kubeconfig
-kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info
+# 4. Test connection
+kubectl --context=petrosa cluster-info
 ```
 
 **Issue: "Certificate signed by unknown authority"**
 
 **Solutions:**
 ```bash
-# 1. Use --insecure-skip-tls-verify flag
-kubectl --kubeconfig=k8s/kubeconfig.yaml --insecure-skip-tls-verify get nodes
-
-# 2. Or set environment variable
-export KUBECONFIG=k8s/kubeconfig.yaml
-kubectl --insecure-skip-tls-verify get nodes
+# Use --insecure-skip-tls-verify flag
+kubectl --context=petrosa --insecure-skip-tls-verify get nodes
 ```
+
+#### 5. Security Notes
+
+- **NEVER commit** `k8s/kubeconfig.yaml` to version control
+- `k8s/kubeconfig.yaml` is in .gitignore to prevent credential exposure
+- Use `k8s/kubeconfig.yaml.example` as reference only
+- All cluster access should use `~/.kube/config` with context switching
 
 ### Local Deployment
 ```bash
@@ -169,10 +200,10 @@ kubectl --insecure-skip-tls-verify get nodes
 ./scripts/deploy-local.sh
 
 # Or manually deploy
-kubectl --kubeconfig=k8s/kubeconfig.yaml apply -f k8s/namespace.yaml
+kubectl --context=petrosa apply -f k8s/namespace.yaml
 
 # Check deployment status
-kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
+kubectl --context=petrosa get all -n petrosa-apps
 ```
 
 ## 🔍 Debugging and Troubleshooting
@@ -194,10 +225,10 @@ kubectl get namespaces
 #### 2. Port Forwarding for Local Development
 ```bash
 # Forward NATS service using repository kubeconfig
-kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n nats svc/nats-server 4222:4222 &
+kubectl --context=petrosa port-forward -n nats svc/nats-server 4222:4222 &
 
 # Forward database (if needed)
-kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward -n petrosa-apps svc/your-db-service 3306:3306 &
+kubectl --context=petrosa port-forward -n petrosa-apps svc/your-db-service 3306:3306 &
 
 # Check port forwarding
 netstat -an | grep 4222
@@ -206,13 +237,13 @@ netstat -an | grep 4222
 #### 3. Pod Debugging
 ```bash
 # Get pod logs using repository kubeconfig
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/binance-extractor -n petrosa-apps
+kubectl --context=petrosa logs -f deployment/binance-extractor -n petrosa-apps
 
 # Execute into pod
-kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- /bin/bash
+kubectl --context=petrosa exec -it deployment/binance-extractor -n petrosa-apps -- /bin/bash
 
 # Check pod status
-kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod <pod-name> -n petrosa-apps
+kubectl --context=petrosa describe pod <pod-name> -n petrosa-apps
 ```
 
 ### Common Issues and Solutions
@@ -223,7 +254,7 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod <pod-name> -n petrosa-apps
 docker pull your-username/petrosa-binance-extractor:latest
 
 # Verify image in cluster
-kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod <pod-name> -n petrosa-apps | grep -A 5 "Events:"
+kubectl --context=petrosa describe pod <pod-name> -n petrosa-apps | grep -A 5 "Events:"
 
 # Solution: Rebuild and push image
 docker build -t your-username/petrosa-binance-extractor:latest .
@@ -233,7 +264,7 @@ docker push your-username/petrosa-binance-extractor:latest
 #### 2. Database Connection Issues
 ```bash
 # Test database connection from pod
-kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
+kubectl --context=petrosa exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
 import os
 from db.mysql_adapter import MySQLAdapter
 try:
@@ -248,13 +279,13 @@ except Exception as e:
 #### 3. CronJob Issues
 ```bash
 # Check CronJob status
-kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
+kubectl --context=petrosa get cronjobs -n petrosa-apps
 
 # View CronJob details
-kubectl --kubeconfig=k8s/kubeconfig.yaml describe cronjob <cronjob-name> -n petrosa-apps
+kubectl --context=petrosa describe cronjob <cronjob-name> -n petrosa-apps
 
 # Check recent job executions
-kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
+kubectl --context=petrosa get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
 ```
 
 ## 🧪 Testing
@@ -288,25 +319,25 @@ python scripts/test_nats_messaging.py
 ### View Logs
 ```bash
 # Application logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f deployment/binance-extractor -n petrosa-apps
+kubectl --context=petrosa logs -f deployment/binance-extractor -n petrosa-apps
 
 # CronJob logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -f job/<job-name> -n petrosa-apps
+kubectl --context=petrosa logs -f job/<job-name> -n petrosa-apps
 
 # Recent logs with timestamps
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=1h
+kubectl --context=petrosa logs -l app=binance-extractor -n petrosa-apps --since=1h
 ```
 
 ### Monitor Resources
 ```bash
 # Resource usage
-kubectl --kubeconfig=k8s/kubeconfig.yaml top pods -n petrosa-apps
+kubectl --context=petrosa top pods -n petrosa-apps
 
 # Events
-kubectl --kubeconfig=k8s/kubeconfig.yaml get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
+kubectl --context=petrosa get events -n petrosa-apps --sort-by=.metadata.creationTimestamp
 
 # Pod status
-kubectl --kubeconfig=k8s/kubeconfig.yaml get pods -n petrosa-apps -o wide
+kubectl --context=petrosa get pods -n petrosa-apps -o wide
 ```
 
 ## 🚀 Development Workflow
@@ -363,16 +394,16 @@ python -c "import constants; print(constants.VERSION)"
 ### Useful Commands
 ```bash
 # Quick status check
-kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
+kubectl --context=petrosa get all -n petrosa-apps
 
 # Check CronJobs
-kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
+kubectl --context=petrosa get cronjobs -n petrosa-apps
 
 # View recent jobs
-kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
+kubectl --context=petrosa get jobs -n petrosa-apps --sort-by=.metadata.creationTimestamp
 
 # Check logs
-kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --tail=100
+kubectl --context=petrosa logs -l app=binance-extractor -n petrosa-apps --tail=100
 ```
 
 ## 🔧 Troubleshooting Checklist
@@ -385,7 +416,7 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petros
 - [ ] Virtual environment is activated
 
 ### Common Fixes
-- **Cluster Connection**: `export KUBECONFIG=k8s/kubeconfig.yaml`
+- **Cluster Connection**: `kubectl config use-context petrosa`
 - **Certificate Issues**: Use `--insecure-skip-tls-verify` flag
 - **MicroK8s Issues**: `microk8s start` and `microk8s status`
 - **Image Issues**: Rebuild and push Docker image

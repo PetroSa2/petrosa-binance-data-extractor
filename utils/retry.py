@@ -263,8 +263,11 @@ def retry_on_http_errors(
 
     # Try to import requests exceptions if available
     try:
-        from requests.exceptions import ConnectionError as RequestsConnectionError
-        from requests.exceptions import RequestException, Timeout
+        from requests.exceptions import (
+            ConnectionError as RequestsConnectionError,
+            RequestException,
+            Timeout,
+        )
 
         http_retryable_exceptions = http_retryable_exceptions + (
             RequestException,

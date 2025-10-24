@@ -1,353 +1,387 @@
-# Cursor AI Rules for Petrosa Systems
+# MASTER RULES: See petrosa_k8s/.cursorrules
 
-## Repository Context
-This is a unified configuration for all Petrosa systems:
-- **petrosa-bot-ta-analysis**: Technical Analysis bot for crypto trading
-- **petrosa-tradeengine**: Cryptocurrency trading engine system
-- **petrosa-binance-data-extractor**: Cryptocurrency data extraction system
-- **petrosa-socket-client**: Binance WebSocket client for real-time data streaming
+**IMPORTANT**: This file contains service-specific rules only. For ecosystem-wide rules, architecture, shared resources, deployment patterns, and cross-service integration, always refer to:
+- **Master Cursorrules**: `/Users/yurisa2/petrosa/petrosa_k8s/.cursorrules`
 
-All systems use the same remote MicroK8s cluster, CI/CD pipeline patterns, and development workflows.
+When working on this service, read the master cursorrules first to understand the full system context.
 
-## Key Files to Reference
-- `README.md` - Project-specific documentation and usage guide
-- `Makefile` - Complete command reference for all development tasks
-- `k8s/` - Kubernetes manifests for production deployment
-- `k8s/kubeconfig.yaml` - Remote MicroK8s cluster configuration
-- `scripts/` - Automation scripts for setup, testing, and deployment
-- `docs/` - Comprehensive documentation and guides
+---
 
-## Prerequisites & Installation
-- **Python 3.11+**: Required for development and runtime
-- **Docker**: Required for containerization and local testing
-- **kubectl**: Required for Kubernetes deployment (remote cluster)
-- **Make**: Required for using the Makefile commands
+## Binance Data Extractor - Satellite Rules
 
-**Note**: All projects use a **remote MicroK8s cluster** - no local Kubernetes installation required.
+### Service Context
 
-## Quick Start Commands
+The **Binance Data Extractor** is a batch processing system that extracts historical cryptocurrency market data from the Binance REST API and stores it in MySQL for downstream consumption by the TA Bot. It operates as a set of Kubernetes CronJobs running on different schedules to collect OHLCV klines, funding rates, and trade data across multiple symbols and timeframes.
+
+This service is the **primary data ingestion layer** for historical analysis, providing the foundation data that powers the TA Bot's 28+ technical analysis strategies. It includes gap detection and automatic backfilling to ensure data completeness and consistency.
+
+Unlike the real-time socket-client, this service operates on a scheduled basis (1m, 5m, 15m, 1h, 4h, 1d intervals) and is designed for **batch processing** rather than streaming data.
+
+### Cross-References to Master
+
+- **Ecosystem Architecture**: See master § System Architecture Overview → Data Ingestion & Storage Layer
+- **Work Tracking**: See master § Centralized Work Tracking with GitHub Projects
+- **NATS Topics**: Not applicable (this service writes directly to MySQL, not NATS)
+- **Database Architecture**: See master § Database Architecture (MySQL section)
+- **Deployment Patterns**: See master § Data Extractor Configuration
+- **Shared Resources**: See master § Shared Resources (ConfigMaps, Secrets)
+
+---
+
+## Service-Specific Rules
+
+### Repository Structure
+
+**Key Files**:
+- `README.md` - Service documentation and usage guide
+- `Makefile` - Development commands
+- `k8s/cronjobs.yaml` - CronJob definitions for all timeframes
+- `jobs/` - Job implementations for different data types
+- `fetchers/` - Binance API client implementations
+- `db/` - Database connection and model definitions
+- `models/` - Data models (Kline, FundingRate, Trade)
+
+**Directory Layout**:
+```
+petrosa-binance-data-extractor/
+├── jobs/           # Data extraction job logic
+│   ├── kline_job.py
+│   ├── funding_rate_job.py
+│   ├── trade_job.py
+│   └── gap_filler.py
+├── fetchers/       # Binance API clients
+│   ├── kline_fetcher.py
+│   ├── funding_rate_fetcher.py
+│   └── trade_fetcher.py
+├── db/             # Database layer
+│   ├── connection.py
+│   ├── mysql_adapter.py
+│   └── models.py
+├── models/         # Data models
+└── k8s/            # Kubernetes manifests
+    └── cronjobs.yaml
+```
+
+### CronJob Patterns
+
+**Timeframe-Specific Schedules**:
+
+```yaml
+# 1-minute candles (every minute)
+schedule: "*/1 * * * *"
+command: ["python", "-m", "jobs.kline_job", "--interval", "1m"]
+
+# 5-minute candles (every 5 minutes)
+schedule: "*/5 * * * *"
+command: ["python", "-m", "jobs.kline_job", "--interval", "5m"]
+
+# 15-minute candles (every 15 minutes)
+schedule: "*/15 * * * *"
+command: ["python", "-m", "jobs.kline_job", "--interval", "15m"]
+
+# 1-hour candles (every hour at :02)
+schedule: "2 * * * *"
+command: ["python", "-m", "jobs.kline_job", "--interval", "1h"]
+
+# 4-hour candles (every 4 hours at :05)
+schedule: "5 */4 * * *"
+command: ["python", "-m", "jobs.kline_job", "--interval", "4h"]
+
+# Daily candles (daily at 00:10)
+schedule: "10 0 * * *"
+command: ["python", "-m", "jobs.kline_job", "--interval", "1d"]
+```
+
+**CronJob Best Practices**:
+1. **Offset schedules**: Avoid running all jobs at exact hour marks (use :02, :05, :10)
+2. **Idempotency**: All jobs must be idempotent (safe to run multiple times)
+3. **Limit history**: Fetch only recent data to avoid API rate limits
+4. **Gap detection**: Check for missing data and trigger backfill jobs
+5. **Error handling**: Log failures and continue (don't block entire schedule)
+
+### Binance API Integration
+
+**Rate Limits**:
+```python
+# Binance REST API limits (as of 2024)
+WEIGHT_LIMIT_PER_MINUTE = 1200  # Request weight limit
+ORDERS_PER_SECOND = 50          # Order limit (not used by data-extractor)
+REQUESTS_PER_MINUTE = 6000      # Raw request limit
+
+# Implement exponential backoff on 429 (rate limit) responses
+# Use request weights to track usage
+```
+
+**API Endpoints Used**:
+```python
+# Klines (OHLCV candles)
+GET /api/v3/klines
+Parameters: symbol, interval, startTime, endTime, limit
+
+# Funding Rate (futures only)
+GET /fapi/v1/fundingRate
+Parameters: symbol, startTime, endTime, limit
+
+# Aggregate Trades
+GET /api/v3/aggTrades
+Parameters: symbol, fromId, startTime, endTime, limit
+```
+
+**Error Handling**:
+```python
+# Retry logic for transient failures
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=60),
+    retry=retry_if_exception_type(BinanceAPIException)
+)
+def fetch_klines(symbol: str, interval: str, start_time: int, end_time: int):
+    """Fetch klines with automatic retry."""
+    pass
+```
+
+### Gap Filling Strategy
+
+**Gap Detection**:
+```python
+# Detect gaps in historical data
+def detect_gaps(symbol: str, interval: str) -> List[Gap]:
+    """
+    Query MySQL for gaps in kline data.
+
+    Returns list of (start_time, end_time) tuples representing missing ranges.
+    """
+    query = """
+    SELECT
+        close_time + INTERVAL 1 MINUTE as gap_start,
+        LEAD(open_time) OVER (ORDER BY open_time) as gap_end
+    FROM klines
+    WHERE symbol = %s AND interval = %s
+    HAVING gap_end > gap_start
+    """
+```
+
+**Backfill Job**:
 ```bash
-# Complete setup
+# Manual backfill for specific range
+kubectl create job --from=cronjob/kline-1m-backfill backfill-btc-2024-01 \
+  --namespace petrosa-apps \
+  -- python -m jobs.gap_filler \
+     --symbol BTCUSDT \
+     --interval 1m \
+     --start "2024-01-01 00:00:00" \
+     --end "2024-01-31 23:59:59"
+```
+
+### Development Workflow
+
+**Local Development**:
+```bash
+# Setup environment
 make setup
 
-# Run local pipeline
-make pipeline
+# Run specific job locally
+python -m jobs.kline_job --symbol BTCUSDT --interval 1h --limit 100
 
-# Deploy to Kubernetes
-make deploy
+# Test database connection
+python -m db.connection --test
 
-# Check deployment status
-make k8s-status
+# Dry run (no database writes)
+python -m jobs.kline_job --symbol BTCUSDT --interval 1h --dry-run
 ```
 
-## Common Issues & Solutions
-
-### 1. Python Environment Issues
-```bash
-# Check Python version
-python3 --version
-
-# Recreate virtual environment
-rm -rf .venv
-make setup
-```
-
-### 2. Docker Build Issues
-```bash
-# Clean Docker cache
-make docker-clean
-
-# Rebuild image
-make build
-```
-
-### 3. Kubernetes Connection Issues
-```bash
-# Set kubeconfig for remote cluster
-export KUBECONFIG=k8s/kubeconfig.yaml
-
-# Check cluster connection
-kubectl --kubeconfig=k8s/kubeconfig.yaml cluster-info
-
-# Check namespace
-kubectl --kubeconfig=k8s/kubeconfig.yaml get namespace petrosa-apps
-
-# View deployment status
-make k8s-status
-
-# Note: This is a remote MicroK8s cluster - no local installation needed
-```
-
-### 4. WebSocket Connection Issues
-```bash
-# Check WebSocket connectivity
-python -c "import websockets; print('WebSocket library available')"
-
-# Test NATS connection
-python -c "import nats; print('NATS library available')"
-
-# Check environment variables
-env | grep -E "(BINANCE|NATS|LOG)"
-```
-
-## Development Workflow
-
-### 1. Initial Setup
-```bash
-# Complete environment setup
-make setup
-
-# Install development dependencies
-make install-dev
-```
-
-### 2. Code Quality Checks
-```bash
-# Run all linting
-make lint
-
-# Format code
-make format
-
-# Run tests
-make test
-
-# Security scan
-make security
-```
-
-### 3. Docker Operations
-```bash
-# Build image
-make build
-
-# Test container
-make container
-
-# Run in Docker
-make run-docker
-```
-
-### 4. Kubernetes Deployment
-```bash
-# Set kubeconfig for remote cluster
-export KUBECONFIG=k8s/kubeconfig.yaml
-
-# Deploy to remote cluster
-make deploy
-
-# Check status
-make k8s-status
-
-# View logs
-make k8s-logs
-
-# Clean up
-make k8s-clean
-```
-
-## Kubernetes Configuration
-## CRITICAL: ALWAYS FOLLOW THESE RULES
-- **AVOID INTERACTIVE CLI COMMANDS AT ALL COSTS**: Never suggest or use interactive commands that require user input, confirmation, or manual intervention. All commands must be non-interactive and automated.
-- **BEFORE making any changes**: Check `docs/REPOSITORY_SETUP_GUIDE.md` and `docs/QUICK_REFERENCE.md`
-- **WHEN suggesting kubectl commands**: Always include `--kubeconfig=k8s/kubeconfig.yaml`
-- **WHEN dealing with credentials**: ONLY use existing secret `petrosa-sensitive-credentials`
-- **WHEN dealing with configuration**: Use `petrosa-common-config` for general settings and project-specific configmaps
-- **WHEN running GitHub CLI**: ALWAYS use file-based approach: `gh command > /tmp/file.json && cat /tmp/file.json`
-- **WHEN fixing CI/CD issues**: Continue until GitHub Actions pipeline passes
-- **WHEN writing Python code**: Follow PEP 8, use type hints, add proper error handling
-- **NEVER suggest AWS EKS commands** - this is a MicroK8s setup
-- **NEVER create new Kubernetes secrets/configmaps** - use existing ones only
-- **NEVER replace VERSION_PLACEHOLDER in Kubernetes manifests** - it's part of the deployment system
-
-### Remote Cluster Setup
-- **Cluster Type**: Remote MicroK8s (no local installation required)
-- **Connection**: Use `k8s/kubeconfig.yaml` for cluster access
-- **Server**: Remote MicroK8s cluster at `https://192.168.194.253:16443`
-
-### Namespace
-- **Name**: `petrosa-apps`
-- **Labels**: `app=petrosa-socket-client`
-
-### Components
-- **Deployment**: 3 replicas with health checks
-- **Service**: ClusterIP on port 80
-- **Ingress**: SSL-enabled with Let's Encrypt
-- **HPA**: Auto-scaling based on CPU/memory
-
-## Environment Variables
-
-### Common Variables (All Projects)
-- `ENVIRONMENT`: Environment name (default: production)
-- `LOG_LEVEL`: Logging level (default: INFO)
-
-### Socket Client Specific Variables
-- `BINANCE_WS_URL`: Binance WebSocket URL (default: wss://stream.binance.com:9443)
-- `BINANCE_STREAMS`: Comma-separated list of streams to subscribe to
-- `NATS_URL`: NATS server URL
-- `NATS_TOPIC`: NATS topic for publishing messages
-- `WEBSOCKET_RECONNECT_DELAY`: Reconnection delay in seconds (default: 5)
-- `WEBSOCKET_MAX_RECONNECT_ATTEMPTS`: Maximum reconnection attempts (default: 10)
-- `MESSAGE_TTL_SECONDS`: Message TTL in seconds (default: 60)
-
-## Testing Procedures
-
-### Standard Test Commands
+**Testing**:
 ```bash
 # Run all tests
 make test
 
-# Run with coverage
-python -m pytest tests/ -v --cov=. --cov-report=term
+# Test specific job
+pytest tests/test_kline_job.py -v
 
-# Run specific test file
-python -m pytest tests/test_specific.py -v
-
-# Run linting
-make lint
-
-# Run security scan
-make security
+# Test API client with rate limiting
+pytest tests/test_fetchers.py -v --log-level=DEBUG
 ```
 
-### Pipeline Testing
+**Debugging**:
 ```bash
-# Run complete local pipeline
-make pipeline
+# Check CronJob status
+kubectl --kubeconfig=k8s/kubeconfig.yaml get cronjobs -n petrosa-apps
 
-# Run specific pipeline stages
-./scripts/local-pipeline.sh lint test
-./scripts/local-pipeline.sh build container
-./scripts/local-pipeline.sh deploy
+# View recent job runs
+kubectl --kubeconfig=k8s/kubeconfig.yaml get jobs -n petrosa-apps --sort-by=.status.startTime
+
+# Check job logs
+kubectl --kubeconfig=k8s/kubeconfig.yaml logs -n petrosa-apps job/kline-1h-<timestamp>
+
+# Manually trigger CronJob
+kubectl --kubeconfig=k8s/kubeconfig.yaml create job --from=cronjob/kline-1h manual-run-1 -n petrosa-apps
 ```
 
-## Troubleshooting Scripts
+### Common Issues & Solutions
 
-### Complete Diagnostics
+#### 1. API Rate Limiting
+
+**Symptom**: 429 errors from Binance API
+
+**Solutions**:
+```python
+# Reduce concurrent requests
+MAX_CONCURRENT_REQUESTS = 5
+
+# Add delays between requests
+await asyncio.sleep(0.2)  # 200ms between requests
+
+# Use request weights to track usage
+current_weight = sum(request.weight for request in recent_requests)
+if current_weight > WEIGHT_LIMIT_PER_MINUTE * 0.9:
+    await asyncio.sleep(60)  # Wait for weight reset
+```
+
+#### 2. MySQL Connection Timeouts
+
+**Symptom**: `pymysql.err.OperationalError: (2013, 'Lost connection to MySQL server')`
+
+**Solutions**:
+```python
+# Increase connection timeout
+SQLALCHEMY_POOL_PRE_PING = True
+SQLALCHEMY_POOL_RECYCLE = 3600
+
+# Use connection pooling
+engine = create_engine(
+    MYSQL_URI,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600
+)
+```
+
+#### 3. Duplicate Data
+
+**Symptom**: Primary key constraint violations
+
+**Solutions**:
+```sql
+-- Use UPSERT pattern
+INSERT INTO klines (symbol, interval, open_time, ...)
+VALUES (?, ?, ?, ...)
+ON DUPLICATE KEY UPDATE
+  close = VALUES(close),
+  high = VALUES(high),
+  low = VALUES(low),
+  volume = VALUES(volume);
+```
+
+#### 4. Gap Detection Not Working
+
+**Symptom**: Gaps not detected or backfill not triggered
+
+**Check**:
 ```bash
-# Run all checks
-./scripts/local-pipeline.sh all
+# Verify gap detection query
+python -m jobs.gap_filler --symbol BTCUSDT --interval 1h --detect-only
 
-# Quick fixes
-make setup
-make test
+# Check for timezone issues
+# All timestamps should be UTC
+SELECT FROM_UNIXTIME(open_time/1000) FROM klines LIMIT 10;
 ```
 
-### Specific Component Checks
+### Configuration
+
+**Environment Variables** (service-specific):
 ```bash
-# Check Python environment
-./scripts/local-pipeline.sh setup
+# Symbols to extract (comma-separated)
+SUPPORTED_SYMBOLS=BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,SOLUSDT
 
-# Check dependencies
-./scripts/local-pipeline.sh lint
+# Timeframes to extract (comma-separated)
+SUPPORTED_TIMEFRAMES=1m,5m,15m,1h,4h,1d
 
-# Check Docker
-./scripts/local-pipeline.sh build
+# Extraction limits
+KLINE_LIMIT_PER_REQUEST=1000    # Max klines per API call
+LOOKBACK_HOURS=24                # How far back to fetch on each run
 
-# Check Kubernetes
-./scripts/local-pipeline.sh deploy
+# Database settings (from secret)
+MYSQL_URI=mysql+pymysql://user:pass@host:3306/binance_data
+
+# Binance API (from secret)
+BINANCE_API_KEY=<from-secret>
+BINANCE_API_SECRET=<from-secret>
+
+# Rate limiting
+MAX_REQUEST_WEIGHT=1000          # Stay under Binance limit
+REQUEST_DELAY_MS=200             # Delay between requests
 ```
 
-## Local Pipeline
+### Data Models
 
-### Complete Pipeline
+**Kline (OHLCV)**:
+```python
+class Kline(BaseModel):
+    symbol: str                  # e.g., "BTCUSDT"
+    interval: str                # e.g., "1h"
+    open_time: int               # Unix timestamp (ms)
+    close_time: int              # Unix timestamp (ms)
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: Decimal
+    quote_volume: Decimal
+    trades: int
+    taker_buy_base_volume: Decimal
+    taker_buy_quote_volume: Decimal
+```
+
+**Database Schema**:
+```sql
+CREATE TABLE klines (
+    symbol VARCHAR(20) NOT NULL,
+    interval VARCHAR(5) NOT NULL,
+    open_time BIGINT NOT NULL,
+    close_time BIGINT NOT NULL,
+    open DECIMAL(18,8) NOT NULL,
+    high DECIMAL(18,8) NOT NULL,
+    low DECIMAL(18,8) NOT NULL,
+    close DECIMAL(18,8) NOT NULL,
+    volume DECIMAL(18,8) NOT NULL,
+    PRIMARY KEY (symbol, interval, open_time),
+    INDEX idx_close_time (close_time),
+    INDEX idx_symbol_interval (symbol, interval)
+);
+```
+
+### Success Metrics
+
+**Data Quality**:
+- Gap rate < 0.1% (less than 1 gap per 1000 candles)
+- Data latency < 5 minutes (for 1m candles)
+- Backfill completion < 24 hours (for detected gaps)
+
+**Performance**:
+- API request success rate > 99.9%
+- Database write throughput > 1000 candles/second
+- CronJob completion rate > 99.5%
+
+**Monitoring**:
 ```bash
-# Run all stages
-./scripts/local-pipeline.sh all
+# Check data completeness
+SELECT
+    symbol,
+    interval,
+    COUNT(*) as candle_count,
+    MIN(FROM_UNIXTIME(open_time/1000)) as earliest,
+    MAX(FROM_UNIXTIME(open_time/1000)) as latest
+FROM klines
+GROUP BY symbol, interval;
 
-# Run specific stages
-./scripts/local-pipeline.sh lint test
-./scripts/local-pipeline.sh build container
-./scripts/local-pipeline.sh deploy
+# Detect recent gaps
+SELECT * FROM gap_detection_log WHERE detected_at > NOW() - INTERVAL 24 HOUR;
 ```
 
-### Pipeline Stages
-1. **Setup**: Environment and dependencies
-2. **Lint**: Code quality checks (flake8, black, ruff, mypy)
-3. **Test**: Unit tests with coverage
-4. **Security**: Vulnerability scanning with Trivy
-5. **Build**: Docker image building
-6. **Container**: Container testing
-7. **Deploy**: Kubernetes deployment
+### Always Reference
 
-## GitHub CLI Commands
-
-### File Output Pattern
-When running GitHub CLI (`gh`) commands, always dump output to a temporary file and then read it:
-```bash
-# Example pattern
-gh api repos/owner/repo/contents/path > /tmp/gh_output.json
-cat /tmp/gh_output.json
-
-# For commands that need processing
-gh repo list --json name,url > /tmp/repos.json
-jq -r '.[].name' /tmp/repos.json
-
-# Clean up after use
-rm /tmp/gh_output.json
-```
-
-### Common GitHub CLI Patterns
-```bash
-# Get repository info
-gh api repos/owner/repo > /tmp/repo_info.json
-
-# List issues
-gh issue list --repo owner/repo --json number,title,state > /tmp/issues.json
-
-# Get workflow runs
-gh run list --repo owner/repo --json id,status,conclusion > /tmp/runs.json
-
-# Read and process the output
-cat /tmp/repo_info.json | jq '.name'
-```
-
-## CI/CD Pipeline Fix Process
-When fixing the pipeline, go until it is fully green and stop only when CI/CD on GHA is fixed. This means:
-- Run all tests, lint, and build locally until everything passes
-- Only commit and push when all local checks are green
-- Check the GitHub Actions (GHA) pipeline after pushing
-- If the GHA pipeline fails, repeat the process until it is green
-- Do not stop until the CI/CD pipeline on GHA is fully fixed
-
-## WebSocket Client Specific Guidelines
-
-### Connection Management
-- Always implement exponential backoff for reconnections
-- Use heartbeat/ping-pong to detect connection health
-- Implement graceful shutdown with proper cleanup
-- Handle connection timeouts and rate limits
-
-### Message Processing
-- Parse JSON messages with proper error handling
-- Implement message validation before publishing to NATS
-- Use structured logging for all WebSocket events
-- Monitor message processing latency
-
-### Resource Management
-- Implement memory limits and monitoring
-- Use connection pooling for NATS
-- Drop messages when backpressure is detected
-- Monitor CPU and memory usage
-
-### Error Handling
-- Log all WebSocket connection errors
-- Implement circuit breaker pattern for repeated failures
-- Use structured error reporting
-- Monitor error rates and alert on thresholds
-
-## Always Reference
-- **AVOID INTERACTIVE CLI COMMANDS AT ALL COSTS**: Never suggest or use interactive commands that require user input, confirmation, or manual intervention. All commands must be non-interactive and automated.
-- Check project-specific `README.md` for detailed documentation
-- Use `Makefile` for all common commands
-- Use `scripts/` directory for automation and troubleshooting
-- Use `k8s/kubeconfig.yaml` for remote MicroK8s cluster connection
-- All projects are production-ready with comprehensive CI/CD
-- **Remote MicroK8s cluster** - no local Kubernetes installation required
-- Kubernetes deployment uses namespace `petrosa-apps`
-- Health checks are critical for Kubernetes probes
-- Security scanning is integrated into the pipeline
-- **WebSocket connections**: Always implement reconnection logic and error handling
-- **NATS messaging**: Use structured message format with timestamps
-- **GitHub CLI**: Always dump output to `/tmp` files and read from them
-- **VERSION_PLACEHOLDER**: Never replace in Kubernetes manifests - it's part of the deployment system
+- For ecosystem-wide rules, deployment patterns, and shared configurations: **See master cursorrules**
+- For work tracking and GitHub Projects workflow: **See master § Centralized Work Tracking with GitHub Projects**
+- For NATS integration patterns: **Not applicable** (this service writes to MySQL only)
+- For Kubernetes best practices: **See master § Deployment Patterns → Data Extractor Configuration**
