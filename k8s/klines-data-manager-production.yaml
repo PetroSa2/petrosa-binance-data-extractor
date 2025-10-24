@@ -24,7 +24,7 @@ spec:
         interval: 5m
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 300
+      activeDeadlineSeconds: 600
       ttlSecondsAfterFinished: 1800
       template:
         metadata:
