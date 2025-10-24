@@ -538,7 +538,7 @@ class TestMySQLAdapter:
         mock_cursor.__exit__ = Mock(return_value=None)
         mock_cursor.rowcount = 10
 
-        mock_connect.return_value = mock_connection
+        mock_create_engine.return_value = mock_connection
         mock_connection.cursor.return_value = mock_cursor
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
@@ -568,7 +568,7 @@ class TestMySQLAdapter:
             {"timestamp": datetime.now(), "symbol": "ETHUSDT"},
         ]
 
-        mock_connect.return_value = mock_connection
+        mock_create_engine.return_value = mock_connection
         mock_connection.cursor.return_value = mock_cursor
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
@@ -592,7 +592,7 @@ class TestMySQLAdapter:
         mock_cursor.__exit__ = Mock(return_value=None)
         mock_cursor.fetchone.return_value = {"count": 100}
 
-        mock_connect.return_value = mock_connection
+        mock_create_engine.return_value = mock_connection
         mock_connection.cursor.return_value = mock_cursor
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
@@ -613,7 +613,7 @@ class TestMySQLAdapter:
         mock_cursor.__exit__ = Mock(return_value=None)
         mock_cursor.executemany.side_effect = Exception("SQL Error")
 
-        mock_connect.return_value = mock_connection
+        mock_create_engine.return_value = mock_connection
         mock_connection.cursor.return_value = mock_cursor
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
@@ -635,7 +635,7 @@ class TestMySQLAdapter:
         mock_cursor.__enter__ = Mock(return_value=mock_cursor)
         mock_cursor.__exit__ = Mock(return_value=None)
 
-        mock_connect.return_value = mock_connection
+        mock_create_engine.return_value = mock_connection
         mock_connection.cursor.return_value = mock_cursor
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
