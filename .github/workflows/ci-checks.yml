@@ -77,9 +77,9 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: PetroSa2/petrosa-binance-data-extractor
-        file: ./coverage.xml
-        flags: unittests
-        fail_ci_if_error: true
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
 
   security-scan:
     name: Security Scan
