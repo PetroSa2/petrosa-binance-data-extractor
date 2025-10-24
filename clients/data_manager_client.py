@@ -117,7 +117,7 @@ class BaseDataManagerClient:
     
     def health(self) -> dict:
         """Check Data Manager health."""
-        url = f"{self.base_url}/health"
+        url = f"{self.base_url}/health/liveness"
         try:
             response = self.session.get(url, timeout=5)
             response.raise_for_status()
