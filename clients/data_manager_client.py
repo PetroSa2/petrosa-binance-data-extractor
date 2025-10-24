@@ -114,6 +114,21 @@ class BaseDataManagerClient:
             raise ConnectionError(f"Connection failed: {e}")
         except requests.exceptions.HTTPError as e:
             raise APIError(f"API error: {e}")
+    
+    def health(self) -> dict:
+        """Check Data Manager health."""
+        url = f"{self.base_url}/health"
+        try:
+            response = self.session.get(url, timeout=5)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {"status": "unhealthy", "error": str(e)}
+    
+    def close(self) -> None:
+        """Close the HTTP session."""
+        if self.session:
+            self.session.close()
 
 
 class DataManagerClient:
