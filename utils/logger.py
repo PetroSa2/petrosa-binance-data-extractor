@@ -122,7 +122,6 @@ def log_extraction_start(
 ):
     """Log extraction start with structured data."""
     log.info(
-        "Starting data extraction",
         event="extraction_start",
         extractor_type=extractor_type,
         symbols=symbols,
