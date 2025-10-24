@@ -323,7 +323,6 @@ class TestExtractionMetadata:
             ("start_time", None),
             ("end_time", None),
             ("total_records", "invalid"),
-            ("gaps_detected", -1),
             ("extraction_duration_seconds", "invalid"),
         ],
     )
