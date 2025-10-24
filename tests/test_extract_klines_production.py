@@ -490,7 +490,9 @@ class TestParseArguments:
             assert args.max_workers == 5
             assert args.lookback_hours == 24
             assert args.batch_size == 2000
-            assert args.db_adapter == "data_manager"  # Default adapter in production job
+            assert (
+                args.db_adapter == "data_manager"
+            )  # Default adapter in production job
             assert args.db_uri is None
             assert args.log_level == "INFO"
             assert args.dry_run is False
