@@ -388,8 +388,6 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml exec -n petrosa-apps <data-manager-pod>
 
 ---
 
-**Migration Date**: October 24, 2025  
-**Led By**: Cursor AI Assistant  
+**Migration Date**: October 24, 2025
+**Led By**: Cursor AI Assistant
 **Review Required**: Tradeengine PR approval after CI fix
-
-

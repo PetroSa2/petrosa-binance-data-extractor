@@ -85,7 +85,7 @@ def setup_logging(
 
     # Create logger with service context
     logger = structlog.get_logger(constants.OTEL_SERVICE_NAME)
-    
+
     # Add service metadata
     logger = logger.bind(
         service_name=constants.OTEL_SERVICE_NAME,
@@ -176,7 +176,9 @@ def log_extraction_completion(
     )
 
 
-def log_gap_detection(log: structlog.BoundLogger, symbol: str, gaps: list, collection: str):
+def log_gap_detection(
+    log: structlog.BoundLogger, symbol: str, gaps: list, collection: str
+):
     """Log gap detection results."""
     log.warning(
         "Data gaps detected",
@@ -184,9 +186,7 @@ def log_gap_detection(log: structlog.BoundLogger, symbol: str, gaps: list, colle
         symbol=symbol,
         collection=collection,
         gaps_count=len(gaps),
-        gaps=[
-            {"start": gap[0].isoformat(), "end": gap[1].isoformat()} for gap in gaps
-        ],
+        gaps=[{"start": gap[0].isoformat(), "end": gap[1].isoformat()} for gap in gaps],
         extraction_phase="gap_detection",
     )
 

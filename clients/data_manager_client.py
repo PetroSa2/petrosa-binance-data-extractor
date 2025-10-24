@@ -20,46 +20,53 @@ logger = get_logger(__name__)
 
 class APIError(Exception):
     """API error exception."""
+
     pass
 
 
 class ConnectionError(Exception):
     """Connection error exception."""
+
     pass
 
 
 class TimeoutError(Exception):
     """Timeout error exception."""
+
     pass
 
 
 class BaseDataManagerClient:
     """Simple HTTP client for Data Manager API."""
-    
+
     def __init__(self, base_url: str, timeout: int = 30, max_retries: int = 3):
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.session = requests.Session()
-        
+
         # Configure retries
         retry_strategy = Retry(
             total=max_retries,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "TRACE"]
+            allowed_methods=[
+                "HEAD",
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS",
+                "TRACE",
+            ],
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-    
+
     def insert(self, database: str, collection: str, records: list[dict]) -> dict:
         """Insert records via Data Manager API."""
         url = f"{self.base_url}/api/v1/data/insert"
-        payload = {
-            "database": database,
-            "collection": collection,
-            "records": records
-        }
+        payload = {"database": database, "collection": collection, "records": records}
         try:
             response = self.session.post(url, json=payload, timeout=self.timeout)
             response.raise_for_status()
@@ -70,15 +77,11 @@ class BaseDataManagerClient:
             raise ConnectionError(f"Connection failed: {e}")
         except requests.exceptions.HTTPError as e:
             raise APIError(f"API error: {e}")
-    
+
     def query(self, database: str, collection: str, params: dict) -> dict:
         """Query records via Data Manager API."""
         url = f"{self.base_url}/api/v1/data/query"
-        payload = {
-            "database": database,
-            "collection": collection,
-            **params
-        }
+        payload = {"database": database, "collection": collection, **params}
         try:
             response = self.session.post(url, json=payload, timeout=self.timeout)
             response.raise_for_status()
@@ -89,12 +92,19 @@ class BaseDataManagerClient:
             raise ConnectionError(f"Connection failed: {e}")
         except requests.exceptions.HTTPError as e:
             raise APIError(f"API error: {e}")
-    
+
     def insert_one(self, database: str, collection: str, record: dict) -> dict:
         """Insert a single record via Data Manager API."""
         return self.insert(database, collection, [record])
-    
-    def update_one(self, database: str, collection: str, filter: dict, update: dict, upsert: bool = False) -> dict:
+
+    def update_one(
+        self,
+        database: str,
+        collection: str,
+        filter: dict,
+        update: dict,
+        upsert: bool = False,
+    ) -> dict:
         """Update a single record via Data Manager API."""
         url = f"{self.base_url}/api/v1/data/update"
         payload = {
@@ -102,7 +112,7 @@ class BaseDataManagerClient:
             "collection": collection,
             "filter": filter,
             "update": update,
-            "upsert": upsert
+            "upsert": upsert,
         }
         try:
             response = self.session.post(url, json=payload, timeout=self.timeout)
@@ -114,7 +124,7 @@ class BaseDataManagerClient:
             raise ConnectionError(f"Connection failed: {e}")
         except requests.exceptions.HTTPError as e:
             raise APIError(f"API error: {e}")
-    
+
     def health(self) -> dict:
         """Check Data Manager health."""
         url = f"{self.base_url}/health/liveness"
@@ -124,7 +134,7 @@ class BaseDataManagerClient:
             return response.json()
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
-    
+
     def close(self) -> None:
         """Close the HTTP session."""
         if self.session:

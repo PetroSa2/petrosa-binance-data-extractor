@@ -85,7 +85,9 @@ def test_instrumentation_packages():
         except ImportError as e:
             print(f"❌ {package}: {e}")
 
-    print(f"\n📊 Successfully imported {success_count}/{len(packages_to_test)} packages")
+    print(
+        f"\n📊 Successfully imported {success_count}/{len(packages_to_test)} packages"
+    )
     return success_count == len(packages_to_test)
 
 
