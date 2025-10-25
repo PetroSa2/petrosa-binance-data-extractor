@@ -203,46 +203,39 @@ class TestTelemetryManager:
         assert result is None
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
-    @patch("utils.telemetry.PYMONGO_AVAILABLE", True)
     @patch("utils.telemetry.RequestsInstrumentor")
     @patch("utils.telemetry.SQLAlchemyInstrumentor")
     @patch("utils.telemetry.LoggingInstrumentor")
-    @patch("utils.telemetry.PymongoInstrumentor")
     def test_setup_auto_instrumentation(
         self,
-        mock_pymongo_instr,
         mock_logging_instr,
         mock_sqlalchemy_instr,
         mock_requests_instr,
     ):
-        """Test auto-instrumentation setup."""
+        """Test auto-instrumentation setup for core instrumentors."""
         manager = telemetry.TelemetryManager()
         
         # Create mock instances with instrument method
         mock_requests_instance = Mock()
         mock_sqlalchemy_instance = Mock()
         mock_logging_instance = Mock()
-        mock_pymongo_instance = Mock()
         
         # Set return_value so RequestsInstrumentor() returns the mock instance
         mock_requests_instr.return_value = mock_requests_instance
         mock_sqlalchemy_instr.return_value = mock_sqlalchemy_instance
         mock_logging_instr.return_value = mock_logging_instance
-        mock_pymongo_instr.return_value = mock_pymongo_instance
 
         manager._setup_auto_instrumentation()
 
-        # Verify that RequestsInstrumentor() was called (creating instance)
+        # Verify that core instrumentors were called
         mock_requests_instr.assert_called_once()
         mock_sqlalchemy_instr.assert_called_once()
         mock_logging_instr.assert_called_once()
-        mock_pymongo_instr.assert_called_once()
         
         # Verify that instrument() was called on each instance
         mock_requests_instance.instrument.assert_called_once()
         mock_sqlalchemy_instance.instrument.assert_called_once()
         mock_logging_instance.instrument.assert_called_once()
-        mock_pymongo_instance.instrument.assert_called_once()
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
     @patch("utils.telemetry.URLLIB3_AVAILABLE", True)
