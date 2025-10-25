@@ -465,8 +465,8 @@ class TestAttributeFilterSpanProcessor:
             mock_exporter = ConsoleSpanExporter()
             processor = telemetry.AttributeFilterSpanProcessor(mock_exporter)
 
-            # Clean attributes
-            processor._clean_attributes(mock_span)
+            # Call on_start which internally calls _clean_attributes
+            processor.on_start(mock_span, None)
 
             # Verify invalid attributes were removed
             assert "valid_string" in mock_span._attributes
@@ -495,7 +495,7 @@ class TestAttributeFilterSpanProcessor:
             processor = telemetry.AttributeFilterSpanProcessor(mock_exporter)
 
             # Should not raise exception
-            processor._clean_attributes(mock_span)
+            processor.on_start(mock_span, None)
             assert mock_span._attributes == {}
         except ImportError:
             pytest.skip("OpenTelemetry dependencies not available")
@@ -516,6 +516,6 @@ class TestAttributeFilterSpanProcessor:
             processor = telemetry.AttributeFilterSpanProcessor(mock_exporter)
 
             # Should not raise exception
-            processor._clean_attributes(mock_span)
+            processor.on_start(mock_span, None)
         except ImportError:
             pytest.skip("OpenTelemetry dependencies not available")
