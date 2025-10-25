@@ -50,17 +50,17 @@ class ExtractionMetrics:
             unit="ms",
         )
 
-        # Rate limit usage gauge
-        self.rate_limit_used = self.meter.create_up_down_counter(
+        # Rate limit usage histogram (tracks distribution over time)
+        self.rate_limit_used = self.meter.create_histogram(
             name="extractor.rate_limit.used",
-            description="Current rate limit usage count",
+            description="Rate limit usage count distribution",
             unit="1",
         )
 
-        # Rate limit remaining gauge
-        self.rate_limit_remaining = self.meter.create_up_down_counter(
+        # Rate limit remaining histogram (tracks distribution over time)
+        self.rate_limit_remaining = self.meter.create_histogram(
             name="extractor.rate_limit.remaining",
-            description="Remaining rate limit capacity",
+            description="Remaining rate limit capacity distribution",
             unit="1",
         )
 
@@ -177,7 +177,7 @@ class ExtractionMetrics:
         self, used: int, remaining: int, limit: int = 1200
     ) -> None:
         """
-        Record rate limit usage.
+        Record rate limit usage distribution.
 
         Args:
             used: Number of requests used in current window
@@ -188,8 +188,8 @@ class ExtractionMetrics:
             return
 
         try:
-            self.rate_limit_used.add(used, {"limit": str(limit)})
-            self.rate_limit_remaining.add(remaining, {"limit": str(limit)})
+            self.rate_limit_used.record(used, {"limit": str(limit)})
+            self.rate_limit_remaining.record(remaining, {"limit": str(limit)})
         except Exception as e:
             logger.warning(f"Failed to record rate limit metrics: {e}")
 

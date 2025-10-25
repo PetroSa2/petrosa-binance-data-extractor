@@ -77,10 +77,12 @@ class TestExtractionMetrics:
         assert (
             mock_meter.create_counter.call_count == 4
         )  # extraction, gaps, records_written, records_fetched
-        assert mock_meter.create_histogram.call_count == 2  # api_latency, throughput
         assert (
-            mock_meter.create_up_down_counter.call_count == 2
-        )  # rate_limit_used, rate_limit_remaining
+            mock_meter.create_histogram.call_count == 4
+        )  # api_latency, rate_limit_used, rate_limit_remaining, throughput
+        assert (
+            mock_meter.create_up_down_counter.call_count == 0
+        )  # No up-down counters used
 
     def test_initialization_without_meter(self):
         """Test metrics initialization when meter is not available."""
@@ -199,10 +201,10 @@ class TestExtractionMetrics:
         """Test recording rate limit usage."""
         extraction_metrics.record_rate_limit_usage(used=800, remaining=400, limit=1200)
 
-        extraction_metrics.rate_limit_used.add.assert_called_once_with(
+        extraction_metrics.rate_limit_used.record.assert_called_once_with(
             800, {"limit": "1200"}
         )
-        extraction_metrics.rate_limit_remaining.add.assert_called_once_with(
+        extraction_metrics.rate_limit_remaining.record.assert_called_once_with(
             400, {"limit": "1200"}
         )
 
@@ -210,10 +212,10 @@ class TestExtractionMetrics:
         """Test recording when rate limit is nearly exhausted."""
         extraction_metrics.record_rate_limit_usage(used=1195, remaining=5, limit=1200)
 
-        extraction_metrics.rate_limit_used.add.assert_called_once_with(
+        extraction_metrics.rate_limit_used.record.assert_called_once_with(
             1195, {"limit": "1200"}
         )
-        extraction_metrics.rate_limit_remaining.add.assert_called_once_with(
+        extraction_metrics.rate_limit_remaining.record.assert_called_once_with(
             5, {"limit": "1200"}
         )
 
@@ -304,7 +306,7 @@ class TestMetricsNaming:
         # Check specific expected metrics
         assert "extractor.extractions.total" in counter_calls
         assert "extractor.binance.api_latency" in histogram_calls
-        assert "extractor.rate_limit.used" in updown_calls
-        assert "extractor.rate_limit.remaining" in updown_calls
+        assert "extractor.rate_limit.used" in histogram_calls
+        assert "extractor.rate_limit.remaining" in histogram_calls
         assert "extractor.data_gaps.total" in counter_calls
         assert "extractor.throughput.candles_per_second" in histogram_calls

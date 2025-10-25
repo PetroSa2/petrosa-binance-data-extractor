@@ -179,14 +179,7 @@ class RateLimiter:
         if self._lock:
             with self._lock:
                 self._cleanup_old_calls()
-
-                # Record rate limit metrics
-                used = len(self.calls)
-                remaining = self.max_calls - used
-                metrics = _get_metrics()
-                if metrics:
-                    metrics.record_rate_limit_usage(used, remaining, self.max_calls)
-
+                
                 if len(self.calls) >= self.max_calls:
                     sleep_time = self.calls[0] + self.time_window - time.time()
                     if sleep_time > 0:
@@ -197,6 +190,13 @@ class RateLimiter:
                         self._cleanup_old_calls()
 
                 self.calls.append(time.time())
+                
+                # Record rate limit metrics once after updating calls
+                used = len(self.calls)
+                remaining = self.max_calls - used
+                metrics = _get_metrics()
+                if metrics:
+                    metrics.record_rate_limit_usage(used, remaining, self.max_calls)
         else:
             # No threading available, simplified version
             current_time = time.time()
@@ -205,13 +205,6 @@ class RateLimiter:
                 for call_time in self.calls
                 if current_time - call_time < self.time_window
             ]
-
-            # Record rate limit metrics
-            used = len(self.calls)
-            remaining = self.max_calls - used
-            metrics = _get_metrics()
-            if metrics:
-                metrics.record_rate_limit_usage(used, remaining, self.max_calls)
 
             if len(self.calls) >= self.max_calls:
                 sleep_time = self.calls[0] + self.time_window - current_time
@@ -222,6 +215,13 @@ class RateLimiter:
                     time.sleep(sleep_time)
 
             self.calls.append(current_time)
+            
+            # Record rate limit metrics once after updating calls
+            used = len(self.calls)
+            remaining = self.max_calls - used
+            metrics = _get_metrics()
+            if metrics:
+                metrics.record_rate_limit_usage(used, remaining, self.max_calls)
 
     def _cleanup_old_calls(self):
         """Remove calls outside the time window."""
