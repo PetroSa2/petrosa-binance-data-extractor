@@ -416,3 +416,106 @@ class TestEnvironmentVariables:
             result = manager._create_resource()
             assert result == mock_resource_instance
             mock_resource.create.assert_called()
+
+
+class TestAttributeFilterSpanProcessor:
+    """Test AttributeFilterSpanProcessor with and without OpenTelemetry."""
+
+    def test_processor_available_when_otel_available(self):
+        """Test that AttributeFilterSpanProcessor is available when OTEL is available."""
+        # The processor should be importable regardless of OTEL_AVAILABLE
+        assert hasattr(telemetry, "AttributeFilterSpanProcessor")
+        processor_class = telemetry.AttributeFilterSpanProcessor
+        assert processor_class is not None
+
+    def test_noop_processor_when_otel_unavailable(self):
+        """Test that AttributeFilterSpanProcessor is no-op when OTEL unavailable."""
+        # When OTEL is unavailable, processor should accept any args
+        if not telemetry.OTEL_AVAILABLE:
+            processor = telemetry.AttributeFilterSpanProcessor()
+            # Should not raise exceptions
+            processor.on_start(Mock(), Mock())
+            processor.on_end(Mock())
+            processor.shutdown()
+            result = processor.force_flush()
+            assert result is True
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    def test_processor_filters_invalid_attributes(self):
+        """Test that processor filters dict and list attributes."""
+        if not telemetry.OTEL_AVAILABLE:
+            pytest.skip("OpenTelemetry not available")
+
+        # Create a mock span with various attribute types
+        mock_span = Mock()
+        mock_span._attributes = {
+            "valid_string": "test",
+            "valid_int": 42,
+            "valid_float": 3.14,
+            "valid_bool": True,
+            "invalid_dict": {"key": "value"},
+            "invalid_list": [1, 2, 3],
+            "valid_none": None,
+        }
+
+        # Create processor (use the real BatchSpanProcessor if available)
+        try:
+            from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+            mock_exporter = ConsoleSpanExporter()
+            processor = telemetry.AttributeFilterSpanProcessor(mock_exporter)
+
+            # Clean attributes
+            processor._clean_attributes(mock_span)
+
+            # Verify invalid attributes were removed
+            assert "valid_string" in mock_span._attributes
+            assert "valid_int" in mock_span._attributes
+            assert "valid_float" in mock_span._attributes
+            assert "valid_bool" in mock_span._attributes
+            assert "valid_none" in mock_span._attributes
+            assert "invalid_dict" not in mock_span._attributes
+            assert "invalid_list" not in mock_span._attributes
+        except ImportError:
+            pytest.skip("OpenTelemetry dependencies not available")
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    def test_processor_handles_empty_attributes(self):
+        """Test that processor handles spans with no attributes."""
+        if not telemetry.OTEL_AVAILABLE:
+            pytest.skip("OpenTelemetry not available")
+
+        mock_span = Mock()
+        mock_span._attributes = {}
+
+        try:
+            from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+            mock_exporter = ConsoleSpanExporter()
+            processor = telemetry.AttributeFilterSpanProcessor(mock_exporter)
+
+            # Should not raise exception
+            processor._clean_attributes(mock_span)
+            assert mock_span._attributes == {}
+        except ImportError:
+            pytest.skip("OpenTelemetry dependencies not available")
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    def test_processor_handles_missing_attributes(self):
+        """Test that processor handles spans without _attributes."""
+        if not telemetry.OTEL_AVAILABLE:
+            pytest.skip("OpenTelemetry not available")
+
+        mock_span = Mock(spec=[])  # No _attributes
+        del mock_span._attributes
+
+        try:
+            from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+            mock_exporter = ConsoleSpanExporter()
+            processor = telemetry.AttributeFilterSpanProcessor(mock_exporter)
+
+            # Should not raise exception
+            processor._clean_attributes(mock_span)
+        except ImportError:
+            pytest.skip("OpenTelemetry dependencies not available")
