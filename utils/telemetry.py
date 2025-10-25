@@ -413,35 +413,45 @@ class TelemetryManager:
         environment: str | None = None,
     ):
         """Create OpenTelemetry resource."""
-        if not OTEL_AVAILABLE:
+        if not OTEL_AVAILABLE or Resource is None:
             return None
 
-        # Get configuration from environment or use defaults
-        service_name = service_name or os.getenv(
-            "OTEL_SERVICE_NAME", "binance-data-extractor"
-        )
-        service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "2.0.0")
-        environment = environment or os.getenv("ENVIRONMENT", "production")
+        try:
+            # Get configuration from environment or use defaults
+            service_name = service_name or os.getenv(
+                "OTEL_SERVICE_NAME", "binance-data-extractor"
+            )
+            service_version = service_version or os.getenv(
+                "OTEL_SERVICE_VERSION", "2.0.0"
+            )
+            environment = environment or os.getenv("ENVIRONMENT", "production")
 
-        # Create resource
-        resource = Resource.create(
-            {
-                "service.name": service_name or "binance-data-extractor",
-                "service.version": service_version or "2.0.0",
-                "deployment.environment": environment or "production",
-                "service.instance.id": os.getenv("HOSTNAME", "unknown"),
-            }
-        )
+            # Create resource
+            resource = Resource.create(
+                {
+                    "service.name": service_name or "binance-data-extractor",
+                    "service.version": service_version or "2.0.0",
+                    "deployment.environment": environment or "production",
+                    "service.instance.id": os.getenv("HOSTNAME", "unknown"),
+                }
+            )
 
-        return resource
+            return resource
+        except Exception as e:
+            self.logger.error(f"Failed to create resource: {e}")
+            return None
 
     def _setup_tracing(self, resource):
         """Setup tracing with span processors."""
-        if not OTEL_AVAILABLE:
+        if not OTEL_AVAILABLE or TracerProvider is None:
             return
 
-        # Create tracer provider
-        self.tracer_provider = TracerProvider(resource=resource)
+        try:
+            # Create tracer provider
+            self.tracer_provider = TracerProvider(resource=resource)
+        except Exception as e:
+            self.logger.error(f"Failed to create tracer provider: {e}")
+            return
 
         # Add span processors
         span_processors = []
@@ -491,18 +501,21 @@ class TelemetryManager:
             return
 
         try:
-            # Core instrumentors
-            RequestsInstrumentor().instrument()
-            SQLAlchemyInstrumentor().instrument()
-            LoggingInstrumentor().instrument(
-                set_logging_format=True, log_level=logging.NOTSET
-            )
+            # Core instrumentors - check they're not None first
+            if RequestsInstrumentor is not None:
+                RequestsInstrumentor().instrument()
+            if SQLAlchemyInstrumentor is not None:
+                SQLAlchemyInstrumentor().instrument()
+            if LoggingInstrumentor is not None:
+                LoggingInstrumentor().instrument(
+                    set_logging_format=True, log_level=logging.NOTSET
+                )
 
             # Additional instrumentors if available
-            if URLLIB3_AVAILABLE:
+            if URLLIB3_AVAILABLE and URLLib3Instrumentor is not None:
                 URLLib3Instrumentor().instrument()
 
-            if PYMONGO_AVAILABLE:
+            if PYMONGO_AVAILABLE and PymongoInstrumentor is not None:
                 PymongoInstrumentor().instrument()
 
             self.logger.info("Auto-instrumentation enabled")
