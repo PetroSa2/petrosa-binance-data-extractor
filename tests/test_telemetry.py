@@ -271,6 +271,51 @@ class TestTelemetryManager:
         mock_urllib3_instr.assert_called_once()
         mock_urllib3_instance.instrument.assert_called_once()
 
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.RequestsInstrumentor", None)
+    @patch("utils.telemetry.SQLAlchemyInstrumentor", None)
+    @patch("utils.telemetry.LoggingInstrumentor", None)
+    def test_setup_auto_instrumentation_with_none_instrumentors(self):
+        """Test that _setup_auto_instrumentation handles None instrumentors gracefully."""
+        manager = telemetry.TelemetryManager()
+        # Should not raise exception when instrumentors are None
+        manager._setup_auto_instrumentation()
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.PYMONGO_AVAILABLE", True)
+    @patch("utils.telemetry.RequestsInstrumentor")
+    @patch("utils.telemetry.SQLAlchemyInstrumentor")
+    @patch("utils.telemetry.LoggingInstrumentor")
+    @patch("utils.telemetry.PymongoInstrumentor")
+    def test_setup_auto_instrumentation_exception_handling(
+        self,
+        mock_pymongo_instr,
+        mock_logging_instr,
+        mock_sqlalchemy_instr,
+        mock_requests_instr,
+    ):
+        """Test that _setup_auto_instrumentation handles exceptions gracefully."""
+        manager = telemetry.TelemetryManager()
+        
+        # Make one instrumentor raise an exception
+        mock_requests_instance = Mock()
+        mock_requests_instance.instrument.side_effect = Exception("Instrumentation failed")
+        mock_requests_instr.return_value = mock_requests_instance
+        
+        # Other instrumentors work fine
+        mock_sqlalchemy_instance = Mock()
+        mock_logging_instance = Mock()
+        mock_pymongo_instance = Mock()
+        mock_sqlalchemy_instr.return_value = mock_sqlalchemy_instance
+        mock_logging_instr.return_value = mock_logging_instance
+        mock_pymongo_instr.return_value = mock_pymongo_instance
+        
+        with patch.object(manager.logger, "warning") as mock_warning:
+            # Should not raise exception, should log warning
+            manager._setup_auto_instrumentation()
+            # Verify warning was logged
+            mock_warning.assert_called()
+
     def test_parse_headers(self):
         """Test header parsing."""
         manager = telemetry.TelemetryManager()
@@ -381,6 +426,59 @@ class TestErrorHandling:
             result = manager._create_resource()
             # Verify it returns the mocked resource
             assert result == mock_resource
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.Resource")
+    def test_create_resource_exception_handling(self, mock_resource_class):
+        """Test that _create_resource handles exceptions gracefully."""
+        manager = telemetry.TelemetryManager()
+        
+        # Make Resource.create raise an exception
+        mock_resource_class.create.side_effect = Exception("Resource creation failed")
+        
+        with patch.object(manager.logger, "error") as mock_error:
+            result = manager._create_resource()
+            # Should return None on exception
+            assert result is None
+            # Should log the error
+            mock_error.assert_called_once()
+            assert "Failed to create resource" in str(mock_error.call_args)
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.Resource", None)
+    def test_create_resource_when_resource_is_none(self):
+        """Test that _create_resource returns None when Resource is None."""
+        manager = telemetry.TelemetryManager()
+        result = manager._create_resource()
+        assert result is None
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.TracerProvider")
+    def test_setup_tracing_exception_handling(self, mock_tracer_provider):
+        """Test that _setup_tracing handles exceptions gracefully."""
+        manager = telemetry.TelemetryManager()
+        mock_resource = Mock()
+        
+        # Make TracerProvider raise an exception
+        mock_tracer_provider.side_effect = Exception("TracerProvider creation failed")
+        
+        with patch.object(manager.logger, "error") as mock_error:
+            # Should not raise exception
+            manager._setup_tracing(mock_resource)
+            # Should log the error
+            mock_error.assert_called_once()
+            assert "Failed to create tracer provider" in str(mock_error.call_args)
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.TracerProvider", None)
+    def test_setup_tracing_when_tracer_provider_is_none(self):
+        """Test that _setup_tracing returns early when TracerProvider is None."""
+        manager = telemetry.TelemetryManager()
+        mock_resource = Mock()
+        # Should not raise exception
+        manager._setup_tracing(mock_resource)
+        # tracer_provider should remain None
+        assert manager.tracer_provider is None
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
     @patch("utils.telemetry.TracerProvider")
