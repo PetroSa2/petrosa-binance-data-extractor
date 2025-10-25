@@ -214,12 +214,12 @@ class TestTelemetryManager:
     ):
         """Test auto-instrumentation setup for core instrumentors."""
         manager = telemetry.TelemetryManager()
-        
+
         # Create mock instances with instrument method
         mock_requests_instance = Mock()
         mock_sqlalchemy_instance = Mock()
         mock_logging_instance = Mock()
-        
+
         # Set return_value so RequestsInstrumentor() returns the mock instance
         mock_requests_instr.return_value = mock_requests_instance
         mock_sqlalchemy_instr.return_value = mock_sqlalchemy_instance
@@ -231,7 +231,7 @@ class TestTelemetryManager:
         mock_requests_instr.assert_called_once()
         mock_sqlalchemy_instr.assert_called_once()
         mock_logging_instr.assert_called_once()
-        
+
         # Verify that instrument() was called on each instance
         mock_requests_instance.instrument.assert_called_once()
         mock_sqlalchemy_instance.instrument.assert_called_once()
@@ -253,20 +253,20 @@ class TestTelemetryManager:
     ):
         """Test auto-instrumentation setup with urllib3 available."""
         manager = telemetry.TelemetryManager()
-        
+
         # Create mock instances
         mock_urllib3_instance = Mock()
         mock_requests_instance = Mock()
         mock_sqlalchemy_instance = Mock()
         mock_logging_instance = Mock()
-        
+
         mock_urllib3_instr.return_value = mock_urllib3_instance
         mock_requests_instr.return_value = mock_requests_instance
         mock_sqlalchemy_instr.return_value = mock_sqlalchemy_instance
         mock_logging_instr.return_value = mock_logging_instance
-        
+
         manager._setup_auto_instrumentation()
-        
+
         # Verify urllib3 was instrumented
         mock_urllib3_instr.assert_called_once()
         mock_urllib3_instance.instrument.assert_called_once()
@@ -371,7 +371,7 @@ class TestErrorHandling:
     def test_resource_detector_import_error(self, mock_resource_class):
         """Test handling of resource detector import errors."""
         manager = telemetry.TelemetryManager()
-        
+
         # Mock Resource.create to return a mock resource
         mock_resource = Mock()
         mock_resource_class.create.return_value = mock_resource
@@ -403,14 +403,14 @@ class TestErrorHandling:
         """Test handling of exporter initialization errors."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
-        
+
         # Mock the tracer provider
         mock_provider_instance = Mock()
         mock_tracer_provider.return_value = mock_provider_instance
 
         # Make GRPCSpanExporter raise an error
         mock_grpc_exporter.side_effect = RuntimeError("Exporter error")
-        
+
         # Mock console exporter to work
         mock_console_instance = Mock()
         mock_console_exporter.return_value = mock_console_instance

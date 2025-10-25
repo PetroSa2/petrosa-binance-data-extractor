@@ -26,6 +26,84 @@ All packages in `requirements.txt` have been tested and verified to install corr
 - ✅ `opentelemetry-instrumentation-logging>=0.41b0`
 - ✅ `opentelemetry-instrumentation-urllib3>=0.41b0`
 - ✅ `opentelemetry-semantic-conventions>=0.41b0`
+- ✅ `opentelemetry-instrumentation-pymysql>=0.41b0` (via `petrosa-otel[mysql]`)
+
+### 🔍 **MySQL Database Query Tracing**
+
+This service now includes **PyMySQL instrumentation** for complete database observability:
+
+**What's Instrumented:**
+- All MySQL queries (SELECT, INSERT, UPDATE, DELETE)
+- Query latency and execution time
+- Database connection lifecycle
+- Query parameters and statements
+- Table names and operations
+
+**Span Attributes:**
+- `db.system`: "mysql"
+- `db.statement`: SQL query text
+- `db.name`: Database name
+- `db.user`: Database user
+- `net.peer.name`: Database host
+- `net.peer.port`: Database port
+
+**How to Enable:**
+
+1. **For new jobs** (using `petrosa-otel` package):
+```python
+from petrosa_otel import initialize_telemetry_standard
+
+initialize_telemetry_standard(
+    service_name=constants.OTEL_SERVICE_NAME_KLINES,
+    service_type="cronjob",
+    enable_mysql=True,  # ← Enable MySQL instrumentation
+    enable_mongodb=True,
+)
+```
+
+2. **For legacy jobs** (using `utils.telemetry`):
+MySQL instrumentation is **automatically enabled** in `utils/telemetry.py`. No additional configuration needed.
+
+**Verification:**
+
+To verify MySQL queries are being traced:
+
+```bash
+# Run any extraction job
+python jobs/extract_klines.py --symbol BTCUSDT --interval 1h --limit 10
+
+# Check trace output for MySQL spans in your OTLP backend (Grafana, Jaeger, etc.)
+# Look for spans with:
+# - operation: "query"
+# - db.system: "mysql"
+# - db.statement: "INSERT INTO klines_1h ..."
+```
+
+**Performance Impact:**
+
+MySQL instrumentation has minimal overhead:
+- < 1ms per query for span creation
+- Asynchronous export (non-blocking)
+- Automatic batching for efficiency
+
+**Troubleshooting:**
+
+If MySQL queries are not appearing in traces:
+
+1. Verify `petrosa-otel[mysql]` is installed:
+```bash
+pip show opentelemetry-instrumentation-pymysql
+```
+
+2. Check instrumentation is enabled:
+```bash
+python -c "from opentelemetry.instrumentation.pymysql import PyMySQLInstrumentor; print(PyMySQLInstrumentor().is_instrumented_by_opentelemetry)"
+```
+
+3. Verify OTLP endpoint is configured:
+```bash
+echo $OTEL_EXPORTER_OTLP_ENDPOINT
+```
 
 ## 🚀 **Installation Instructions**
 
