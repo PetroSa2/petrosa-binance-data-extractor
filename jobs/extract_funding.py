@@ -23,20 +23,7 @@ from utils.logger import (  # noqa: E402
 )
 from utils.time_utils import format_duration, parse_datetime_string  # noqa: E402
 
-# Initialize OpenTelemetry as early as possible
-try:
-    from petrosa_otel import setup_telemetry  # noqa: E402
-
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
-        setup_telemetry(
-            service_name=constants.OTEL_SERVICE_NAME_FUNDING,
-            service_type="cronjob",
-            enable_mysql=True,
-            enable_mongodb=True,
-            auto_attach_logging=True,
-        )
-except ImportError:
-    pass
+# OpenTelemetry will be initialized in main() following standardized pattern
 
 
 def parse_arguments():
@@ -72,7 +59,31 @@ def parse_arguments():
 def main():
     """Main extraction function."""
     args = parse_arguments()
+
+    # 1. Setup OpenTelemetry FIRST (before any logging configuration)
+    try:
+        from petrosa_otel import attach_logging_handler, initialize_telemetry_standard
+
+        initialize_telemetry_standard(
+            service_name=constants.OTEL_SERVICE_NAME_FUNDING,
+            service_type="cronjob",
+            enable_mysql=True,
+            enable_mongodb=True,
+        )
+    except ImportError:
+        pass  # Continue without OpenTelemetry if not available
+
+    # 2. Setup logging (may call basicConfig)
     logger = setup_logging(level=args.log_level)
+
+    # 3. Attach OTel logging handler LAST (after logging is configured)
+    try:
+        from petrosa_otel import attach_logging_handler
+
+        attach_logging_handler()
+    except ImportError:
+        pass  # Continue without OpenTelemetry if not available
+
     logger.info("Starting Binance funding rates extraction job")
     start_date = None
     end_date = None

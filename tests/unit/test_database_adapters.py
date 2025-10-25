@@ -255,7 +255,7 @@ class TestMongoDBAdapter:
         mock_client = Mock()
         mock_database = MagicMock()
         mock_admin = Mock()
-        
+
         mock_mongo_client.return_value = mock_client
         mock_client.admin = mock_admin
         mock_admin.command.return_value = {"ok": 1}
@@ -332,7 +332,7 @@ class TestMongoDBAdapter:
             result = Mock()
             result.inserted_count = len(operations)
             return result
-        
+
         mock_collection.bulk_write.side_effect = bulk_write_side_effect
 
         result = adapter.write_batch(test_models, "test_collection", batch_size=3)
@@ -348,7 +348,7 @@ class TestMongoDBAdapter:
         mock_database = MagicMock()
         mock_collection = Mock()
         mock_admin = Mock()
-        
+
         # Create mock cursor with chaining support
         mock_cursor = Mock()
         mock_data = [
@@ -356,7 +356,7 @@ class TestMongoDBAdapter:
             {"timestamp": datetime.now(), "symbol": "ETHUSDT"},
         ]
         mock_cursor.__iter__ = Mock(return_value=iter(mock_data))
-        
+
         # Setup method chaining: find().sort()
         mock_sort_result = mock_cursor
         mock_collection.find.return_value.sort.return_value = mock_sort_result
@@ -491,7 +491,7 @@ class TestMongoDBAdapter:
             {"timestamp": datetime(2023, 1, 1, 0, 45)},
         ]
         mock_cursor.__iter__ = Mock(return_value=iter(mock_timestamps))
-        
+
         # Setup chaining: find().sort()
         mock_sort_result = mock_cursor
         mock_collection.find.return_value.sort.return_value = mock_sort_result
@@ -536,13 +536,13 @@ class TestMySQLAdapter:
         mock_engine = Mock()
         mock_conn = Mock()
         mock_result = Mock()
-        
+
         # Setup connection context manager
         mock_conn.__enter__ = Mock(return_value=mock_conn)
         mock_conn.__exit__ = Mock(return_value=None)
         mock_conn.execute.return_value = mock_result
         mock_engine.connect.return_value = mock_conn
-        
+
         mock_create_engine.return_value = mock_engine
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
@@ -574,19 +574,19 @@ class TestMySQLAdapter:
         mock_conn = Mock()
         mock_trans = Mock()
         mock_table = Mock()
-        
+
         # Mock table.insert() to return a mock statement
         mock_stmt = Mock()
         mock_stmt.prefix_with.return_value = mock_stmt
         mock_table.insert.return_value = mock_stmt
         mock_get_table.return_value = mock_table
-        
+
         # Setup connection and transaction context managers
         mock_conn.__enter__ = Mock(return_value=mock_conn)
         mock_conn.__exit__ = Mock(return_value=None)
         mock_trans.__enter__ = Mock(return_value=mock_trans)
         mock_trans.__exit__ = Mock(return_value=None)
-        
+
         # Mock execute to return different rowcounts based on batch
         def execute_side_effect(stmt, *args):
             result = Mock()
@@ -596,21 +596,27 @@ class TestMySQLAdapter:
             else:
                 result.rowcount = 3  # Default
             return result
-        
+
         mock_conn.begin.return_value = mock_trans
         mock_conn.execute.side_effect = execute_side_effect
         mock_trans.commit.return_value = None
         mock_engine.connect.return_value = mock_conn
-        
+
         # Mock for initial connection test
         test_conn = Mock()
         test_conn.__enter__ = Mock(return_value=test_conn)
         test_conn.__exit__ = Mock(return_value=None)
         test_conn.execute.return_value = Mock()
-        
+
         # First call is for connect(), subsequent calls for write operations
-        mock_engine.connect.side_effect = [test_conn, mock_conn, mock_conn, mock_conn, mock_conn]
-        
+        mock_engine.connect.side_effect = [
+            test_conn,
+            mock_conn,
+            mock_conn,
+            mock_conn,
+            mock_conn,
+        ]
+
         mock_create_engine.return_value = mock_engine
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
@@ -633,11 +639,11 @@ class TestMySQLAdapter:
         mock_engine = Mock()
         mock_conn = Mock()
         mock_result = Mock()
-        
+
         # Setup connection context manager
         mock_conn.__enter__ = Mock(return_value=mock_conn)
         mock_conn.__exit__ = Mock(return_value=None)
-        
+
         # Mock query results
         mock_row_proxy = [
             {"timestamp": datetime.now(), "symbol": "BTCUSDT"},
@@ -648,13 +654,13 @@ class TestMySQLAdapter:
         mock_mappings.__iter__ = Mock(return_value=iter(mock_row_proxy))
         mock_result.mappings.return_value = mock_mappings
         mock_conn.execute.return_value = mock_result
-        
+
         # Mock for initial connection test
         test_conn = Mock()
         test_conn.__enter__ = Mock(return_value=test_conn)
         test_conn.__exit__ = Mock(return_value=None)
         test_conn.execute.return_value = Mock()
-        
+
         mock_engine.connect.side_effect = [test_conn, mock_conn]
         mock_create_engine.return_value = mock_engine
 
@@ -676,21 +682,21 @@ class TestMySQLAdapter:
         mock_engine = Mock()
         mock_conn = Mock()
         mock_result = Mock()
-        
+
         # Setup connection context manager
         mock_conn.__enter__ = Mock(return_value=mock_conn)
         mock_conn.__exit__ = Mock(return_value=None)
-        
+
         # Mock scalar result for COUNT query
         mock_result.scalar.return_value = 100
         mock_conn.execute.return_value = mock_result
-        
+
         # Mock for initial connection test
         test_conn = Mock()
         test_conn.__enter__ = Mock(return_value=test_conn)
         test_conn.__exit__ = Mock(return_value=None)
         test_conn.execute.return_value = Mock()
-        
+
         mock_engine.connect.side_effect = [test_conn, mock_conn]
         mock_create_engine.return_value = mock_engine
 
@@ -711,29 +717,29 @@ class TestMySQLAdapter:
         mock_conn = Mock()
         mock_trans = Mock()
         mock_table = Mock()
-        
+
         # Mock table.insert() to return a mock statement
         mock_stmt = Mock()
         mock_stmt.prefix_with.return_value = mock_stmt
         mock_table.insert.return_value = mock_stmt
         mock_get_table.return_value = mock_table
-        
+
         # Setup connection and transaction context managers
         mock_conn.__enter__ = Mock(return_value=mock_conn)
         mock_conn.__exit__ = Mock(return_value=None)
         mock_trans.__enter__ = Mock(return_value=mock_trans)
         mock_trans.__exit__ = Mock(return_value=None)
-        
+
         mock_conn.begin.return_value = mock_trans
         mock_conn.execute.side_effect = Exception("SQL Error")
         mock_trans.rollback.return_value = None
-        
+
         # Mock for initial connection test
         test_conn = Mock()
         test_conn.__enter__ = Mock(return_value=test_conn)
         test_conn.__exit__ = Mock(return_value=None)
         test_conn.execute.return_value = Mock()
-        
+
         mock_engine.connect.side_effect = [test_conn, mock_conn]
         mock_create_engine.return_value = mock_engine
 
@@ -754,12 +760,12 @@ class TestMySQLAdapter:
         """Test index creation for MySQL."""
         mock_engine = Mock()
         mock_conn = Mock()
-        
+
         # Setup connection context manager
         mock_conn.__enter__ = Mock(return_value=mock_conn)
         mock_conn.__exit__ = Mock(return_value=None)
         mock_conn.execute.return_value = Mock()
-        
+
         mock_engine.connect.return_value = mock_conn
         mock_create_engine.return_value = mock_engine
 
@@ -883,7 +889,7 @@ class TestAdapterPerformance:
             result = Mock()
             result.inserted_count = len(operations)
             return result
-        
+
         mock_collection.bulk_write.side_effect = bulk_write_side_effect
 
         result = adapter.write_batch(large_dataset, "test_collection", batch_size=1000)

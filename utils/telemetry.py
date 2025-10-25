@@ -34,45 +34,68 @@ try:
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 
+    # Custom span processor to filter invalid attributes
+    class AttributeFilterSpanProcessor(BatchSpanProcessor):
+        """
+        Custom span processor that filters out invalid attribute values before export.
+
+        OpenTelemetry only allows primitive types (str, int, float, bool, bytes) or None
+        as attribute values. This processor filters out dict and list values.
+        """
+
+        def on_start(self, span, parent_context=None):
+            """Clean attributes when span starts."""
+            super().on_start(span, parent_context)
+            self._clean_attributes(span)
+
+        def on_end(self, span):
+            """Clean attributes when span ends."""
+            self._clean_attributes(span)
+            super().on_end(span)
+
+        def _clean_attributes(self, span):
+            """Remove invalid attribute values from span."""
+            if not hasattr(span, "_attributes") or not span._attributes:
+                return
+
+            # Identify invalid attributes
+            invalid_keys = []
+            for key, value in span._attributes.items():
+                if isinstance(value, dict | list):
+                    invalid_keys.append(key)
+
+            # Remove invalid attributes
+            for key in invalid_keys:
+                del span._attributes[key]
+
     OTEL_AVAILABLE = True
 except ImportError as e:
     logging.getLogger(__name__).warning("OpenTelemetry not available: %s", str(e))
     OTEL_AVAILABLE = False
 
+    # No-op span processor when OpenTelemetry is unavailable
+    class AttributeFilterSpanProcessor:
+        """No-op span processor when OpenTelemetry is unavailable."""
 
-# Custom span processor to filter invalid attributes
-class AttributeFilterSpanProcessor(BatchSpanProcessor):
-    """
-    Custom span processor that filters out invalid attribute values before export.
+        def __init__(self, *args, **kwargs):
+            """Initialize no-op processor."""
+            pass
 
-    OpenTelemetry only allows primitive types (str, int, float, bool, bytes) or None
-    as attribute values. This processor filters out dict and list values.
-    """
+        def on_start(self, *args, **kwargs):
+            """No-op on_start."""
+            pass
 
-    def on_start(self, span, parent_context=None):
-        """Clean attributes when span starts."""
-        super().on_start(span, parent_context)
-        self._clean_attributes(span)
+        def on_end(self, *args, **kwargs):
+            """No-op on_end."""
+            pass
 
-    def on_end(self, span):
-        """Clean attributes when span ends."""
-        self._clean_attributes(span)
-        super().on_end(span)
+        def shutdown(self):
+            """No-op shutdown."""
+            pass
 
-    def _clean_attributes(self, span):
-        """Remove invalid attribute values from span."""
-        if not hasattr(span, "_attributes") or not span._attributes:
-            return
-
-        # Identify invalid attributes
-        invalid_keys = []
-        for key, value in span._attributes.items():
-            if isinstance(value, dict | list):
-                invalid_keys.append(key)
-
-        # Remove invalid attributes
-        for key in invalid_keys:
-            del span._attributes[key]
+        def force_flush(self, timeout_millis=None):
+            """No-op force_flush."""
+            return True
 
 
 # Additional imports for tests
@@ -390,35 +413,45 @@ class TelemetryManager:
         environment: str | None = None,
     ):
         """Create OpenTelemetry resource."""
-        if not OTEL_AVAILABLE:
+        if not OTEL_AVAILABLE or Resource is None:
             return None
 
-        # Get configuration from environment or use defaults
-        service_name = service_name or os.getenv(
-            "OTEL_SERVICE_NAME", "binance-data-extractor"
-        )
-        service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "2.0.0")
-        environment = environment or os.getenv("ENVIRONMENT", "production")
+        try:
+            # Get configuration from environment or use defaults
+            service_name = service_name or os.getenv(
+                "OTEL_SERVICE_NAME", "binance-data-extractor"
+            )
+            service_version = service_version or os.getenv(
+                "OTEL_SERVICE_VERSION", "2.0.0"
+            )
+            environment = environment or os.getenv("ENVIRONMENT", "production")
 
-        # Create resource
-        resource = Resource.create(
-            {
-                "service.name": service_name or "binance-data-extractor",
-                "service.version": service_version or "2.0.0",
-                "deployment.environment": environment or "production",
-                "service.instance.id": os.getenv("HOSTNAME", "unknown"),
-            }
-        )
+            # Create resource
+            resource = Resource.create(
+                {
+                    "service.name": service_name or "binance-data-extractor",
+                    "service.version": service_version or "2.0.0",
+                    "deployment.environment": environment or "production",
+                    "service.instance.id": os.getenv("HOSTNAME", "unknown"),
+                }
+            )
 
-        return resource
+            return resource
+        except Exception as e:
+            self.logger.error(f"Failed to create resource: {e}")
+            return None
 
     def _setup_tracing(self, resource):
         """Setup tracing with span processors."""
-        if not OTEL_AVAILABLE:
+        if not OTEL_AVAILABLE or TracerProvider is None:
             return
 
-        # Create tracer provider
-        self.tracer_provider = TracerProvider(resource=resource)
+        try:
+            # Create tracer provider
+            self.tracer_provider = TracerProvider(resource=resource)
+        except Exception as e:
+            self.logger.error(f"Failed to create tracer provider: {e}")
+            return
 
         # Add span processors
         span_processors = []
@@ -468,18 +501,21 @@ class TelemetryManager:
             return
 
         try:
-            # Core instrumentors
-            RequestsInstrumentor().instrument()
-            SQLAlchemyInstrumentor().instrument()
-            LoggingInstrumentor().instrument(
-                set_logging_format=True, log_level=logging.NOTSET
-            )
+            # Core instrumentors - check they're not None first
+            if RequestsInstrumentor is not None:
+                RequestsInstrumentor().instrument()
+            if SQLAlchemyInstrumentor is not None:
+                SQLAlchemyInstrumentor().instrument()
+            if LoggingInstrumentor is not None:
+                LoggingInstrumentor().instrument(
+                    set_logging_format=True, log_level=logging.NOTSET
+                )
 
             # Additional instrumentors if available
-            if URLLIB3_AVAILABLE:
+            if URLLIB3_AVAILABLE and URLLib3Instrumentor is not None:
                 URLLib3Instrumentor().instrument()
 
-            if PYMONGO_AVAILABLE:
+            if PYMONGO_AVAILABLE and PymongoInstrumentor is not None:
                 PymongoInstrumentor().instrument()
 
             self.logger.info("Auto-instrumentation enabled")

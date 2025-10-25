@@ -17,8 +17,9 @@ from typing import Any
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-import constants  # noqa: E402
 from otel_init import get_meter, get_tracer, setup_telemetry  # noqa: E402
+
+import constants  # noqa: E402
 
 
 def check_environment_variables() -> dict[str, Any]:

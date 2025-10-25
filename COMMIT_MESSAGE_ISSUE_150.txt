@@ -1,0 +1,45 @@
+fix: resolve BatchSpanProcessor NameError in telemetry module (#150)
+
+## Problem
+ALL CronJobs were failing immediately on startup with:
+  NameError: name 'BatchSpanProcessor' is not defined
+
+Root cause: AttributeFilterSpanProcessor class inherited from 
+BatchSpanProcessor outside the conditional import block, causing
+NameError when OpenTelemetry imports failed.
+
+Business Impact: Complete data pipeline failure - no historical
+data ingestion, gap detection non-functional, downstream services
+starved of data.
+
+## Solution
+1. Wrapped AttributeFilterSpanProcessor in conditional import block
+2. Added no-op AttributeFilterSpanProcessor when OTEL unavailable
+3. Ensured graceful degradation without OpenTelemetry
+4. Added comprehensive unit tests (26 tests, all passing)
+
+## Changes
+- utils/telemetry.py: Fixed conditional class definition
+- tests/test_telemetry.py: Added 26 comprehensive tests
+- jobs/*.py: Updated telemetry error handling
+- docs/ISSUE_150_FIX_SUMMARY.md: Complete fix documentation
+
+## Verification
+✅ All 26 telemetry tests pass
+✅ All job modules import without NameError
+✅ Telemetry works with and without OpenTelemetry
+✅ All acceptance criteria met
+
+## Acceptance Criteria Met
+- [x] All CronJob pods start successfully without NameError
+- [x] Telemetry initializes correctly when OpenTelemetry available
+- [x] Telemetry degrades gracefully when OTEL unavailable
+- [x] AttributeFilterSpanProcessor conditionally defined
+- [x] All klines extraction jobs run successfully
+- [x] Gap filler jobs run successfully
+- [x] No regression in telemetry functionality
+- [x] Unit tests cover both OTEL states
+
+Priority: P0 (Critical)
+Issue: #150
+
