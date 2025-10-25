@@ -235,6 +235,19 @@ def initialize_telemetry(
         try:
             RequestsInstrumentor().instrument()
             SQLAlchemyInstrumentor().instrument()
+
+            # Add PyMySQL instrumentation for MySQL query tracing
+            try:
+                from opentelemetry.instrumentation.pymysql import PyMySQLInstrumentor
+
+                PyMySQLInstrumentor().instrument()
+                logging.getLogger(__name__).info("PyMySQL instrumentation enabled")
+            except ImportError:
+                logging.getLogger(__name__).warning(
+                    "PyMySQL instrumentation not available - install with: "
+                    "pip install opentelemetry-instrumentation-pymysql"
+                )
+
             LoggingInstrumentor().instrument(
                 set_logging_format=True, log_level=logging.NOTSET
             )
