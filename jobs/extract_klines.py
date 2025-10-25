@@ -25,6 +25,7 @@ from utils.logger import (  # noqa: E402
     setup_logging,
 )
 from utils.messaging import publish_extraction_completion_sync  # noqa: E402
+from utils.metrics import get_metrics  # noqa: E402
 from utils.time_utils import (  # noqa: E402
     binance_interval_to_table_suffix,
     format_duration,
@@ -255,6 +256,18 @@ def extract_klines_for_symbol(
 
         duration = time.time() - symbol_start_time
 
+        # Record extraction metrics
+        metrics = get_metrics()
+        metrics.record_extraction(
+            symbol=symbol,
+            interval=period,
+            status="success",
+            records_fetched=len(klines),
+            records_written=written_count,
+            duration_seconds=duration,
+            gaps_found=gaps_found,
+        )
+
         return {
             "symbol": symbol,
             "success": True,
@@ -268,6 +281,18 @@ def extract_klines_for_symbol(
     except Exception as e:
         duration = time.time() - symbol_start_time
         logger.error(f"Failed to extract klines for {symbol}: {e}")
+
+        # Record extraction failure metrics
+        metrics = get_metrics()
+        metrics.record_extraction(
+            symbol=symbol,
+            interval=period,
+            status="error",
+            records_fetched=0,
+            records_written=0,
+            duration_seconds=duration,
+            gaps_found=0,
+        )
 
         return {
             "symbol": symbol,

@@ -13,6 +13,22 @@ import constants
 
 logger = logging.getLogger(__name__)
 
+# Import metrics lazily to avoid circular imports
+_metrics = None
+
+
+def _get_metrics():
+    """Lazy load metrics to avoid circular imports."""
+    global _metrics
+    if _metrics is None:
+        try:
+            from utils.metrics import get_metrics
+
+            _metrics = get_metrics()
+        except ImportError:
+            pass
+    return _metrics
+
 
 class RetryableError(Exception):
     """Base class for errors that should trigger retries."""
@@ -163,6 +179,14 @@ class RateLimiter:
         if self._lock:
             with self._lock:
                 self._cleanup_old_calls()
+
+                # Record rate limit metrics
+                used = len(self.calls)
+                remaining = self.max_calls - used
+                metrics = _get_metrics()
+                if metrics:
+                    metrics.record_rate_limit_usage(used, remaining, self.max_calls)
+
                 if len(self.calls) >= self.max_calls:
                     sleep_time = self.calls[0] + self.time_window - time.time()
                     if sleep_time > 0:
@@ -181,6 +205,13 @@ class RateLimiter:
                 for call_time in self.calls
                 if current_time - call_time < self.time_window
             ]
+
+            # Record rate limit metrics
+            used = len(self.calls)
+            remaining = self.max_calls - used
+            metrics = _get_metrics()
+            if metrics:
+                metrics.record_rate_limit_usage(used, remaining, self.max_calls)
 
             if len(self.calls) >= self.max_calls:
                 sleep_time = self.calls[0] + self.time_window - current_time

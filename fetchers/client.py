@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 import constants
+from utils.metrics import get_metrics
 from utils.retry import RateLimiter, with_retries_and_rate_limit
 from utils.time_utils import get_current_utc_time
 
@@ -96,6 +97,9 @@ class BinanceClient:
         if self.api_key:
             self.session.headers.update({"X-MBX-APIKEY": self.api_key})
 
+        # Initialize metrics
+        self.metrics = get_metrics()
+
         logger.info("Binance client initialized")
 
     def _build_url(self, endpoint: str) -> str:
@@ -163,6 +167,10 @@ class BinanceClient:
             duration = (get_current_utc_time() - start_time).total_seconds()
 
             self._log_response(response, duration)
+
+            # Record API latency metric
+            latency_ms = duration * 1000
+            self.metrics.record_api_latency(endpoint, latency_ms, response.status_code)
 
             # Handle different response codes
             if response.status_code == 200:

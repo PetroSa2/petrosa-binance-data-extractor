@@ -128,14 +128,22 @@ try:
 except ImportError:
     AWS_AVAILABLE = False
 
-# Metrics (placeholder for tests)
+# Metrics
 try:
     from opentelemetry import metrics
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+        OTLPMetricExporter as GRPCMetricExporter,
+    )
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
     metrics = None  # type: ignore
+    GRPCMetricExporter = None  # type: ignore
+    MeterProvider = None  # type: ignore
+    PeriodicExportingMetricReader = None  # type: ignore
 
 
 # Global tracer provider
@@ -231,6 +239,27 @@ def initialize_telemetry(
         # Set the global tracer provider
         trace.set_tracer_provider(_tracer_provider)
 
+        # Setup metrics
+        if METRICS_AVAILABLE and MeterProvider is not None:
+            try:
+                # Create metric exporter
+                if otlp_endpoint and GRPCMetricExporter is not None:
+                    metric_exporter = GRPCMetricExporter(
+                        endpoint=otlp_endpoint, headers=headers
+                    )
+                    metric_reader = PeriodicExportingMetricReader(
+                        metric_exporter, export_interval_millis=60000
+                    )
+                    meter_provider = MeterProvider(
+                        resource=resource, metric_readers=[metric_reader]
+                    )
+                    metrics.set_meter_provider(meter_provider)
+                    logging.getLogger(__name__).info(
+                        "Metrics configured with OTLP exporter"
+                    )
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"Failed to setup metrics: {e}")
+
         # Enable auto-instrumentation
         try:
             RequestsInstrumentor().instrument()
@@ -323,8 +352,27 @@ def get_tracer_simple(name: str):
 
 # Legacy functions for backward compatibility
 def get_meter(name: str):
-    """Get a meter instance (not implemented)."""
-    return None
+    """
+    Get a meter instance.
+
+    Args:
+        name: Name of the meter
+
+    Returns:
+        Meter instance or None if OpenTelemetry is not available
+    """
+    if not METRICS_AVAILABLE or metrics is None:
+        return None
+
+    try:
+        # If telemetry not initialized, try to initialize
+        if not _initialized:
+            initialize_telemetry()
+
+        return metrics.get_meter(name)
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to get meter: {e}")
+        return None
 
 
 # Initialize telemetry on module import if environment variable is set
@@ -334,8 +382,8 @@ if os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes"):
 
 # Module-level exports for backward compatibility and tests
 def get_meter_module(name: str):
-    """Get a meter instance at module level (not implemented)."""
-    return None
+    """Get a meter instance at module level."""
+    return get_meter(name)
 
 
 # Export TelemetryManager methods at module level for tests
@@ -505,8 +553,43 @@ class TelemetryManager:
         trace.set_tracer_provider(self.tracer_provider)
 
     def _setup_metrics(self, resource):
-        """Setup metrics (placeholder for future implementation)."""
-        # Metrics setup is not implemented yet
+        """Setup metrics with OTLP exporter."""
+        if not METRICS_AVAILABLE or MeterProvider is None:
+            self.logger.warning("Metrics not available, skipping setup")
+            return
+
+        try:
+            # Get OTLP endpoint
+            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+            if not otlp_endpoint:
+                self.logger.warning("No OTLP endpoint configured for metrics")
+                return
+
+            # Parse headers
+            headers = self._parse_headers(os.getenv("OTEL_EXPORTER_OTLP_HEADERS", ""))
+
+            # Create metric exporter
+            metric_exporter = GRPCMetricExporter(
+                endpoint=otlp_endpoint, headers=headers
+            )
+
+            # Create metric reader with 60-second export interval
+            metric_reader = PeriodicExportingMetricReader(
+                metric_exporter, export_interval_millis=60000
+            )
+
+            # Create meter provider
+            self.meter_provider = MeterProvider(
+                resource=resource, metric_readers=[metric_reader]
+            )
+
+            # Set global meter provider
+            metrics.set_meter_provider(self.meter_provider)
+
+            self.logger.info("Metrics configured with OTLP exporter")
+
+        except Exception as e:
+            self.logger.error(f"Failed to setup metrics: {e}")
 
     def _setup_auto_instrumentation(self):
         """Setup auto-instrumentation for various libraries."""
@@ -576,9 +659,18 @@ class TelemetryManager:
 
     def get_meter(self, name: str):
         """Get a meter instance."""
-        if not self.initialized or not METRICS_AVAILABLE:
+        if not METRICS_AVAILABLE or metrics is None:
             return None
+
         try:
+            # If not initialized, try to initialize first
+            if not self.initialized:
+                if not self.initialize_telemetry():
+                    return None
+
+            # Get meter from the current provider
             return metrics.get_meter(name)
-        except Exception:
+
+        except Exception as e:
+            self.logger.warning(f"Failed to get meter: {e}")
             return None
