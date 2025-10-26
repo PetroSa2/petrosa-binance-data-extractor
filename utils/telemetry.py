@@ -207,9 +207,9 @@ def initialize_telemetry(
         console_exporter = ConsoleSpanExporter()
         span_processors.append(AttributeFilterSpanProcessor(console_exporter))
 
-        # Add OTLP exporter if endpoint is configured
+        # Add OTLP exporter if endpoint is configured and not in testing environment
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-        if otlp_endpoint:
+        if otlp_endpoint and environment != "testing":
             try:
                 # Parse headers
                 headers_str = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
@@ -375,9 +375,7 @@ def get_meter(name: str):
         return None
 
 
-# Initialize telemetry on module import if environment variable is set
-if os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes"):
-    initialize_telemetry()
+# Telemetry is initialized by the application, not on module import.
 
 
 # Module-level exports for backward compatibility and tests

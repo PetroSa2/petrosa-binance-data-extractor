@@ -11,6 +11,9 @@ cryptography>=41.0.0
 # Messaging
 nats-py>=2.0.0
 
+# Core dependencies
+numpy<2.0
+
 # OpenTelemetry (unified via petrosa-otel package)
 # For local development, install from path:
 # pip install -e ../petrosa_k8s/petrosa-otel[all]
@@ -19,8 +22,6 @@ petrosa-otel[mysql,mongodb]>=1.0.0
 
 # PostgreSQL adapter (optional)
 psycopg2-binary>=2.9.0
-
-# Core dependencies
 pydantic>=2.0.0,<3.0.0
 
 # Database adapters
