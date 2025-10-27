@@ -89,11 +89,11 @@ class KlinesFetcherDataManager:
         validate_time_range(start_time, end_time)
 
         logger.info(
-            "Fetching and storing klines for %s (%s) from %s to %s",
-            symbol,
-            interval,
-            start_time,
-            end_time,
+            "Fetching and storing klines",
+            symbol=symbol,
+            interval=interval,
+            start_time=start_time,
+            end_time=end_time,
         )
 
         all_klines: list[KlineModel] = []
