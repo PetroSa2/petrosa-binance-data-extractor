@@ -142,9 +142,9 @@ class KlinesFetcherDataManager:
                             chunk_klines.append(kline)
                         except (ValueError, TypeError) as e:
                             logger.warning(
-                                "Failed to parse kline data: %s, data: %s",
-                                e,
-                                kline_data,
+                                "Failed to parse kline data",
+                                error=str(e),
+                                data=kline_data,
                             )
                             continue
 
@@ -201,10 +201,10 @@ class KlinesFetcherDataManager:
             await self.data_adapter.disconnect()
 
         logger.info(
-            "Fetched and stored %d klines for %s (%s)",
-            len(all_klines),
-            symbol,
-            interval,
+            "Fetched and stored klines",
+            klines_count=len(all_klines),
+            symbol=symbol,
+            interval=interval,
         )
         return all_klines
 
