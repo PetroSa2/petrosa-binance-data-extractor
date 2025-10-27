@@ -1,0 +1,46 @@
+# Codecov configuration for Petrosa Binance Data Extractor
+#
+# Purpose: Configure codecov checks to work with our CI/CD pipeline
+# Documentation: https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...100"
+  
+  status:
+    # Project coverage (overall)
+    project:
+      default:
+        target: 40%  # Match our make test requirement
+        threshold: 1%  # Allow 1% drop
+        informational: false  # Block if fails
+    
+    # Patch coverage (new code only)
+    patch:
+      default:
+        target: 50%  # Reasonable target for bug fixes
+        threshold: 5%  # More lenient for small changes
+        informational: true  # Don't block merges - use as advisory only
+        
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# Ignore test files and generated code
+ignore:
+  - "tests/"
+  - "**/*_test.py"
+  - "**/test_*.py"
+  - "venv/"
+  - ".venv/"
+  - "htmlcov/"
+  - "docs/"
+  - "scripts/"
+  - "k8s/"
+  - "*.pyc"
+  - "__pycache__"
+
