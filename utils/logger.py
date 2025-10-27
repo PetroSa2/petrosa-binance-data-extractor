@@ -122,7 +122,7 @@ def log_extraction_start(
 ):
     """Log extraction start with structured data."""
     log.info(
-        event="extraction_start",
+        "Extraction started",
         extractor_type=extractor_type,
         symbols=symbols,
         period=period,
@@ -144,7 +144,6 @@ def log_extraction_progress(
 
     log.info(
         "Processing extraction",
-        event="extraction_progress",
         symbol=symbol,
         records_processed=records_processed,
         total_records=total_records,
@@ -165,7 +164,6 @@ def log_extraction_completion(
     """Log extraction completion with summary."""
     log.info(
         "Extraction completed",
-        event="extraction_complete",
         extractor_type=extractor_type,
         total_records=total_records,
         duration_seconds=round(duration_seconds, 2),
@@ -182,7 +180,6 @@ def log_gap_detection(
     """Log gap detection results."""
     log.warning(
         "Data gaps detected",
-        event="gaps_detected",
         symbol=symbol,
         collection=collection,
         gaps_count=len(gaps),
@@ -203,7 +200,6 @@ def log_database_operation(
     if success:
         db_logger.info(
             "Database operation completed",
-            event="database_operation",
             operation=operation,
             collection=collection,
             records_count=records_count,
@@ -214,7 +210,6 @@ def log_database_operation(
     else:
         db_logger.error(
             "Database operation failed",
-            event="database_operation_error",
             operation=operation,
             collection=collection,
             records_count=records_count,

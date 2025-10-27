@@ -179,7 +179,7 @@ class RateLimiter:
         if self._lock:
             with self._lock:
                 self._cleanup_old_calls()
-                
+
                 if len(self.calls) >= self.max_calls:
                     sleep_time = self.calls[0] + self.time_window - time.time()
                     if sleep_time > 0:
@@ -190,7 +190,7 @@ class RateLimiter:
                         self._cleanup_old_calls()
 
                 self.calls.append(time.time())
-                
+
                 # Record rate limit metrics once after updating calls
                 used = len(self.calls)
                 remaining = self.max_calls - used
@@ -215,7 +215,7 @@ class RateLimiter:
                     time.sleep(sleep_time)
 
             self.calls.append(current_time)
-            
+
             # Record rate limit metrics once after updating calls
             used = len(self.calls)
             remaining = self.max_calls - used

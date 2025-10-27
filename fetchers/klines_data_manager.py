@@ -89,11 +89,11 @@ class KlinesFetcherDataManager:
         validate_time_range(start_time, end_time)
 
         logger.info(
-            "Fetching and storing klines for %s (%s) from %s to %s",
-            symbol,
-            interval,
-            start_time,
-            end_time,
+            "Fetching and storing klines",
+            symbol=symbol,
+            interval=interval,
+            start_time=start_time,
+            end_time=end_time,
         )
 
         all_klines: list[KlineModel] = []
@@ -142,9 +142,9 @@ class KlinesFetcherDataManager:
                             chunk_klines.append(kline)
                         except (ValueError, TypeError) as e:
                             logger.warning(
-                                "Failed to parse kline data: %s, data: %s",
-                                e,
-                                kline_data,
+                                "Failed to parse kline data",
+                                error=str(e),
+                                data=kline_data,
                             )
                             continue
 
@@ -157,10 +157,10 @@ class KlinesFetcherDataManager:
                         )
 
                         logger.info(
-                            "Stored %d klines for %s (%s) via Data Manager",
-                            records_written,
-                            symbol,
-                            interval,
+                            "Stored klines via Data Manager",
+                            records_written=records_written,
+                            symbol=symbol,
+                            interval=interval,
                         )
 
                         all_klines.extend(chunk_klines)
@@ -168,10 +168,10 @@ class KlinesFetcherDataManager:
                         # Update progress
                         last_kline_time = chunk_klines[-1].close_time
                         logger.debug(
-                            "Fetched %d klines for %s, last: %s",
-                            len(chunk_klines),
-                            symbol,
-                            last_kline_time,
+                            "Fetched klines chunk",
+                            klines_count=len(chunk_klines),
+                            symbol=symbol,
+                            last_time=last_kline_time,
                         )
                         current_start = last_kline_time + timedelta(seconds=1)
                     else:
@@ -183,7 +183,7 @@ class KlinesFetcherDataManager:
                         time.sleep(constants.REQUEST_DELAY_SECONDS)
 
                 except BinanceAPIError as e:
-                    logger.error("API error fetching klines for %s: %s", symbol, e)
+                    logger.error("API error fetching klines", symbol=symbol, error=str(e))
                     if e.status_code == 429:  # Rate limit
                         # Wait longer and retry
                         time.sleep(60)
@@ -192,7 +192,7 @@ class KlinesFetcherDataManager:
                         raise
                 except Exception as e:
                     logger.error(
-                        "Unexpected error fetching klines for %s: %s", symbol, e
+                        "Unexpected error fetching klines", symbol=symbol, error=str(e)
                     )
                     raise
 
@@ -201,10 +201,10 @@ class KlinesFetcherDataManager:
             await self.data_adapter.disconnect()
 
         logger.info(
-            "Fetched and stored %d klines for %s (%s)",
-            len(all_klines),
-            symbol,
-            interval,
+            "Fetched and stored klines",
+            klines_count=len(all_klines),
+            symbol=symbol,
+            interval=interval,
         )
         return all_klines
 
