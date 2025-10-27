@@ -194,6 +194,95 @@ class TestTelemetryManager:
         mock_provider_instance.add_span_processor.assert_called()
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.TracerProvider")
+    @patch("utils.telemetry.BatchSpanProcessor")
+    @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.ConsoleSpanExporter")
+    @patch("utils.telemetry.AttributeFilterSpanProcessor")
+    @patch("utils.telemetry.trace")
+    def test_setup_tracing_skips_otlp_in_testing_environment(
+        self,
+        mock_trace,
+        mock_processor,
+        mock_console_exporter,
+        mock_grpc_exporter,
+        mock_batch_processor,
+        mock_tracer_provider,
+    ):
+        """Test that OTLP exporter is not set up in testing environment."""
+        manager = telemetry.TelemetryManager()
+        mock_resource = Mock()
+
+        # Mock instances
+        mock_provider_instance = Mock()
+        mock_tracer_provider.return_value = mock_provider_instance
+        mock_provider_instance.get_tracer.return_value = DummyContextManager()
+
+        mock_console_instance = Mock()
+        mock_console_exporter.return_value = mock_console_instance
+
+        # Set OTLP endpoint but environment is "testing"
+        with patch.dict(
+            os.environ,
+            {
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
+            },
+        ):
+            manager._setup_tracing(mock_resource, environment="testing")
+
+            # Verify GRPC exporter was NOT called (because environment == "testing")
+            mock_grpc_exporter.assert_not_called()
+
+            # Verify console exporter WAS called
+            mock_console_exporter.assert_called()
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.TracerProvider")
+    @patch("utils.telemetry.BatchSpanProcessor")
+    @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.ConsoleSpanExporter")
+    @patch("utils.telemetry.AttributeFilterSpanProcessor")
+    @patch("utils.telemetry.trace")
+    def test_setup_tracing_uses_otlp_in_non_testing_environment(
+        self,
+        mock_trace,
+        mock_processor,
+        mock_console_exporter,
+        mock_grpc_exporter,
+        mock_batch_processor,
+        mock_tracer_provider,
+    ):
+        """Test that OTLP exporter IS set up in non-testing environments."""
+        manager = telemetry.TelemetryManager()
+        mock_resource = Mock()
+
+        # Mock instances
+        mock_provider_instance = Mock()
+        mock_tracer_provider.return_value = mock_provider_instance
+        mock_provider_instance.get_tracer.return_value = DummyContextManager()
+
+        mock_grpc_instance = Mock()
+        mock_grpc_exporter.return_value = mock_grpc_instance
+
+        mock_console_instance = Mock()
+        mock_console_exporter.return_value = mock_console_instance
+
+        # Set OTLP endpoint and environment is "production"
+        with patch.dict(
+            os.environ,
+            {
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
+            },
+        ):
+            manager._setup_tracing(mock_resource, environment="production")
+
+            # Verify GRPC exporter WAS called (because environment != "testing")
+            mock_grpc_exporter.assert_called()
+
+            # Verify console exporter WAS also called
+            mock_console_exporter.assert_called()
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
     def test_setup_metrics(self):
         """Test metrics setup."""
         manager = telemetry.TelemetryManager()
