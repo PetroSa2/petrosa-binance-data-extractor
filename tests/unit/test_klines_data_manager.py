@@ -46,7 +46,6 @@ async def test_initialization(klines_fetcher, mock_binance_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Test has infinite loop bug - mock returns same klines repeatedly causing timeout. See issue #159")
 async def test_fetch_and_store_klines_success(klines_fetcher, mock_binance_client):
     """Test successful fetching and storing of klines."""
     start_time = datetime(2023, 1, 1, tzinfo=UTC)
@@ -84,7 +83,11 @@ async def test_fetch_and_store_klines_success(klines_fetcher, mock_binance_clien
             "0",
         ],
     ]
-    mock_binance_client.get_klines.return_value = mock_kline_data
+    # Fix infinite loop: return data once, then empty (no more data available)
+    mock_binance_client.get_klines.side_effect = [
+        mock_kline_data,  # First call returns data
+        [],  # Subsequent calls return empty (simulates end of data)
+    ]
 
     result = await klines_fetcher.fetch_and_store_klines(
         symbol, interval, start_time, end_time
