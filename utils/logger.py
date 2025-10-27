@@ -122,7 +122,7 @@ def log_extraction_start(
 ):
     """Log extraction start with structured data."""
     log.info(
-        event="extraction_start",
+        "Extraction started",
         extractor_type=extractor_type,
         symbols=symbols,
         period=period,
@@ -144,7 +144,6 @@ def log_extraction_progress(
 
     log.info(
         "Processing extraction",
-        event="extraction_progress",
         symbol=symbol,
         records_processed=records_processed,
         total_records=total_records,
@@ -165,7 +164,6 @@ def log_extraction_completion(
     """Log extraction completion with summary."""
     log.info(
         "Extraction completed",
-        event="extraction_complete",
         extractor_type=extractor_type,
         total_records=total_records,
         duration_seconds=round(duration_seconds, 2),
