@@ -180,7 +180,6 @@ def log_gap_detection(
     """Log gap detection results."""
     log.warning(
         "Data gaps detected",
-        event="gaps_detected",
         symbol=symbol,
         collection=collection,
         gaps_count=len(gaps),
@@ -201,7 +200,6 @@ def log_database_operation(
     if success:
         db_logger.info(
             "Database operation completed",
-            event="database_operation",
             operation=operation,
             collection=collection,
             records_count=records_count,
@@ -212,7 +210,6 @@ def log_database_operation(
     else:
         db_logger.error(
             "Database operation failed",
-            event="database_operation_error",
             operation=operation,
             collection=collection,
             records_count=records_count,

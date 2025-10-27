@@ -7,9 +7,11 @@ import pytest
 import structlog
 
 from utils.logger import (
+    log_database_operation,
     log_extraction_completion,
     log_extraction_progress,
     log_extraction_start,
+    log_gap_detection,
 )
 
 
@@ -309,3 +311,82 @@ class TestLoggerIntegration:
             if "multiple values for argument 'event'" in str(e):
                 pytest.fail(f"Duplicate 'event' argument error: {e}")
             raise
+
+
+class TestLogGapDetection:
+    """Tests for log_gap_detection function."""
+
+    def test_log_gap_detection_basic(self, mock_logger):
+        """Test basic gap detection logging."""
+        mock_logger.warning = MagicMock()
+        
+        gaps = [
+            (datetime(2024, 1, 1, 10, 0), datetime(2024, 1, 1, 11, 0)),
+            (datetime(2024, 1, 1, 15, 0), datetime(2024, 1, 1, 16, 0)),
+        ]
+        
+        log_gap_detection(
+            log=mock_logger,
+            symbol="BTCUSDT",
+            gaps=gaps,
+            collection="klines_1h",
+        )
+
+        mock_logger.warning.assert_called_once()
+        args, kwargs = mock_logger.warning.call_args
+
+        assert args[0] == "Data gaps detected"
+        assert kwargs["symbol"] == "BTCUSDT"
+        assert kwargs["collection"] == "klines_1h"
+        assert kwargs["gaps_count"] == 2
+        assert "event" not in kwargs  # No duplicate event argument
+
+
+class TestLogDatabaseOperation:
+    """Tests for log_database_operation function."""
+
+    def test_log_database_operation_success(self, mock_logger):
+        """Test successful database operation logging."""
+        mock_logger.info = MagicMock()
+        
+        log_database_operation(
+            db_logger=mock_logger,
+            operation="write",
+            collection="klines_1h",
+            records_count=1000,
+            duration_seconds=2.5,
+            success=True,
+        )
+
+        mock_logger.info.assert_called_once()
+        args, kwargs = mock_logger.info.call_args
+
+        assert args[0] == "Database operation completed"
+        assert kwargs["operation"] == "write"
+        assert kwargs["collection"] == "klines_1h"
+        assert kwargs["records_count"] == 1000
+        assert kwargs["duration_seconds"] == 2.5
+        assert kwargs["success"] is True
+        assert "event" not in kwargs  # No duplicate event argument
+
+    def test_log_database_operation_failure(self, mock_logger):
+        """Test failed database operation logging."""
+        mock_logger.error = MagicMock()
+        
+        log_database_operation(
+            db_logger=mock_logger,
+            operation="write",
+            collection="klines_1h",
+            records_count=500,
+            duration_seconds=1.234,
+            success=False,
+        )
+
+        mock_logger.error.assert_called_once()
+        args, kwargs = mock_logger.error.call_args
+
+        assert args[0] == "Database operation failed"
+        assert kwargs["operation"] == "write"
+        assert kwargs["success"] is False
+        assert kwargs["duration_seconds"] == 1.234  # Rounded to 3 decimals
+        assert "event" not in kwargs  # No duplicate event argument
