@@ -157,10 +157,10 @@ class KlinesFetcherDataManager:
                         )
 
                         logger.info(
-                            "Stored %d klines for %s (%s) via Data Manager",
-                            records_written,
-                            symbol,
-                            interval,
+                            "Stored klines via Data Manager",
+                            records_written=records_written,
+                            symbol=symbol,
+                            interval=interval,
                         )
 
                         all_klines.extend(chunk_klines)
@@ -168,10 +168,10 @@ class KlinesFetcherDataManager:
                         # Update progress
                         last_kline_time = chunk_klines[-1].close_time
                         logger.debug(
-                            "Fetched %d klines for %s, last: %s",
-                            len(chunk_klines),
-                            symbol,
-                            last_kline_time,
+                            "Fetched klines chunk",
+                            klines_count=len(chunk_klines),
+                            symbol=symbol,
+                            last_time=last_kline_time,
                         )
                         current_start = last_kline_time + timedelta(seconds=1)
                     else:
@@ -183,7 +183,7 @@ class KlinesFetcherDataManager:
                         time.sleep(constants.REQUEST_DELAY_SECONDS)
 
                 except BinanceAPIError as e:
-                    logger.error("API error fetching klines for %s: %s", symbol, e)
+                    logger.error("API error fetching klines", symbol=symbol, error=str(e))
                     if e.status_code == 429:  # Rate limit
                         # Wait longer and retry
                         time.sleep(60)
@@ -192,7 +192,7 @@ class KlinesFetcherDataManager:
                         raise
                 except Exception as e:
                     logger.error(
-                        "Unexpected error fetching klines for %s: %s", symbol, e
+                        "Unexpected error fetching klines", symbol=symbol, error=str(e)
                     )
                     raise
 
