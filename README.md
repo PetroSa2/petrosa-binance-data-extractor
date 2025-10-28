@@ -1131,6 +1131,12 @@ python -m jobs.extract_klines_gap_filler --period 15m
 make deploy
 ```
 
+### Manual Deployment (No Code Changes)
+
+For operational deployments without code changes:
+- **Guide**: [docs/MANUAL_DEPLOYMENT_GUIDE.md](docs/MANUAL_DEPLOYMENT_GUIDE.md)
+- **Trigger**: GitHub Actions UI or `gh workflow run manual-deploy.yml`
+
 ---
 
 **Production Status:** ✅ **ACTIVE** - Extracting historical data for 10+ symbols across multiple timeframes
