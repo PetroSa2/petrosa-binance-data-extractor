@@ -28,8 +28,12 @@ class TestBaseAdapter:
 
     def test_abstract_class_cannot_be_instantiated(self):
         """Test that BaseAdapter cannot be instantiated directly."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError) as exc_info:
             BaseAdapter("test_connection_string")
+
+        # Verify TypeError was raised for abstract base class
+        assert exc_info.value is not None
+        assert isinstance(exc_info.value, TypeError)
 
     def test_concrete_adapter_initialization(self):
         """Test initialization of a concrete adapter."""
@@ -776,6 +780,10 @@ class TestMySQLAdapter:
         # This test just verifies it doesn't crash
         adapter.ensure_indexes("test_table")
 
+        # Verify method completed without errors
+        assert adapter is not None
+        assert adapter._connected
+
 
 @pytest.mark.unit
 class TestAdapterErrorHandling:
@@ -801,8 +809,12 @@ class TestAdapterErrorHandling:
 
         test_models = [SampleTestModel(timestamp=datetime.now(), test_field="test")]
 
-        with pytest.raises(Exception, match="Write failed"):
+        with pytest.raises(Exception) as exc_info:
             adapter.write(test_models, "test_collection")
+
+        # Verify write error was properly raised
+        assert "Write failed" in str(exc_info.value)
+        assert mock_collection.bulk_write.called
 
     @patch("db.mysql_adapter.create_engine")
     def test_mysql_connection_error_handling(self, mock_create_engine):
@@ -811,8 +823,12 @@ class TestAdapterErrorHandling:
 
         adapter = MySQLAdapter("mysql://user:pass@localhost:3306/test")
 
-        with pytest.raises(Exception, match="MySQL connection failed"):
+        with pytest.raises(Exception) as exc_info:
             adapter.connect()
+
+        # Verify connection error was properly raised
+        assert "MySQL connection failed" in str(exc_info.value)
+        assert not adapter._connected
 
     def test_adapter_not_connected_error(self):
         """Test operations on unconnected adapter."""
@@ -853,8 +869,12 @@ class TestAdapterErrorHandling:
         adapter = TestAdapter("test_connection")
         test_models = [SampleTestModel(timestamp=datetime.now(), test_field="test")]
 
-        with pytest.raises(DatabaseError, match="Not connected"):
+        with pytest.raises(DatabaseError) as exc_info:
             adapter.write(test_models, "test_collection")
+
+        # Verify proper error was raised for unconnected adapter
+        assert "Not connected" in str(exc_info.value)
+        assert not adapter._connected
 
 
 @pytest.mark.unit

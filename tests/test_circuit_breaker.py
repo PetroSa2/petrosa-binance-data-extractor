@@ -76,8 +76,12 @@ class TestCircuitBreaker:
             cb.call(mock_func)
 
         # Circuit should be open and block calls
-        with pytest.raises(RuntimeError, match="Circuit breaker is OPEN"):
+        with pytest.raises(RuntimeError) as exc_info:
             cb.call(mock_func)
+
+        # Verify circuit breaker is open and blocking calls
+        assert "Circuit breaker is OPEN" in str(exc_info.value)
+        assert cb.state == "OPEN"
 
     def test_circuit_recovery(self):
         """Test circuit recovery after timeout."""

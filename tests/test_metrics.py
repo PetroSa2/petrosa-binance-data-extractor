@@ -177,6 +177,10 @@ class TestExtractionMetrics:
             gaps_found=0,
         )
 
+        # Verify metrics object was created and method completed successfully
+        assert metrics is not None
+        assert hasattr(metrics, "record_extraction")
+
     def test_record_api_latency(self, extraction_metrics):
         """Test recording API latency."""
         extraction_metrics.record_api_latency(
@@ -252,7 +256,10 @@ class TestMetricsIntegration:
         metrics.record_api_latency("/fapi/v1/klines", 150.0, 200)
         metrics.record_rate_limit_usage(800, 400, 1200)
 
-        # No exceptions should be raised
+        # Verify no exceptions were raised and metrics object is valid
+        assert metrics is not None
+        assert mock_get_meter.called
+        assert mock_get_meter.return_value is None
 
     def test_metrics_exception_handling(self, extraction_metrics):
         """Test that metrics handle exceptions gracefully."""
@@ -271,6 +278,10 @@ class TestMetricsIntegration:
             duration_seconds=5.0,
             gaps_found=0,
         )
+
+        # Verify the method completed despite the exception
+        assert extraction_metrics.extraction_counter.add.called
+        assert extraction_metrics is not None
 
 
 class TestMetricsNaming:

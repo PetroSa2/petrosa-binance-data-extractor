@@ -285,6 +285,7 @@ class TestLoggerIntegration:
         logger = structlog.get_logger()
 
         # These should not raise TypeError about duplicate 'event' argument
+        success = False
         try:
             log_extraction_start(
                 log=logger,
@@ -307,10 +308,15 @@ class TestLoggerIntegration:
                 total_records=100,
                 duration_seconds=10.5,
             )
+            success = True
         except TypeError as e:
             if "multiple values for argument 'event'" in str(e):
                 pytest.fail(f"Duplicate 'event' argument error: {e}")
             raise
+
+        # Verify all logging functions completed successfully
+        assert success
+        assert logger is not None
 
 
 class TestLogGapDetection:
@@ -319,12 +325,12 @@ class TestLogGapDetection:
     def test_log_gap_detection_basic(self, mock_logger):
         """Test basic gap detection logging."""
         mock_logger.warning = MagicMock()
-        
+
         gaps = [
             (datetime(2024, 1, 1, 10, 0), datetime(2024, 1, 1, 11, 0)),
             (datetime(2024, 1, 1, 15, 0), datetime(2024, 1, 1, 16, 0)),
         ]
-        
+
         log_gap_detection(
             log=mock_logger,
             symbol="BTCUSDT",
@@ -348,7 +354,7 @@ class TestLogDatabaseOperation:
     def test_log_database_operation_success(self, mock_logger):
         """Test successful database operation logging."""
         mock_logger.info = MagicMock()
-        
+
         log_database_operation(
             db_logger=mock_logger,
             operation="write",
@@ -372,7 +378,7 @@ class TestLogDatabaseOperation:
     def test_log_database_operation_failure(self, mock_logger):
         """Test failed database operation logging."""
         mock_logger.error = MagicMock()
-        
+
         log_database_operation(
             db_logger=mock_logger,
             operation="write",

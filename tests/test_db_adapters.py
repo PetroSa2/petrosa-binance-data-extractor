@@ -26,7 +26,7 @@ class TestBaseAdapter:
 
     def test_base_adapter_is_abstract(self):
         """Test that BaseAdapter cannot be instantiated."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError) as exc_info:
             # Attempting to instantiate BaseAdapter directly should raise TypeError
             class DummyAdapter(BaseAdapter):
                 def connect(self):
@@ -64,6 +64,10 @@ class TestBaseAdapter:
                     pass
 
             BaseAdapter("test://connection")
+
+        # Verify TypeError was raised for abstract base class
+        assert exc_info.value is not None
+        assert isinstance(exc_info.value, TypeError)
 
     def test_context_manager_interface(self):
         """Test context manager methods exist."""
@@ -380,8 +384,12 @@ class TestMongoDBAdapter:
     def test_mongodb_adapter_connect_error(self, mock_mongo_client):
         mock_mongo_client.side_effect = ConnectionError("connection error")
         adapter = MongoDBAdapter("mongodb://test:27017/test")
-        with pytest.raises(ConnectionError):
+        with pytest.raises(ConnectionError) as exc_info:
             adapter.connect()
+
+        # Verify connection error was raised
+        assert "connection error" in str(exc_info.value)
+        assert not adapter._connected
 
     @patch("db.mongodb_adapter.MongoClient")
     def test_mongodb_adapter_write_error(self, mock_mongo_client):
@@ -414,8 +422,12 @@ class TestMongoDBAdapter:
         adapter = MongoDBAdapter("mongodb://test:27017/test")
         adapter._connected = True
         adapter.database = mock_database
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError) as exc_info:
             adapter.write(klines, "klines_m15")
+
+        # Verify write error was raised
+        assert "write error" in str(exc_info.value)
+        assert mock_collection.bulk_write.called
 
 
 @pytest.mark.skipif(

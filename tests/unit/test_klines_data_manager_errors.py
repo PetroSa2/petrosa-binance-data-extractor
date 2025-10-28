@@ -1,11 +1,12 @@
 """Tests for error handling in klines_data_manager.py."""
 
-import pytest
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from fetchers.klines_data_manager import KlinesFetcherDataManager
+import pytest
+
 from fetchers.client import BinanceAPIError
+from fetchers.klines_data_manager import KlinesFetcherDataManager
 
 
 @pytest.fixture
@@ -113,10 +114,20 @@ async def test_fetch_and_store_parse_error_handling(klines_fetcher):
 
     # Mock data with one invalid kline that will fail parsing
     valid_kline = [
-        1672531200000, "100", "110", "90", "105", "1000",
-        1672531259999, "105000", 100, "500", "52500", "0"
+        1672531200000,
+        "100",
+        "110",
+        "90",
+        "105",
+        "1000",
+        1672531259999,
+        "105000",
+        100,
+        "500",
+        "52500",
+        "0",
     ]
-    
+
     # First call returns valid data, second returns invalid, third returns empty
     klines_fetcher.client.get_klines.side_effect = [
         [valid_kline],
@@ -125,12 +136,16 @@ async def test_fetch_and_store_parse_error_handling(klines_fetcher):
     ]
 
     # Mock the KlineModel.from_binance_kline to raise error on invalid data
-    with patch("fetchers.klines_data_manager.KlineModel.from_binance_kline") as mock_parse:
+    with patch(
+        "fetchers.klines_data_manager.KlineModel.from_binance_kline"
+    ) as mock_parse:
         mock_parse.side_effect = [
-            MagicMock(close_time=datetime(2023, 1, 1, 0, 0, 59, 999000, tzinfo=UTC)),  # Valid
+            MagicMock(
+                close_time=datetime(2023, 1, 1, 0, 0, 59, 999000, tzinfo=UTC)
+            ),  # Valid
             ValueError("Invalid kline data"),  # Invalid - should be caught and logged
         ]
-        
+
         # Should complete successfully despite parse error
         result = await klines_fetcher.fetch_and_store_klines(
             symbol, interval, start_time, end_time
@@ -138,4 +153,3 @@ async def test_fetch_and_store_parse_error_handling(klines_fetcher):
 
     # Should have processed the valid kline
     assert len(result) >= 1
-
