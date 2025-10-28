@@ -200,7 +200,7 @@ class TestTelemetryManager:
     @patch("utils.telemetry.ConsoleSpanExporter")
     @patch("utils.telemetry.AttributeFilterSpanProcessor")
     @patch("utils.telemetry.trace")
-    def test_setup_tracing_skips_otlp_in_testing_environment(
+    def test_setup_tracing_with_otlp_endpoint_in_testing_environment(
         self,
         mock_trace,
         mock_processor,
@@ -209,7 +209,7 @@ class TestTelemetryManager:
         mock_batch_processor,
         mock_tracer_provider,
     ):
-        """Test tracing setup when OTLP endpoint is configured.
+        """Test tracing setup when OTLP endpoint is configured in testing environment.
 
         NOTE: Current implementation adds OTLP exporter when endpoint is set,
         regardless of environment. Environment-based filtering may be added later.
@@ -248,7 +248,7 @@ class TestTelemetryManager:
     @patch("utils.telemetry.ConsoleSpanExporter")
     @patch("utils.telemetry.AttributeFilterSpanProcessor")
     @patch("utils.telemetry.trace")
-    def test_setup_tracing_uses_otlp_in_non_testing_environment(
+    def test_setup_tracing_with_otlp_endpoint_in_production_environment(
         self,
         mock_trace,
         mock_processor,
@@ -257,7 +257,7 @@ class TestTelemetryManager:
         mock_batch_processor,
         mock_tracer_provider,
     ):
-        """Test that OTLP exporter IS set up when endpoint is configured."""
+        """Test tracing setup when OTLP endpoint is configured in production environment."""
         manager = telemetry.TelemetryManager()
         mock_resource = Mock()
 
