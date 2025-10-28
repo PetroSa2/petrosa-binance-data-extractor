@@ -147,8 +147,12 @@ class TestBaseTimestampedModel:
 
     def test_invalid_timestamp_type_raises_validation_error(self):
         """Test that invalid timestamp types raise ValidationError."""
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             BaseTimestampedModel(timestamp="invalid-timestamp")
+
+        # Verify ValidationError was raised for invalid timestamp
+        assert exc_info.value is not None
+        assert isinstance(exc_info.value, ValidationError)
 
 
 @pytest.mark.unit
@@ -181,8 +185,12 @@ class TestBaseSymbolModel:
         """Test handling of None symbol (should raise validation error)."""
         timestamp = datetime.now()
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             BaseSymbolModel(timestamp=timestamp, symbol=None)
+
+        # Verify ValidationError was raised for None symbol
+        assert exc_info.value is not None
+        assert "symbol" in str(exc_info.value).lower()
 
     def test_inheritance_from_base_timestamped_model(self):
         """Test that BaseSymbolModel inherits from BaseTimestampedModel."""
@@ -336,8 +344,14 @@ class TestExtractionMetadata:
         # Replace the field with invalid value
         valid_data[field_name] = invalid_value
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             ExtractionMetadata(**valid_data)
+
+        # Verify ValidationError was raised for the invalid field
+        assert exc_info.value is not None
+        assert field_name in str(exc_info.value) or field_name in str(
+            exc_info.value.errors()
+        )
 
     def test_errors_encountered_list_handling(self):
         """Test that errors_encountered properly handles list operations."""
