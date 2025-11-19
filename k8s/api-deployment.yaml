@@ -1,0 +1,96 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-extractor-api
+  namespace: petrosa-apps
+  labels:
+    app: binance-data-extractor
+    component: api
+    version: VERSION_PLACEHOLDER
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: binance-data-extractor
+      component: api
+  template:
+    metadata:
+      labels:
+        app: binance-data-extractor
+        component: api
+    spec:
+      serviceAccountName: data-extractor-api
+      containers:
+      - name: api
+        image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
+        imagePullPolicy: Always
+        command:
+        - opentelemetry-instrument
+        - uvicorn
+        - api.main:app
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8080"
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: MODE
+          value: "api"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: petrosa-sensitive-credentials
+              key: MONGODB_URI
+        - name: KUBERNETES_NAMESPACE
+          value: "petrosa-apps"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: LOG_LEVEL
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: ENVIRONMENT
+        - name: ENABLE_OTEL
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: ENABLE_OTEL
+        - name: OTEL_SERVICE_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_SERVICE_VERSION
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: petrosa-common-config
+              key: OTEL_EXPORTER_OTLP_ENDPOINT
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      restartPolicy: Always

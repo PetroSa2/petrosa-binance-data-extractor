@@ -146,6 +146,10 @@ container: ## Test Docker container
 	@echo "📦 Testing Docker container..."
 	docker run --rm $(IMAGE_NAME):latest python -c "print('✅ Container test passed')"
 
+run-api: ## Run the configuration API server locally
+	@echo "🚀 Starting Data Extractor Configuration API..."
+	uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload
+
 # Kubernetes Deployment
 deploy: ## Deploy to Kubernetes cluster
 	@echo "☸️  Deploying to Kubernetes..."

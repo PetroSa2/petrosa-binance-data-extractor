@@ -8,6 +8,13 @@ click>=8.1.0
 # Security
 cryptography>=41.0.0
 
+# Web framework for configuration API
+fastapi>=0.109.0
+httpx>=0.26.0
+
+# Kubernetes client for CronJob management
+kubernetes>=28.1.0
+
 # Messaging
 nats-py>=2.0.0
 
@@ -45,3 +52,4 @@ structlog>=23.0.0
 
 # CLI framework
 typer>=0.9.0
+uvicorn[standard]>=0.27.0
