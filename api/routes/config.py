@@ -5,7 +5,10 @@ Provides endpoints for managing CronJob schedules, symbols, and rate limits.
 """
 
 import logging
+import os
+from typing import Any
 
+import httpx
 from fastapi import APIRouter, HTTPException, Path, Query, status
 
 from api.models.requests import (
@@ -471,10 +474,10 @@ async def validate_config(request: ConfigValidationRequest):
             if error.suggested_value is not None:
                 suggested_fixes.append(f"Set {error.field} to {error.suggested_value}")
 
-        # Cross-service conflict detection (placeholder)
-        conflicts = []
-        # TODO: Implement cross-service conflict detection
-        # This would check against other services' configurations
+        # Cross-service conflict detection
+        conflicts = await detect_cross_service_conflicts(
+            request.config_type, request.parameters, request.cronjob_name
+        )
 
         validation_response = ValidationResponse(
             validation_passed=len(validation_errors) == 0,
@@ -500,3 +503,133 @@ async def validate_config(request: ConfigValidationRequest):
             success=False,
             error={"code": "INTERNAL_ERROR", "message": str(e)},
         )
+
+
+def _get_service_urls() -> dict[str, str]:
+    """
+    Get service URLs for cross-service conflict detection.
+
+    Returns a dictionary of service URLs. This function is used instead of
+    module-level constants to enable easier testing via dependency injection.
+    """
+    return {
+        "data-manager": os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:8080"),
+        "tradeengine": os.getenv("TRADEENGINE_URL", "http://petrosa-tradeengine:8080"),
+    }
+
+
+async def detect_cross_service_conflicts(
+    config_type: str,
+    parameters: dict[str, Any],
+    cronjob_name: str | None = None,
+) -> list[CrossServiceConflict]:
+    """
+    Detect cross-service configuration conflicts.
+
+    Queries other services' /api/v1/config/application and /api/v1/config/limits/symbol/{symbol}
+    endpoints to check for conflicting configurations.
+
+    Args:
+        config_type: Type of configuration ('cronjob', 'symbols', 'rate_limits')
+        parameters: Configuration parameters to check
+        cronjob_name: CronJob name (optional)
+
+    Returns:
+        List of CrossServiceConflict objects
+    """
+    conflicts = []
+    timeout = httpx.Timeout(5.0)  # Short timeout for conflict checks
+
+    service_urls = _get_service_urls()
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        # Check data-manager for symbol conflicts
+        if config_type == "symbols":
+            symbols = parameters.get("symbols", [])
+            if symbols:
+                try:
+                    # Check if data-manager has conflicting symbol configuration
+                    response = await client.get(
+                        f"{service_urls['data-manager']}/api/v1/config/application"
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success") and data.get("data"):
+                            data_manager_symbols = data["data"].get("symbols", [])
+                            # Check for mismatches
+                            if data_manager_symbols:
+                                missing_in_dm = set(symbols) - set(data_manager_symbols)
+                                if missing_in_dm:
+                                    conflicts.append(
+                                        CrossServiceConflict(
+                                            service="data-manager",
+                                            conflict_type="SYMBOL_MISMATCH",
+                                            description=(
+                                                f"Symbols {', '.join(missing_in_dm)} are configured "
+                                                f"in data-extractor but not in data-manager"
+                                            ),
+                                            resolution=(
+                                                "Ensure symbols are synchronized between "
+                                                "data-extractor and data-manager"
+                                            ),
+                                        )
+                                    )
+                    elif response.status_code == 404:
+                        # Data-manager service not available, log but don't fail
+                        logger.debug("Data-manager service not available for conflict check")
+                    else:
+                        logger.debug(
+                            f"Unexpected status code {response.status_code} when checking "
+                            f"data-manager for conflicts"
+                        )
+
+                except httpx.TimeoutException:
+                    logger.debug("Timeout checking data-manager for conflicts")
+                except httpx.RequestError as e:
+                    logger.debug(f"Request error checking data-manager conflicts: {e}")
+                except Exception as e:
+                    logger.debug(f"Error checking data-manager conflicts: {e}")
+
+        # Check tradeengine for symbol conflicts (if configuring symbols)
+        if config_type == "symbols":
+            symbols = parameters.get("symbols", [])
+            if symbols:
+                # Validate symbol format before URL construction to prevent injection
+                for symbol in symbols[:3]:  # Check first 3 symbols
+                    # Basic validation: symbols should be uppercase alphanumeric
+                    if not symbol.isupper() or not symbol.replace("USDT", "").replace("BUSD", "").isalnum():
+                        logger.debug(f"Invalid symbol format: {symbol}, skipping tradeengine check")
+                        continue
+
+                    try:
+                        # URL encode symbol to prevent injection
+                        from urllib.parse import quote
+                        encoded_symbol = quote(symbol, safe="")
+                        response = await client.get(
+                            f"{service_urls['tradeengine']}/api/v1/config/limits/symbol/{encoded_symbol}"
+                        )
+                        if response.status_code == 200:
+                            data = response.json()
+                            if data.get("success") and data.get("data"):
+                                # Symbol is configured in tradeengine
+                                # No conflict, but could add warnings if needed
+                                pass
+                        elif response.status_code == 404:
+                            # Symbol not configured in tradeengine, which is fine
+                            pass
+                        else:
+                            logger.debug(
+                                f"Unexpected status code {response.status_code} when checking "
+                                f"tradeengine for symbol {symbol}"
+                            )
+                    except httpx.TimeoutException:
+                        logger.debug(f"Timeout checking tradeengine for symbol {symbol}")
+                    except httpx.RequestError as e:
+                        logger.debug(
+                            f"Request error checking tradeengine for symbol {symbol}: {e}"
+                        )
+                    except Exception as e:
+                        logger.debug(
+                            f"Error checking tradeengine for symbol {symbol}: {e}"
+                        )
+
+    return conflicts

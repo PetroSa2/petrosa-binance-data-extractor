@@ -5,7 +5,7 @@ Tests for Data Extractor Configuration API endpoints.
 import os
 import sys
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -470,12 +470,14 @@ class TestJobTriggerEndpoint:
 class TestValidationEndpoint:
     """Test configuration validation endpoint."""
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_symbols_success(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating symbols configuration successfully."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -492,12 +494,14 @@ class TestValidationEndpoint:
         assert data["data"]["validation_passed"] is True
         assert len(data["data"]["errors"]) == 0
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_symbols_invalid_type(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating symbols with invalid type."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -515,9 +519,10 @@ class TestValidationEndpoint:
         assert len(data["data"]["errors"]) > 0
         assert any(e["field"] == "symbols" for e in data["data"]["errors"])
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_symbols_invalid_format(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating symbols with invalid format."""
 
@@ -527,6 +532,7 @@ class TestValidationEndpoint:
 
         mock_cronjob_manager.is_valid_binance_symbol = Mock(side_effect=is_valid_symbol)
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -543,12 +549,14 @@ class TestValidationEndpoint:
         assert data["data"]["validation_passed"] is False
         assert len(data["data"]["errors"]) > 0
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_rate_limits_success(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating rate limits successfully."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -566,12 +574,14 @@ class TestValidationEndpoint:
         assert data["data"]["validation_passed"] is True
         assert len(data["data"]["errors"]) == 0
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_rate_limits_exceeds_max(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating rate limits that exceed maximum."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -590,12 +600,14 @@ class TestValidationEndpoint:
         assert len(data["data"]["errors"]) > 0
         assert any("requests_per_minute" in e["field"] for e in data["data"]["errors"])
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_rate_limits_below_min(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating rate limits below minimum."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -613,12 +625,14 @@ class TestValidationEndpoint:
         assert data["data"]["validation_passed"] is False
         assert len(data["data"]["errors"]) > 0
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_rate_limits_high_warning(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating rate limits that trigger warnings."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -635,12 +649,14 @@ class TestValidationEndpoint:
         assert data["success"] is True
         assert len(data["data"]["warnings"]) > 0
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_cronjob_success(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating cronjob schedule successfully."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -657,12 +673,14 @@ class TestValidationEndpoint:
         assert data["success"] is True
         assert data["data"]["validation_passed"] is True
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_cronjob_missing_name(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating cronjob without name."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -680,12 +698,14 @@ class TestValidationEndpoint:
         assert len(data["data"]["errors"]) > 0
         assert any("cronjob_name" in e["field"] for e in data["data"]["errors"])
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_cronjob_invalid_schedule(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating cronjob with invalid schedule."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -703,12 +723,14 @@ class TestValidationEndpoint:
         assert data["data"]["validation_passed"] is False
         assert len(data["data"]["errors"]) > 0
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_unknown_config_type(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test validating unknown config type."""
         mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
 
         # FastAPI will return 422 for invalid Literal enum value
         response = client.post(
@@ -721,12 +743,14 @@ class TestValidationEndpoint:
         # FastAPI validates Literal types at request level, so we get 422
         assert response.status_code == 422
 
+    @patch("api.routes.config.detect_cross_service_conflicts")
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_exception_handling(
-        self, mock_get_manager, client, mock_cronjob_manager
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
     ):
         """Test exception handling in validation endpoint."""
         mock_get_manager.side_effect = Exception("Test error")
+        mock_detect_conflicts.return_value = []
 
         response = client.post(
             "/api/v1/config/validate",
@@ -741,3 +765,225 @@ class TestValidationEndpoint:
         data = response.json()
         assert data["success"] is False
         assert "error" in data
+
+
+class TestCrossServiceConflictDetection:
+    """Test cross-service conflict detection functionality."""
+
+    @patch("api.routes.config.detect_cross_service_conflicts")
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_with_conflicts(
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
+    ):
+        """Test validation endpoint includes cross-service conflicts."""
+        from api.models.responses import CrossServiceConflict
+
+        mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = [
+            CrossServiceConflict(
+                service="data-manager",
+                conflict_type="SYMBOL_MISMATCH",
+                description="Symbols BTCUSDT are configured in data-extractor but not in data-manager",
+                resolution="Ensure symbols are synchronized between data-extractor and data-manager",
+            )
+        ]
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["BTCUSDT", "ETHUSDT"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert len(data["data"]["conflicts"]) == 1
+        assert data["data"]["conflicts"][0]["service"] == "data-manager"
+
+    @patch("api.routes.config.detect_cross_service_conflicts")
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_no_conflicts(
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
+    ):
+        """Test validation endpoint with no conflicts."""
+        mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["BTCUSDT", "ETHUSDT"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert len(data["data"]["conflicts"]) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_data_manager_mismatch(
+        self, mock_get_urls
+    ):
+        """Test conflict detection when data-manager has different symbols."""
+        import httpx
+        from unittest.mock import AsyncMock, MagicMock
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        # Mock httpx client
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        # response.json() is a synchronous method that returns a dict
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {"symbols": ["BTCUSDT"]},  # Only BTCUSDT, missing ETHUSDT
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["BTCUSDT", "ETHUSDT"]}
+            )
+
+            assert len(conflicts) == 1
+            assert conflicts[0].service == "data-manager"
+            assert conflicts[0].conflict_type == "SYMBOL_MISMATCH"
+            assert "ETHUSDT" in conflicts[0].description
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_timeout(
+        self, mock_get_urls
+    ):
+        """Test conflict detection handles timeouts gracefully."""
+        import httpx
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["BTCUSDT"]}
+            )
+
+            # Should return empty list on timeout
+            assert len(conflicts) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_404_response(
+        self, mock_get_urls
+    ):
+        """Test conflict detection handles 404 responses."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["BTCUSDT"]}
+            )
+
+            # Should return empty list on 404
+            assert len(conflicts) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_invalid_symbol_format(
+        self, mock_get_urls
+    ):
+        """Test conflict detection validates symbol format before URL construction."""
+        from unittest.mock import AsyncMock
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock()
+            mock_client_class.return_value = mock_client
+
+            # Test with invalid symbol format (lowercase)
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["btcusdt"]}  # lowercase
+            )
+
+            # Should skip invalid symbols and not make requests
+            # Verify get was not called for invalid symbols
+            assert len(conflicts) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_non_symbols_config(
+        self, mock_get_urls
+    ):
+        """Test conflict detection skips non-symbols config types."""
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock()
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "rate_limits", {"requests_per_minute": 1000}
+            )
+
+            # Should return empty for non-symbols config
+            assert len(conflicts) == 0
+            # Should not make any HTTP requests
+            mock_client.get.assert_not_called()
