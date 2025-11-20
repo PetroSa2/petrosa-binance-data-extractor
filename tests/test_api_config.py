@@ -710,6 +710,7 @@ class TestValidationEndpoint:
         """Test validating unknown config type."""
         mock_get_manager.return_value = mock_cronjob_manager
 
+        # FastAPI will return 422 for invalid Literal enum value
         response = client.post(
             "/api/v1/config/validate",
             json={
@@ -717,11 +718,8 @@ class TestValidationEndpoint:
                 "parameters": {},
             },
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert data["data"]["validation_passed"] is False
-        assert len(data["data"]["errors"]) > 0
+        # FastAPI validates Literal types at request level, so we get 422
+        assert response.status_code == 422
 
     @patch("api.routes.config.get_cronjob_manager")
     def test_validate_exception_handling(
