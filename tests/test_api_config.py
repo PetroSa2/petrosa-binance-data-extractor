@@ -520,6 +520,12 @@ class TestValidationEndpoint:
         self, mock_get_manager, client, mock_cronjob_manager
     ):
         """Test validating symbols with invalid format."""
+
+        # Mock is_valid_binance_symbol to return False for invalid symbols
+        def is_valid_symbol(symbol):
+            return symbol.isupper() and len(symbol) >= 5 and "-" not in symbol
+
+        mock_cronjob_manager.is_valid_binance_symbol = Mock(side_effect=is_valid_symbol)
         mock_get_manager.return_value = mock_cronjob_manager
 
         response = client.post(
