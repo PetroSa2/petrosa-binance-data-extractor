@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-# Add project root to path
+# Add project root to path (must be before imports)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
