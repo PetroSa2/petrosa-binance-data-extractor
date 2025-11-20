@@ -8,8 +8,21 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Path, Query, status
 
-from api.models.requests import CronJobScheduleUpdate, RateLimitsUpdate, SymbolsUpdate
-from api.models.responses import APIResponse, CronJobInfo, RateLimitsInfo, SymbolsInfo
+from api.models.requests import (
+    ConfigValidationRequest,
+    CronJobScheduleUpdate,
+    RateLimitsUpdate,
+    SymbolsUpdate,
+)
+from api.models.responses import (
+    APIResponse,
+    CronJobInfo,
+    CrossServiceConflict,
+    RateLimitsInfo,
+    SymbolsInfo,
+    ValidationError,
+    ValidationResponse,
+)
 from services.config_manager import get_config_manager
 from services.cronjob_manager import get_cronjob_manager
 
@@ -237,6 +250,252 @@ async def update_rate_limits(request: RateLimitsUpdate):
         )
     except Exception as e:
         logger.error(f"Error updating rate limits: {e}")
+        return APIResponse(
+            success=False,
+            error={"code": "INTERNAL_ERROR", "message": str(e)},
+        )
+
+
+@router.post("/validate", response_model=APIResponse)
+async def validate_config(request: ConfigValidationRequest):
+    """
+    Validate configuration without applying changes.
+
+    **For LLM Agents**: Validate configuration parameters before applying them.
+
+    This endpoint performs comprehensive validation including:
+    - Parameter type and constraint validation
+    - Format validation (cron expressions, symbol formats)
+    - Range validation (rate limits)
+    - Dependency validation
+
+    **Example Request**:
+    ```json
+    {
+      "config_type": "rate_limits",
+      "parameters": {
+        "requests_per_minute": 1000,
+        "concurrent_requests": 5
+      }
+    }
+    ```
+
+    **Example Response**:
+    ```json
+    {
+      "success": true,
+      "data": {
+        "validation_passed": true,
+        "errors": [],
+        "warnings": [],
+        "suggested_fixes": [],
+        "estimated_impact": {
+          "risk_level": "low",
+          "affected_scope": "rate_limits"
+        },
+        "conflicts": []
+      }
+    }
+    ```
+    """
+    try:
+        validation_errors = []
+        warnings = []
+        suggested_fixes = []
+        estimated_impact = {}
+
+        # Validate based on config type
+        if request.config_type == "symbols":
+            symbols = request.parameters.get("symbols", [])
+            if not isinstance(symbols, list):
+                validation_errors.append(
+                    ValidationError(
+                        field="symbols",
+                        message="Symbols must be a list",
+                        code="INVALID_TYPE",
+                        suggested_value=[],
+                    )
+                )
+            else:
+                cronjob_manager = get_cronjob_manager()
+                for symbol in symbols:
+                    if not isinstance(symbol, str):
+                        validation_errors.append(
+                            ValidationError(
+                                field="symbols",
+                                message=f"Symbol must be a string, got {type(symbol).__name__}",
+                                code="INVALID_TYPE",
+                                suggested_value=str(symbol),
+                            )
+                        )
+                    elif not cronjob_manager.is_valid_binance_symbol(symbol):
+                        validation_errors.append(
+                            ValidationError(
+                                field="symbols",
+                                message=f"Invalid symbol format: {symbol}",
+                                code="INVALID_FORMAT",
+                                suggested_value=symbol.upper(),
+                            )
+                        )
+
+                estimated_impact = {
+                    "risk_level": "low",
+                    "affected_scope": f"{len(symbols)} symbols",
+                    "message": "Changing symbols will affect all extraction jobs",
+                }
+
+        elif request.config_type == "rate_limits":
+            requests_per_minute = request.parameters.get("requests_per_minute")
+            concurrent_requests = request.parameters.get("concurrent_requests")
+
+            if requests_per_minute is not None:
+                if not isinstance(requests_per_minute, int):
+                    validation_errors.append(
+                        ValidationError(
+                            field="requests_per_minute",
+                            message="Must be an integer",
+                            code="INVALID_TYPE",
+                            suggested_value=1200,
+                        )
+                    )
+                elif requests_per_minute < 1:
+                    validation_errors.append(
+                        ValidationError(
+                            field="requests_per_minute",
+                            message="Must be at least 1",
+                            code="OUT_OF_RANGE",
+                            suggested_value=1,
+                        )
+                    )
+                elif requests_per_minute > 1200:
+                    validation_errors.append(
+                        ValidationError(
+                            field="requests_per_minute",
+                            message="Exceeds Binance API limit of 1200/min",
+                            code="OUT_OF_RANGE",
+                            suggested_value=1200,
+                        )
+                    )
+                elif requests_per_minute > 1000:
+                    warnings.append(
+                        "High request rate may trigger Binance rate limiting"
+                    )
+
+            if concurrent_requests is not None:
+                if not isinstance(concurrent_requests, int):
+                    validation_errors.append(
+                        ValidationError(
+                            field="concurrent_requests",
+                            message="Must be an integer",
+                            code="INVALID_TYPE",
+                            suggested_value=5,
+                        )
+                    )
+                elif concurrent_requests < 1:
+                    validation_errors.append(
+                        ValidationError(
+                            field="concurrent_requests",
+                            message="Must be at least 1",
+                            code="OUT_OF_RANGE",
+                            suggested_value=1,
+                        )
+                    )
+                elif concurrent_requests > 10:
+                    validation_errors.append(
+                        ValidationError(
+                            field="concurrent_requests",
+                            message="Maximum concurrent requests is 10",
+                            code="OUT_OF_RANGE",
+                            suggested_value=10,
+                        )
+                    )
+
+            estimated_impact = {
+                "risk_level": "medium"
+                if requests_per_minute and requests_per_minute > 800
+                else "low",
+                "affected_scope": "all extraction jobs",
+                "message": "Rate limit changes affect all API calls to Binance",
+            }
+
+        elif request.config_type == "cronjob":
+            if not request.cronjob_name:
+                validation_errors.append(
+                    ValidationError(
+                        field="cronjob_name",
+                        message="cronjob_name is required for cronjob config type",
+                        code="MISSING_REQUIRED_FIELD",
+                        suggested_value=None,
+                    )
+                )
+
+            schedule = request.parameters.get("schedule")
+            if schedule:
+                if not isinstance(schedule, str):
+                    validation_errors.append(
+                        ValidationError(
+                            field="schedule",
+                            message="Schedule must be a string",
+                            code="INVALID_TYPE",
+                            suggested_value="*/15 * * * *",
+                        )
+                    )
+                elif not validate_cron_expression(schedule):
+                    validation_errors.append(
+                        ValidationError(
+                            field="schedule",
+                            message=f"Invalid cron expression: {schedule}",
+                            code="INVALID_FORMAT",
+                            suggested_value="*/15 * * * *",
+                        )
+                    )
+
+            estimated_impact = {
+                "risk_level": "low",
+                "affected_scope": request.cronjob_name or "unknown cronjob",
+                "message": "Changing schedule affects extraction frequency",
+            }
+
+        else:
+            validation_errors.append(
+                ValidationError(
+                    field="config_type",
+                    message=f"Unknown config type: {request.config_type}",
+                    code="INVALID_VALUE",
+                    suggested_value="symbols",
+                )
+            )
+
+        # Generate suggested fixes
+        for error in validation_errors:
+            if error.suggested_value is not None:
+                suggested_fixes.append(f"Set {error.field} to {error.suggested_value}")
+
+        # Cross-service conflict detection (placeholder)
+        conflicts = []
+        # TODO: Implement cross-service conflict detection
+        # This would check against other services' configurations
+
+        validation_response = ValidationResponse(
+            validation_passed=len(validation_errors) == 0,
+            errors=validation_errors,
+            warnings=warnings,
+            suggested_fixes=suggested_fixes,
+            estimated_impact=estimated_impact,
+            conflicts=conflicts,
+        )
+
+        return APIResponse(
+            success=True,
+            data=validation_response,
+            metadata={
+                "validation_mode": "dry_run",
+                "config_type": request.config_type,
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"Error validating config: {e}")
         return APIResponse(
             success=False,
             error={"code": "INTERNAL_ERROR", "message": str(e)},

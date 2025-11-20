@@ -57,6 +57,7 @@ def create_app() -> FastAPI:
                 "/api/v1/config/cronjobs",
                 "/api/v1/config/symbols",
                 "/api/v1/config/rate-limits",
+                "/api/v1/config/validate",
                 "/api/v1/jobs/trigger",
                 "/docs",
             ],

@@ -44,3 +44,50 @@ class RateLimitsInfo(BaseModel):
     requests_per_minute: int = Field(..., description="Requests per minute limit")
     concurrent_requests: int = Field(..., description="Maximum concurrent requests")
     last_updated: Optional[datetime] = Field(None, description="Last update timestamp")
+
+
+class ValidationError(BaseModel):
+    """Standardized validation error format."""
+
+    field: str = Field(..., description="Parameter name that failed validation")
+    message: str = Field(..., description="Human-readable error message")
+    code: str = Field(
+        ..., description="Error code (e.g., 'INVALID_TYPE', 'OUT_OF_RANGE')"
+    )
+    suggested_value: Optional[Any] = Field(
+        None, description="Suggested correct value if applicable"
+    )
+
+
+class CrossServiceConflict(BaseModel):
+    """Cross-service configuration conflict."""
+
+    service: str = Field(..., description="Service name with conflicting configuration")
+    conflict_type: str = Field(
+        ..., description="Type of conflict (e.g., 'PARAMETER_CONFLICT')"
+    )
+    description: str = Field(..., description="Description of the conflict")
+    resolution: Optional[str] = Field(
+        None, description="Suggested resolution for the conflict"
+    )
+
+
+class ValidationResponse(BaseModel):
+    """Standardized validation response across all services."""
+
+    validation_passed: bool = Field(..., description="Whether validation passed")
+    errors: list[ValidationError] = Field(
+        default_factory=list, description="List of validation errors"
+    )
+    warnings: list[str] = Field(
+        default_factory=list, description="List of validation warnings"
+    )
+    suggested_fixes: list[str] = Field(
+        default_factory=list, description="Suggested fixes for validation errors"
+    )
+    estimated_impact: dict[str, Any] = Field(
+        default_factory=dict, description="Estimated impact of the configuration change"
+    )
+    conflicts: list[CrossServiceConflict] = Field(
+        default_factory=list, description="Cross-service configuration conflicts"
+    )
