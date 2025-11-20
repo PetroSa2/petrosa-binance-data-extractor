@@ -465,3 +465,275 @@ class TestJobTriggerEndpoint:
         data = response.json()
         assert data["success"] is False
         assert "error" in data
+
+
+class TestValidationEndpoint:
+    """Test configuration validation endpoint."""
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_success(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating symbols configuration successfully."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is True
+        assert len(data["data"]["errors"]) == 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_invalid_type(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating symbols with invalid type."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": "not-a-list",
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+        assert any(e["field"] == "symbols" for e in data["data"]["errors"])
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_invalid_format(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating symbols with invalid format."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["btcusdt", "invalid-symbol"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_rate_limits_success(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating rate limits successfully."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "rate_limits",
+                "parameters": {
+                    "requests_per_minute": 1000,
+                    "concurrent_requests": 5,
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is True
+        assert len(data["data"]["errors"]) == 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_rate_limits_exceeds_max(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating rate limits that exceed maximum."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "rate_limits",
+                "parameters": {
+                    "requests_per_minute": 1500,
+                    "concurrent_requests": 5,
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+        assert any("requests_per_minute" in e["field"] for e in data["data"]["errors"])
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_rate_limits_below_min(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating rate limits below minimum."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "rate_limits",
+                "parameters": {
+                    "requests_per_minute": 0,
+                    "concurrent_requests": 0,
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_rate_limits_high_warning(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating rate limits that trigger warnings."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "rate_limits",
+                "parameters": {
+                    "requests_per_minute": 1100,
+                    "concurrent_requests": 5,
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert len(data["data"]["warnings"]) > 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_cronjob_success(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating cronjob schedule successfully."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "cronjob",
+                "cronjob_name": "test-cronjob",
+                "parameters": {
+                    "schedule": "*/15 * * * *",
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is True
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_cronjob_missing_name(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating cronjob without name."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "cronjob",
+                "parameters": {
+                    "schedule": "*/15 * * * *",
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+        assert any("cronjob_name" in e["field"] for e in data["data"]["errors"])
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_cronjob_invalid_schedule(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating cronjob with invalid schedule."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "cronjob",
+                "cronjob_name": "test-cronjob",
+                "parameters": {
+                    "schedule": "invalid cron",
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_unknown_config_type(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test validating unknown config type."""
+        mock_get_manager.return_value = mock_cronjob_manager
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "unknown_type",
+                "parameters": {},
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["validation_passed"] is False
+        assert len(data["data"]["errors"]) > 0
+
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_exception_handling(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
+        """Test exception handling in validation endpoint."""
+        mock_get_manager.side_effect = Exception("Test error")
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["BTCUSDT"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is False
+        assert "error" in data
