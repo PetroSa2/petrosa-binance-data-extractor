@@ -418,6 +418,18 @@ class TestJobTriggerEndpoint:
         self, mock_get_manager, client, mock_cronjob_manager
     ):
         """Test triggering job for all symbols."""
+        # Update mock to return correct timeframe based on request
+        def create_job_side_effect(cronjob_name, timeframe, symbol):
+            return {
+                "name": f"manual-extract-{timeframe}-1234567890",
+                "namespace": "petrosa-apps",
+                "timeframe": timeframe,
+                "symbol": symbol or "all",
+            }
+
+        mock_cronjob_manager.create_job_from_cronjob = Mock(
+            side_effect=create_job_side_effect
+        )
         mock_get_manager.return_value = mock_cronjob_manager
 
         response = client.post(
