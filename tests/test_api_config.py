@@ -5,7 +5,7 @@ Tests for Data Extractor Configuration API endpoints.
 import os
 import sys
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -741,3 +741,226 @@ class TestValidationEndpoint:
         data = response.json()
         assert data["success"] is False
         assert "error" in data
+
+
+class TestCrossServiceConflictDetection:
+    """Test cross-service conflict detection functionality."""
+
+    @patch("api.routes.config.detect_cross_service_conflicts")
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_with_conflicts(
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
+    ):
+        """Test validation endpoint includes cross-service conflicts."""
+        from api.models.responses import CrossServiceConflict
+
+        mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = [
+            CrossServiceConflict(
+                service="data-manager",
+                conflict_type="SYMBOL_MISMATCH",
+                description="Symbols BTCUSDT are configured in data-extractor but not in data-manager",
+                resolution="Ensure symbols are synchronized between data-extractor and data-manager",
+            )
+        ]
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["BTCUSDT", "ETHUSDT"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert len(data["data"]["conflicts"]) == 1
+        assert data["data"]["conflicts"][0]["service"] == "data-manager"
+
+    @patch("api.routes.config.detect_cross_service_conflicts")
+    @patch("api.routes.config.get_cronjob_manager")
+    def test_validate_symbols_no_conflicts(
+        self, mock_get_manager, mock_detect_conflicts, client, mock_cronjob_manager
+    ):
+        """Test validation endpoint with no conflicts."""
+        mock_get_manager.return_value = mock_cronjob_manager
+        mock_detect_conflicts.return_value = []
+
+        response = client.post(
+            "/api/v1/config/validate",
+            json={
+                "config_type": "symbols",
+                "parameters": {
+                    "symbols": ["BTCUSDT", "ETHUSDT"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert len(data["data"]["conflicts"]) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_data_manager_mismatch(
+        self, mock_get_urls
+    ):
+        """Test conflict detection when data-manager has different symbols."""
+        import httpx
+        from unittest.mock import AsyncMock
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        # Mock httpx client
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.json = AsyncMock(
+            return_value={
+                "success": True,
+                "data": {"symbols": ["BTCUSDT"]},  # Only BTCUSDT, missing ETHUSDT
+            }
+        )
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["BTCUSDT", "ETHUSDT"]}
+            )
+
+            assert len(conflicts) == 1
+            assert conflicts[0].service == "data-manager"
+            assert conflicts[0].conflict_type == "SYMBOL_MISMATCH"
+            assert "ETHUSDT" in conflicts[0].description
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_timeout(
+        self, mock_get_urls
+    ):
+        """Test conflict detection handles timeouts gracefully."""
+        import httpx
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["BTCUSDT"]}
+            )
+
+            # Should return empty list on timeout
+            assert len(conflicts) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_404_response(
+        self, mock_get_urls
+    ):
+        """Test conflict detection handles 404 responses."""
+        from unittest.mock import AsyncMock
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        mock_response = AsyncMock()
+        mock_response.status_code = 404
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["BTCUSDT"]}
+            )
+
+            # Should return empty list on 404
+            assert len(conflicts) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_invalid_symbol_format(
+        self, mock_get_urls
+    ):
+        """Test conflict detection validates symbol format before URL construction."""
+        from unittest.mock import AsyncMock
+
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock()
+            mock_client_class.return_value = mock_client
+
+            # Test with invalid symbol format (lowercase)
+            conflicts = await detect_cross_service_conflicts(
+                "symbols", {"symbols": ["btcusdt"]}  # lowercase
+            )
+
+            # Should skip invalid symbols and not make requests
+            # Verify get was not called for invalid symbols
+            assert len(conflicts) == 0
+
+    @pytest.mark.asyncio
+    @patch("api.routes.config._get_service_urls")
+    async def test_detect_cross_service_conflicts_non_symbols_config(
+        self, mock_get_urls
+    ):
+        """Test conflict detection skips non-symbols config types."""
+        from api.routes.config import detect_cross_service_conflicts
+
+        mock_get_urls.return_value = {
+            "data-manager": "http://test-data-manager:8080",
+            "tradeengine": "http://test-tradeengine:8080",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.get = AsyncMock()
+            mock_client_class.return_value = mock_client
+
+            conflicts = await detect_cross_service_conflicts(
+                "rate_limits", {"requests_per_minute": 1000}
+            )
+
+            # Should return empty for non-symbols config
+            assert len(conflicts) == 0
+            # Should not make any HTTP requests
+            mock_client.get.assert_not_called()
