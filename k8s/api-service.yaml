@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-extractor-api
+  namespace: petrosa-apps
+  labels:
+    app: binance-data-extractor
+    component: api
+    version: VERSION_PLACEHOLDER
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: binance-data-extractor
+    component: api

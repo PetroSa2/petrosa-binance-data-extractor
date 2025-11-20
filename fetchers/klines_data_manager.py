@@ -183,7 +183,9 @@ class KlinesFetcherDataManager:
                         time.sleep(constants.REQUEST_DELAY_SECONDS)
 
                 except BinanceAPIError as e:
-                    logger.error("API error fetching klines", symbol=symbol, error=str(e))
+                    logger.error(
+                        "API error fetching klines", symbol=symbol, error=str(e)
+                    )
                     if e.status_code == 429:  # Rate limit
                         # Wait longer and retry
                         time.sleep(60)
