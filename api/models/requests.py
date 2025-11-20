@@ -2,7 +2,7 @@
 Pydantic request models for API endpoints.
 """
 
-from typing import List, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -46,3 +46,17 @@ class JobTriggerRequest(BaseModel):
     timeframe: str = Field(..., description="Timeframe: 1m, 5m, 15m, 1h, 4h, 1d")
     symbol: Optional[str] = Field(None, description="Specific symbol or None for all")
     reason: str = Field(..., description="Reason for manual trigger")
+
+
+class ConfigValidationRequest(BaseModel):
+    """Request model for configuration validation."""
+
+    config_type: Literal["symbols", "rate_limits", "cronjob"] = Field(
+        ..., description="Type of configuration to validate"
+    )
+    parameters: dict[str, Any] = Field(
+        ..., description="Configuration parameters to validate"
+    )
+    cronjob_name: Optional[str] = Field(
+        None, description="CronJob name (required for cronjob config type)"
+    )

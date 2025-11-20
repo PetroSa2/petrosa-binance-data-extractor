@@ -418,6 +418,7 @@ class TestJobTriggerEndpoint:
         self, mock_get_manager, client, mock_cronjob_manager
     ):
         """Test triggering job for all symbols."""
+
         # Update mock to return correct timeframe based on request
         def create_job_side_effect(cronjob_name, timeframe, symbol):
             return {
