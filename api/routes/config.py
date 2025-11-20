@@ -5,7 +5,6 @@ Provides endpoints for managing CronJob schedules, symbols, and rate limits.
 """
 
 import logging
-from typing import List
 
 from fastapi import APIRouter, HTTPException, Path, Query, status
 

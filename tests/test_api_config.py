@@ -111,7 +111,9 @@ class TestCronJobEndpoints:
     """Test CronJob management endpoints."""
 
     @patch("api.routes.config.get_cronjob_manager")
-    def test_list_cronjobs_success(self, mock_get_manager, client, mock_cronjob_manager):
+    def test_list_cronjobs_success(
+        self, mock_get_manager, client, mock_cronjob_manager
+    ):
         """Test listing CronJobs."""
         mock_get_manager.return_value = mock_cronjob_manager
 
@@ -450,4 +452,3 @@ class TestJobTriggerEndpoint:
         data = response.json()
         assert data["success"] is False
         assert "error" in data
-

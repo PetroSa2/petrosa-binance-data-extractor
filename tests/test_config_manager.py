@@ -12,7 +12,11 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from services.config_manager import ConfigManager, get_config_manager, set_config_manager  # noqa: E402
+from services.config_manager import (
+    ConfigManager,
+    get_config_manager,
+    set_config_manager,
+)
 
 
 class TestConfigManager:
@@ -129,4 +133,3 @@ class TestConfigManagerSingleton:
         assert get_config_manager() is new_manager
         # Restore original
         set_config_manager(original)
-

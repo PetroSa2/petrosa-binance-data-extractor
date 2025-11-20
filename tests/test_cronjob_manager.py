@@ -53,9 +53,7 @@ class TestCronJobManager:
 
     @patch("services.cronjob_manager.k8s_config.load_incluster_config")
     @patch("services.cronjob_manager.client.BatchV1Api")
-    def test_update_cronjob_schedule_success(
-        self, mock_batch_api, mock_load_config
-    ):
+    def test_update_cronjob_schedule_success(self, mock_batch_api, mock_load_config):
         """Test updating CronJob schedule."""
         from services.cronjob_manager import CronJobManager
 
@@ -84,9 +82,7 @@ class TestCronJobManager:
 
     @patch("services.cronjob_manager.k8s_config.load_incluster_config")
     @patch("services.cronjob_manager.client.BatchV1Api")
-    def test_create_job_from_cronjob_success(
-        self, mock_batch_api, mock_load_config
-    ):
+    def test_create_job_from_cronjob_success(self, mock_batch_api, mock_load_config):
         """Test creating Job from CronJob template."""
         from services.cronjob_manager import CronJobManager
 
@@ -111,11 +107,8 @@ class TestCronJobManager:
         mock_api.create_namespaced_job.return_value = mock_job
 
         manager = CronJobManager()
-        result = manager.create_job_from_cronjob(
-            "test-cronjob", "15m", "BTCUSDT"
-        )
+        result = manager.create_job_from_cronjob("test-cronjob", "15m", "BTCUSDT")
 
         assert result["timeframe"] == "15m"
         assert result["symbol"] == "BTCUSDT"
         mock_api.create_namespaced_job.assert_called_once()
-
