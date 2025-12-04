@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import config, jobs
+from api.routes import config, jobs, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(config.router, prefix="/api/v1", tags=["Configuration"])
     app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
+    app.include_router(metrics.router, tags=["Performance Metrics"])
 
     @app.get("/")
     async def root():
@@ -59,6 +60,9 @@ def create_app() -> FastAPI:
                 "/api/v1/config/rate-limits",
                 "/api/v1/config/validate",
                 "/api/v1/jobs/trigger",
+                "/api/v1/metrics/performance",
+                "/api/v1/metrics/success-rates",
+                "/api/v1/metrics/resource-usage",
                 "/docs",
             ],
         }

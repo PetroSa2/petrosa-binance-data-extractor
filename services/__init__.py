@@ -1,1 +1,1 @@
-"""Services package."""
+"""Services package for Binance Data Extractor"""
