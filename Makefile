@@ -139,12 +139,12 @@ security: ## Run comprehensive security scans (gitleaks, detect-secrets, bandit,
 # Docker
 build: ## Build Docker image
 	@echo "🐳 Building Docker image..."
-	docker build -t $(IMAGE_NAME):latest .
+	docker build -t $(IMAGE_NAME):dev .
 	@echo "✅ Docker build completed!"
 
 container: ## Test Docker container
 	@echo "📦 Testing Docker container..."
-	docker run --rm $(IMAGE_NAME):latest python -c "print('✅ Container test passed')"
+	docker run --rm $(IMAGE_NAME):dev python -c "print('✅ Container test passed')"
 
 run-api: ## Run the configuration API server locally
 	@echo "🚀 Starting Data Extractor Configuration API..."

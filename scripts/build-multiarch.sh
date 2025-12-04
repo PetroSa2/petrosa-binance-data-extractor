@@ -54,7 +54,6 @@ docker buildx build \
     --build-arg COMMIT_SHA="${COMMIT_SHA}" \
     --build-arg BUILD_DATE="${BUILD_DATE}" \
     --tag "${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${VERSION}" \
-    --tag "${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:latest" \
     --push \
     .
 
