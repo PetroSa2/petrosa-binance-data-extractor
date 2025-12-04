@@ -4,7 +4,7 @@ fix: resolve BatchSpanProcessor NameError in telemetry module (#150)
 ALL CronJobs were failing immediately on startup with:
   NameError: name 'BatchSpanProcessor' is not defined
 
-Root cause: AttributeFilterSpanProcessor class inherited from 
+Root cause: AttributeFilterSpanProcessor class inherited from
 BatchSpanProcessor outside the conditional import block, causing
 NameError when OpenTelemetry imports failed.
 
@@ -42,4 +42,3 @@ starved of data.
 
 Priority: P0 (Critical)
 Issue: #150
-
