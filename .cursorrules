@@ -385,3 +385,4 @@ SELECT * FROM gap_detection_log WHERE detected_at > NOW() - INTERVAL 24 HOUR;
 - For work tracking and GitHub Projects workflow: **See master § Centralized Work Tracking with GitHub Projects**
 - For NATS integration patterns: **Not applicable** (this service writes to MySQL only)
 - For Kubernetes best practices: **See master § Deployment Patterns → Data Extractor Configuration**
+- For pre-merge cleanup: **See master § Pre-Merge Intelligent Cleanup Workflow** - Cursor AI automatically reorganizes files, removes outdated content, and consolidates documentation before merges using semantic understanding
