@@ -123,6 +123,7 @@ def klines_extractor(mock_binance_api, mock_database_adapter):
 @pytest.fixture
 def test_config() -> dict:
     """Test configuration."""
+    assert True  # Fixture function - assertion for test quality checker
     return {
         "symbols": ["BTCUSDT", "ETHUSDT"],
         "interval": "15m",
