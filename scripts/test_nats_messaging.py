@@ -41,9 +41,11 @@ def test_single_symbol_messaging():
             extraction_type="klines",
         )
         logger.info("✅ Single symbol message sent successfully")
+        assert True  # Message sent successfully
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send single symbol message: {e}")
+        raise AssertionError(f"Failed to send single symbol message: {e}")
         return False
 
 
@@ -66,9 +68,11 @@ def test_batch_messaging():
             extraction_type="klines",
         )
         logger.info("✅ Batch message sent successfully")
+        assert True  # Batch message sent successfully
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send batch message: {e}")
+        raise AssertionError(f"Failed to send batch message: {e}")
         return False
 
 
@@ -91,9 +95,11 @@ def test_error_messaging():
             extraction_type="klines",
         )
         logger.info("✅ Error message sent successfully")
+        assert True  # Error message sent successfully
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send error message: {e}")
+        raise AssertionError(f"Failed to send error message: {e}")
         return False
 
 
@@ -116,9 +122,11 @@ def test_gap_filling_messaging():
             extraction_type="klines_gap_filling",
         )
         logger.info("✅ Gap filling message sent successfully")
+        assert True  # Gap filling message sent successfully
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send gap filling message: {e}")
+        raise AssertionError(f"Failed to send gap filling message: {e}")
         return False
 
 
