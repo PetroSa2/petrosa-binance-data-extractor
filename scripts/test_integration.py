@@ -69,10 +69,12 @@ def test_telemetry_functions():
         result = manager.initialize_telemetry(service_name="test-manager")
         print(f"✅ TelemetryManager.initialize_telemetry(): Returns {result}")
 
+        assert True  # Telemetry functions executed successfully
         return True
 
     except Exception as e:
         print(f"❌ Telemetry functions failed: {e}")
+        assert False, f"Telemetry functions failed: {e}"
         return False
 
 
@@ -96,10 +98,12 @@ def test_environment_variables():
             print(f"   - {var_name}: {value}")
 
         print("✅ Environment variables accessible")
+        assert len(defaults) > 0  # Verify defaults are accessible
         return True
 
     except Exception as e:
         print(f"❌ Environment variables failed: {e}")
+        assert False, f"Environment variables failed: {e}"
         return False
 
 
