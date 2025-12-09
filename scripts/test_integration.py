@@ -74,7 +74,7 @@ def test_telemetry_functions():
 
     except Exception as e:
         print(f"❌ Telemetry functions failed: {e}")
-        assert False, f"Telemetry functions failed: {e}"
+        raise AssertionError(f"Telemetry functions failed: {e}")
         return False
 
 
@@ -103,7 +103,7 @@ def test_environment_variables():
 
     except Exception as e:
         print(f"❌ Environment variables failed: {e}")
-        assert False, f"Environment variables failed: {e}"
+        raise AssertionError(f"Environment variables failed: {e}")
         return False
 
 

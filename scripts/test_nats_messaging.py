@@ -45,7 +45,7 @@ def test_single_symbol_messaging():
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send single symbol message: {e}")
-        assert False, f"Failed to send single symbol message: {e}"
+        raise AssertionError(f"Failed to send single symbol message: {e}")
         return False
 
 
@@ -72,7 +72,7 @@ def test_batch_messaging():
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send batch message: {e}")
-        assert False, f"Failed to send batch message: {e}"
+        raise AssertionError(f"Failed to send batch message: {e}")
         return False
 
 
@@ -99,7 +99,7 @@ def test_error_messaging():
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send error message: {e}")
-        assert False, f"Failed to send error message: {e}"
+        raise AssertionError(f"Failed to send error message: {e}")
         return False
 
 
@@ -126,7 +126,7 @@ def test_gap_filling_messaging():
         return True
     except Exception as e:
         logger.error(f"❌ Failed to send gap filling message: {e}")
-        assert False, f"Failed to send gap filling message: {e}"
+        raise AssertionError(f"Failed to send gap filling message: {e}")
         return False
 
 
