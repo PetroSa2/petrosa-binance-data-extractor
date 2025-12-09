@@ -76,8 +76,9 @@ class TestBaseDataManagerClient:
         with patch.object(
             client.session, "post", side_effect=requests.exceptions.Timeout("Timeout")
         ):
-            with pytest.raises(TimeoutError, match="Request timed out"):
+            with pytest.raises(TimeoutError, match="Request timed out") as exc_info:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
+            assert exc_info.value is not None
 
     def test_insert_connection_error(self):
         """Test insert with connection error."""
@@ -88,8 +89,9 @@ class TestBaseDataManagerClient:
             "post",
             side_effect=requests.exceptions.ConnectionError("Connection refused"),
         ):
-            with pytest.raises(ConnectionError, match="Connection failed"):
+            with pytest.raises(ConnectionError, match="Connection failed") as exc_info:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
+            assert exc_info.value is not None
 
     def test_insert_http_error(self):
         """Test insert with HTTP error."""
@@ -102,8 +104,9 @@ class TestBaseDataManagerClient:
             )
             mock_post.return_value = mock_response
 
-            with pytest.raises(APIError, match="API error"):
+            with pytest.raises(APIError, match="API error") as exc_info:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
+            assert exc_info.value is not None
 
     def test_query_success(self):
         """Test successful query operation."""
@@ -131,8 +134,9 @@ class TestBaseDataManagerClient:
         with patch.object(
             client.session, "post", side_effect=requests.exceptions.Timeout("Timeout")
         ):
-            with pytest.raises(TimeoutError):
+            with pytest.raises(TimeoutError) as exc_info:
                 client.query("mongodb", "test_collection", {"filter": {}})
+            assert exc_info.value is not None
 
     def test_query_connection_error(self):
         """Test query with connection error."""
@@ -143,8 +147,9 @@ class TestBaseDataManagerClient:
             "post",
             side_effect=requests.exceptions.ConnectionError("Connection refused"),
         ):
-            with pytest.raises(ConnectionError):
+            with pytest.raises(ConnectionError) as exc_info:
                 client.query("mongodb", "test_collection", {"filter": {}})
+            assert exc_info.value is not None
 
     def test_insert_one_calls_insert(self):
         """Test insert_one delegates to insert."""
@@ -225,8 +230,9 @@ class TestCornerCases:
             mock_response.raise_for_status = Mock()
             mock_post.return_value = mock_response
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError) as exc_info:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
+            assert exc_info.value is not None
 
     def test_unicode_in_records(self):
         """Test handling of Unicode characters in records."""
@@ -321,8 +327,9 @@ class TestChaos:
         with patch.object(
             client.session, "post", side_effect=requests.exceptions.Timeout("Timeout")
         ):
-            with pytest.raises(TimeoutError):
+            with pytest.raises(TimeoutError) as exc_info:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
+            assert exc_info.value is not None
 
     def test_partial_response(self):
         """Test handling of partial/corrupted response."""

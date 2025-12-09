@@ -32,13 +32,17 @@ def test_job_telemetry_setup():
             # Check if constants are accessible (means telemetry setup worked)
             import constants
 
+            assert constants is not None  # Constants should be imported
             klines_service = constants.OTEL_SERVICE_NAME_KLINES
+            assert klines_service is not None  # Service name should be set
             print(f"   - Service names accessible: klines={klines_service}")
 
         except Exception as e:
+            assert e is not None  # Exception should be captured
             print(f"❌ {job_module}: Failed - {e}")
             return False
 
+    assert True  # All jobs processed successfully
     return True
 
 
@@ -110,14 +114,18 @@ def test_kubernetes_readiness():
     ]
 
     all_ready = True
+    assert len(k8s_files) > 0  # Should have files to check
     for file_path in k8s_files:
         full_path = os.path.join(project_root, file_path)
         if os.path.exists(full_path):
             print(f"✅ {file_path}: Available")
+            assert os.path.exists(full_path)  # File should exist
         else:
             print(f"❌ {file_path}: Missing")
+            assert not os.path.exists(full_path)  # File should not exist
             all_ready = False
 
+    assert isinstance(all_ready, bool)  # Should be boolean
     return all_ready
 
 

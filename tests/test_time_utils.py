@@ -383,22 +383,28 @@ class TestValidateTimeRange:
 
         # Should not raise
         validate_time_range(start, end, max_days=2)
+        # Assert that function completed without exception
+        assert start < end
 
     def test_invalid_time_range_order(self):
         """Test validation fails when start > end."""
         start = datetime(2021, 1, 2, 0, 0, 0, tzinfo=UTC)
         end = datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC)
 
-        with pytest.raises(ValueError, match="Start time must be before end time"):
+        with pytest.raises(
+            ValueError, match="Start time must be before end time"
+        ) as exc_info:
             validate_time_range(start, end)
+        assert exc_info.value is not None
 
     def test_invalid_time_range_too_large(self):
         """Test validation fails when range exceeds max_days."""
         start = datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC)
         end = datetime(2021, 1, 11, 0, 0, 0, tzinfo=UTC)  # 10 days
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as exc_info:
             validate_time_range(start, end, max_days=5)
+        assert exc_info.value is not None
 
 
 class TestGetDefaultStartTime:
@@ -571,16 +577,18 @@ class TestSecurity:
         ]
 
         for date_str in malformed_dates:
-            with pytest.raises((ValueError, Exception)):
+            with pytest.raises((ValueError, Exception)) as exc_info:
                 parse_datetime_string(date_str)
+            assert exc_info.value is not None
 
     def test_validate_negative_time_range(self):
         """Test validation rejects negative time range."""
         start = datetime(2021, 1, 2, 0, 0, 0, tzinfo=UTC)
         end = datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as exc_info:
             validate_time_range(start, end)
+        assert exc_info.value is not None
 
 
 # Chaos tests

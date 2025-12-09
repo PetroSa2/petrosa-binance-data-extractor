@@ -220,6 +220,8 @@ class TestCreateTimeseriesCollection:
 
         # Should not raise, just print warning
         create_timeseries_collection(mock_adapter, "klines_15m", "15m")
+        # Verify that create_collection was called (error was handled gracefully)
+        assert mock_db.create_collection.called
 
 
 class TestExtractKlinesForSymbol:
