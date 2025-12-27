@@ -24,7 +24,7 @@ spec:
         interval: 5m
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 600
+      activeDeadlineSeconds: 900
       ttlSecondsAfterFinished: 1800
       template:
         metadata:
@@ -216,7 +216,7 @@ spec:
         interval: 15m
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 600
+      activeDeadlineSeconds: 1200
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -398,7 +398,7 @@ spec:
         interval: 30m
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 900
+      activeDeadlineSeconds: 1200
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -580,7 +580,7 @@ spec:
         interval: 1h
     spec:
       backoffLimit: 2
-      activeDeadlineSeconds: 1200
+      activeDeadlineSeconds: 1800
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -762,7 +762,7 @@ spec:
         interval: 1d
     spec:
       backoffLimit: 3
-      activeDeadlineSeconds: 2400
+      activeDeadlineSeconds: 3600
       ttlSecondsAfterFinished: 7200
       template:
         metadata:
