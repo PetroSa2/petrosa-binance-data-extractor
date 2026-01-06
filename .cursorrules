@@ -21,6 +21,7 @@ Unlike the real-time socket-client, this service operates on a scheduled basis (
 
 - **Ecosystem Architecture**: See master § System Architecture Overview → Data Ingestion & Storage Layer
 - **Work Tracking**: See master § Centralized Work Tracking with GitHub Projects
+- **GitHub CLI Profile**: See master § Prerequisites & Installation → GitHub CLI Profile Configuration (CRITICAL: Always use `yurisa2` profile)
 - **NATS Topics**: Not applicable (this service writes directly to MySQL, not NATS)
 - **Database Architecture**: See master § Database Architecture (MySQL section)
 - **Deployment Patterns**: See master § Data Extractor Configuration
