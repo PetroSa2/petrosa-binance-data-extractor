@@ -34,6 +34,8 @@ try:
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
         OTLPSpanExporter as GRPCSpanExporter,  # noqa: F401
     )
+    # Alias used by existing tests that patch utils.telemetry.OTLPSpanExporter
+    OTLPSpanExporter = GRPCSpanExporter  # noqa: F401
     from opentelemetry.instrumentation.logging import LoggingInstrumentor  # noqa: F401
     from opentelemetry.instrumentation.requests import RequestsInstrumentor  # noqa: F401
 
@@ -48,6 +50,7 @@ except ImportError as _e:
     BatchSpanProcessor = None  # type: ignore
     ConsoleSpanExporter = None  # type: ignore
     GRPCSpanExporter = None  # type: ignore
+    OTLPSpanExporter = None  # type: ignore
     LoggingInstrumentor = None  # type: ignore
     RequestsInstrumentor = None  # type: ignore
 
@@ -181,25 +184,25 @@ class TelemetryManager:
         environment = environment or os.getenv("ENVIRONMENT", "production")
 
         try:
-            resource = Resource.create({
+            attrs = {
                 "service.name": service_name,
                 "service.version": service_version,
                 "deployment.environment": environment,
                 "service.instance.id": os.getenv("HOSTNAME", "unknown"),
-            })
-            # Handle custom resource attributes from constants if available
+            }
+
+            # Merge any custom resource attributes from constants
             try:
-                custom_attrs_str = getattr(constants, "OTEL_RESOURCE_ATTRIBUTES", "")
+                custom_attrs_str = getattr(constants, "OTEL_RESOURCE_ATTRIBUTES", "") or os.getenv("OTEL_RESOURCE_ATTRIBUTES", "")
                 if custom_attrs_str:
-                    custom_attrs = {}
                     for attr in custom_attrs_str.split(","):
                         if "=" in attr:
                             k, v = attr.split("=", 1)
-                            custom_attrs[k.strip()] = v.strip()
-                    if custom_attrs:
-                        resource = resource.merge(Resource.create(custom_attrs))
+                            attrs[k.strip()] = v.strip()
             except Exception:
                 pass
+
+            resource = Resource.create(attrs)
             return resource
         except Exception as e:
             self.logger.error(f"Failed to create resource: {e}")
