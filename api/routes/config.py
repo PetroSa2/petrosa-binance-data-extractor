@@ -513,8 +513,8 @@ def _get_service_urls() -> dict[str, str]:
     module-level constants to enable easier testing via dependency injection.
     """
     return {
-        "data-manager": os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:8080"),
-        "tradeengine": os.getenv("TRADEENGINE_URL", "http://petrosa-tradeengine:8080"),
+        "data-manager": os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:80"),
+        "tradeengine": os.getenv("TRADEENGINE_URL", "http://petrosa-tradeengine-service:80"),
     }
 
 
