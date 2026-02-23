@@ -27,6 +27,7 @@ from utils.logger import (  # noqa: E402
 )
 
 # NATS messaging disabled for MongoDB jobs
+from utils.telemetry import flush_telemetry  # noqa: E402
 from utils.time_utils import (  # noqa: E402
     binance_interval_to_table_suffix,
     format_duration,
@@ -342,9 +343,9 @@ def main():
 
     # Attach OTLP logging handler after logging is configured
     try:
-        from otel_init import attach_logging_handler_simple
+        from petrosa_otel.logging_handlers import attach_logging_handler
 
-        attach_logging_handler_simple()
+        attach_logging_handler()
     except Exception as e:
         logger.warning(f"Failed to attach OTLP logging handler: {e}")
 
@@ -426,6 +427,7 @@ def main():
 
     except Exception as e:
         logger.error(f"Extraction failed: {e}")
+        flush_telemetry()
         sys.exit(1)
 
     finally:
@@ -433,6 +435,8 @@ def main():
         fetcher.close()
         db_adapter.disconnect()
 
+    # Flush telemetry before exit to ensure all logs reach the OTLP endpoint.
+    flush_telemetry()
     sys.exit(0)
 
 
