@@ -3,11 +3,15 @@ Pytest configuration and fixtures for the Binance Data Extractor service.
 """
 
 import asyncio
+import os
 from unittest.mock import Mock
 
 import pytest
 
 from jobs.extract_klines_production import ProductionKlinesExtractor
+
+# Disable OpenTelemetry auto-initialization during tests
+os.environ["OTEL_NO_AUTO_INIT"] = "1"
 
 
 @pytest.fixture
