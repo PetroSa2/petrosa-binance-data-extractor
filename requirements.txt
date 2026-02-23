@@ -26,6 +26,8 @@ numpy<2.0
 # pip install -e ../petrosa_k8s/petrosa-otel[all]
 # For production, this will be published to private PyPI
 petrosa-otel[mysql,mongodb]>=1.0.0
+# Explicit SQLAlchemy instrumentation (required by utils/telemetry.py and MySQL adapter)
+opentelemetry-instrumentation-sqlalchemy>=0.45b0
 
 # PostgreSQL adapter (optional)
 psycopg2-binary>=2.9.0

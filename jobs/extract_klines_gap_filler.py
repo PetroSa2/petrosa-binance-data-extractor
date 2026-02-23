@@ -28,26 +28,27 @@ from utils.logger import (  # noqa: E402
     setup_logging,
 )
 from utils.messaging import publish_extraction_completion_sync  # noqa: E402
-from utils.telemetry import get_tracer  # noqa: E402
+from utils.telemetry import flush_telemetry, get_tracer  # noqa: E402
 from utils.time_utils import (  # noqa: E402
     binance_interval_to_table_suffix,
     format_duration,
     get_current_utc_time,
 )
 
-# Initialize OpenTelemetry as early as possible
+# Initialize OpenTelemetry as early as possible using the standard petrosa-otel package.
 try:
-    from petrosa_otel import initialize_telemetry_standard  # noqa: E402
+    from petrosa_otel import setup_telemetry  # noqa: E402
 
     if not os.getenv("OTEL_NO_AUTO_INIT"):
         service_name = os.getenv(
             "OTEL_SERVICE_NAME_KLINES", constants.OTEL_SERVICE_NAME_KLINES
         )
-        initialize_telemetry_standard(
+        setup_telemetry(
             service_name=service_name,
             service_type="cronjob",
             enable_mysql=True,
             enable_mongodb=True,
+            auto_attach_logging=True,
         )
 except ImportError:
     pass
@@ -942,21 +943,25 @@ def _main_impl():
 
         if result["success"]:
             logger.info("🎉 Gap filling completed successfully!")
+            flush_telemetry()
             sys.exit(0)
         else:
             logger.error(
                 f"❌ Gap filling completed with {result['symbols_failed']} failures"
             )
+            flush_telemetry()
             sys.exit(1)
 
     except KeyboardInterrupt:
         logger.info("⚠️ Gap filling interrupted by user")
+        flush_telemetry()
         sys.exit(130)
     except Exception as e:
         logger.error(f"💥 Fatal error during gap filling: {e}")
         import traceback  # noqa: E402
 
         traceback.print_exc()
+        flush_telemetry()
         sys.exit(1)
 
 
