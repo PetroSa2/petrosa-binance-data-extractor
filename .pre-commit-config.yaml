@@ -120,14 +120,14 @@ repos:
     hooks:
       - id: check-secrets-patterns
         name: Check for common secret patterns
-        entry: bash -c 'grep -rInE "(BINANCE_API_KEY|BINANCE_API_SECRET|DOCKERHUB_TOKEN|JWT_SECRET|mongodb://[^:]+:[^@]+@|password\s*=\s*[\"'\''][^\"'\'']+[\"'\''])" --include="*.py" --include="*.yaml" --include="*.yml" --exclude-dir=.venv --exclude-dir=venv --exclude-dir=.git --exclude-dir=k8s --exclude-dir=.github --exclude-dir=tests --exclude-dir=scripts --exclude="*.backup*" --exclude=".pre-commit-config.yaml" . && echo "⚠️  Found potential secrets in code!" && exit 1 || exit 0'
+        entry: bash -c 'grep -rInE "(BINANCE_API_KEY|BINANCE_API_SECRET|DOCKERHUB_TOKEN|JWT_SECRET|mongodb://[^:]+:[^@]+@|password\s*=\s*[\"'\''][^\"'\'']+[\"'\''])" --include="*.py" --include="*.yaml" --include="*.yml" --exclude-dir=.venv --exclude-dir=venv --exclude-dir=.git --exclude-dir=k8s --exclude-dir=.github --exclude-dir=tests --exclude-dir=scripts --exclude="*.backup*" --exclude=".pre-commit-config.yaml" . && echo "Found potential secrets in code!" && exit 1 || exit 0'
         language: system
         pass_filenames: false
         verbose: true
 
       - id: check-env-files
         name: Check .env files not committed
-        entry: bash -c 'if git ls-files | grep -E "^\.env$" | grep -v "\.env\.example\|\.env\.template"; then echo "⚠️  .env file should not be committed!"; exit 1; fi'
+        entry: bash -c 'if git ls-files | grep -E "^\.env$" | grep -v "\.env\.example\|\.env\.template"; then echo ".env file should not be committed!"; exit 1; fi'
         language: system
         pass_filenames: false
 
@@ -139,7 +139,7 @@ repos:
           - |
             if git diff --cached --name-only | grep -E "kubeconfig\.yaml"; then
               if git diff --cached | grep -E "(certificate-authority-data|client-certificate-data|client-key-data|token):"; then
-                echo "⚠️  kubeconfig with credentials should not be committed!"
+                echo "kubeconfig with credentials should not be committed!"
                 exit 1
               fi
             fi
@@ -154,7 +154,7 @@ repos:
           - |
             temp_docs=$(git diff --cached --name-only --diff-filter=A | grep -E "^docs/[^/]+_(SUMMARY|FIX|COMPLETE|STATUS)\.md$" || true)
             if [ -n "$temp_docs" ]; then
-              echo "⚠️  Detected temporary documentation files in docs/ root:"
+              echo "Detected temporary documentation files in docs/ root:"
               echo "$temp_docs" | sed "s/^/  - /"
               echo ""
               echo "Please use: docs/archive/{summaries,fixes,investigations}/ or GitHub Issues/PRs"
@@ -168,7 +168,7 @@ repos:
 
       - id: check-test-assertions
         name: Check tests have assertions
-        entry: python3 scripts/check-test-assertions.py
+        entry: python scripts/check-test-assertions.py
         language: python
         pass_filenames: true
         types: [python]
