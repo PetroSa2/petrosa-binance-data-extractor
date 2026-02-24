@@ -42,11 +42,11 @@ repos:
 
       # Security: Detect private keys (SSH, RSA, etc.)
       - id: detect-private-key
-        name: 🔐 Detect private keys (SSH, RSA, PEM)
+        name: Detect private keys (SSH, RSA, PEM)
 
       # Security: Detect AWS credentials
       - id: detect-aws-credentials
-        name: 🔐 Detect AWS credentials
+        name: Detect AWS credentials
         args: [--allow-missing-credentials]
 
       # Code quality
@@ -66,7 +66,7 @@ repos:
     rev: v1.10.0
     hooks:
       - id: python-no-eval
-        name: 🔐 Check for eval() usage (security risk)
+        name: Check for eval() usage (security risk)
 
       - id: python-no-log-warn
         name: Check for deprecated log.warn
@@ -78,7 +78,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        name: 🔐 Detect secrets (entropy-based)
+        name: Detect secrets (entropy-based)
         args:
           - --baseline
           - .secrets.baseline
@@ -102,7 +102,7 @@ repos:
     rev: 1.7.5
     hooks:
       - id: bandit
-        name: 🔐 Bandit Python security scan
+        name: Bandit Python security scan
         args:
           - -r
           - .
@@ -119,20 +119,20 @@ repos:
   - repo: local
     hooks:
       - id: check-secrets-patterns
-        name: 🔐 Check for common secret patterns
+        name: Check for common secret patterns
         entry: bash -c 'grep -rInE "(BINANCE_API_KEY|BINANCE_API_SECRET|DOCKERHUB_TOKEN|JWT_SECRET|mongodb://[^:]+:[^@]+@|password\s*=\s*[\"'\''][^\"'\'']+[\"'\''])" --include="*.py" --include="*.yaml" --include="*.yml" --exclude-dir=.venv --exclude-dir=venv --exclude-dir=.git --exclude-dir=k8s --exclude-dir=.github --exclude-dir=tests --exclude-dir=scripts --exclude="*.backup*" --exclude=".pre-commit-config.yaml" . && echo "⚠️  Found potential secrets in code!" && exit 1 || exit 0'
         language: system
         pass_filenames: false
         verbose: true
 
       - id: check-env-files
-        name: 🔐 Check .env files not committed
+        name: Check .env files not committed
         entry: bash -c 'if git ls-files | grep -E "^\.env$" | grep -v "\.env\.example\|\.env\.template"; then echo "⚠️  .env file should not be committed!"; exit 1; fi'
         language: system
         pass_filenames: false
 
       - id: check-kubeconfig
-        name: 🔐 Check kubeconfig with credentials not committed
+        name: Check kubeconfig with credentials not committed
         entry: bash -c
         args:
           - -c
@@ -147,7 +147,7 @@ repos:
         pass_filenames: false
 
       - id: validate-doc-naming
-        name: 🗑️  Validate documentation naming patterns
+        name: Validate documentation naming patterns
         entry: bash -c
         args:
           - -c
@@ -167,9 +167,9 @@ repos:
         stages: [commit]
 
       - id: check-test-assertions
-        name: 🧪 Check tests have assertions
+        name: Check tests have assertions
         entry: python3 scripts/check-test-assertions.py
-        language: system
+        language: python
         pass_filenames: true
         types: [python]
         files: ^(tests/|test_|.*_test\.py)
