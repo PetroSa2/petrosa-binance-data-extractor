@@ -9,6 +9,7 @@ PYTHON := python3
 COVERAGE_THRESHOLD := 40
 IMAGE_NAME := petrosa-binance-data-extractor
 NAMESPACE := petrosa-apps
+PYTEST := $(if $(wildcard ./venv/bin/pytest),./venv/bin/pytest,pytest)
 
 # PHONY targets
 .PHONY: help setup install install-dev clean
@@ -77,24 +78,24 @@ pre-commit: ## Run pre-commit hooks on all files
 # Testing
 test: ## Run all tests with coverage (fail if below 40%)
 	@echo "🧪 Running all tests with coverage..."
-	OTEL_NO_AUTO_INIT=1 ENVIRONMENT=testing pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=$(COVERAGE_THRESHOLD)
+	OTEL_NO_AUTO_INIT=1 ENVIRONMENT=testing $(PYTEST) tests/ -v --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=$(COVERAGE_THRESHOLD)
 	@echo "✅ Tests completed!"
 
 unit: ## Run unit tests only
 	@echo "🧪 Running unit tests..."
-	pytest tests/ -m "unit" -v --tb=short
+	$(PYTEST) tests/ -m "unit" -v --tb=short
 
 integration: ## Run integration tests only
 	@echo "🔗 Running integration tests..."
-	pytest tests/ -m "integration" -v --tb=short
+	$(PYTEST) tests/ -m "integration" -v --tb=short
 
 e2e: ## Run end-to-end tests only
 	@echo "🌐 Running end-to-end tests..."
-	pytest tests/ -m "e2e" -v --tb=short
+	$(PYTEST) tests/ -m "e2e" -v --tb=short
 
 coverage: ## Generate coverage reports without failing
 	@echo "📊 Running tests with coverage..."
-	pytest tests/ --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml
+	$(PYTEST) tests/ --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml
 
 # Security
 security: ## Run comprehensive security scans (gitleaks, detect-secrets, bandit, trivy)
