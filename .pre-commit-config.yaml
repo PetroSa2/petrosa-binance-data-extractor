@@ -165,3 +165,11 @@ repos:
         pass_filenames: false
         always_run: false
         stages: [commit]
+
+      - id: check-test-assertions
+        name: 🧪 Check tests have assertions
+        entry: python3 scripts/check-test-assertions.py
+        language: system
+        pass_filenames: true
+        types: [python]
+        files: ^(tests/|test_|.*_test\.py)
