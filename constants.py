@@ -53,7 +53,7 @@ API_SECRET = os.getenv("API_SECRET", "")
 NATS_ENABLED = os.getenv("NATS_ENABLED", "false").lower() == "true"
 
 # Data Manager configuration
-DATA_MANAGER_URL = os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:8000")
+DATA_MANAGER_URL = os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:80")
 DATA_MANAGER_TIMEOUT = int(os.getenv("DATA_MANAGER_TIMEOUT", "30"))
 DATA_MANAGER_MAX_RETRIES = int(os.getenv("DATA_MANAGER_MAX_RETRIES", "3"))
 DATA_MANAGER_DATABASE = os.getenv("DATA_MANAGER_DATABASE", "mongodb")

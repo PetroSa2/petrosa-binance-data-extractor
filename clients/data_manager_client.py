@@ -163,7 +163,7 @@ class DataManagerClient:
             max_retries: Maximum number of retry attempts
         """
         self.base_url = base_url or os.getenv(
-            "DATA_MANAGER_URL", "http://petrosa-data-manager:8000"
+            "DATA_MANAGER_URL", "http://petrosa-data-manager:80"
         )
         self.timeout = timeout
         self.max_retries = max_retries
