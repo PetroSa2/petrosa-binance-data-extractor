@@ -4,6 +4,29 @@
 
 A production-ready batch processing system that extracts, validates, and stores historical market data from Binance. Supports klines (candlesticks), funding rates, and trades data with automatic gap detection and filling capabilities.
 
+[![CI Checks](https://github.com/PetroSa2/petrosa-binance-data-extractor/actions/workflows/ci-checks.yml/badge.svg?branch=main)](https://github.com/PetroSa2/petrosa-binance-data-extractor/actions/workflows/ci-checks.yml)
+[![codecov](https://codecov.io/gh/PetroSa2/petrosa-binance-data-extractor/branch/main/graph/badge.svg)](https://codecov.io/gh/PetroSa2/petrosa-binance-data-extractor)
+
+## Testing
+
+Run the full suite with coverage:
+
+```bash
+make test
+```
+
+Generate coverage artifacts without threshold enforcement:
+
+```bash
+make coverage
+```
+
+Direct pytest baseline command:
+
+```bash
+OTEL_NO_AUTO_INIT=1 ENVIRONMENT=testing ./venv/bin/pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
+```
+
 ---
 
 ## 🌐 PETROSA ECOSYSTEM OVERVIEW
