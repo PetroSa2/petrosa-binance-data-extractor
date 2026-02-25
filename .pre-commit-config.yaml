@@ -109,7 +109,7 @@ repos:
           - --severity-level=medium
           - --confidence-level=medium
           - -x
-          - ".venv,.venv/**,venv,venv/**,tests,tests/**"
+          - "./.venv,./venv,./tests"
         exclude: ^(\.venv/|venv/|tests/)
         pass_filenames: false
 
