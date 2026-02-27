@@ -87,7 +87,7 @@ class TestRootEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["service"] == "Data Extractor Configuration API"
-        assert data["version"] == "1.0.0"
+        assert data["version"] == "1.1.32"
         assert "/api/v1/config/cronjobs" in data["endpoints"]
 
 
@@ -832,8 +832,9 @@ class TestCrossServiceConflictDetection:
         self, mock_get_urls
     ):
         """Test conflict detection when data-manager has different symbols."""
-        import httpx
         from unittest.mock import AsyncMock, MagicMock
+
+        import httpx
 
         from api.routes.config import detect_cross_service_conflicts
 
@@ -869,9 +870,7 @@ class TestCrossServiceConflictDetection:
 
     @pytest.mark.asyncio
     @patch("api.routes.config._get_service_urls")
-    async def test_detect_cross_service_conflicts_timeout(
-        self, mock_get_urls
-    ):
+    async def test_detect_cross_service_conflicts_timeout(self, mock_get_urls):
         """Test conflict detection handles timeouts gracefully."""
         import httpx
 
@@ -898,9 +897,7 @@ class TestCrossServiceConflictDetection:
 
     @pytest.mark.asyncio
     @patch("api.routes.config._get_service_urls")
-    async def test_detect_cross_service_conflicts_404_response(
-        self, mock_get_urls
-    ):
+    async def test_detect_cross_service_conflicts_404_response(self, mock_get_urls):
         """Test conflict detection handles 404 responses."""
         from unittest.mock import AsyncMock, MagicMock
 
@@ -952,7 +949,8 @@ class TestCrossServiceConflictDetection:
 
             # Test with invalid symbol format (lowercase)
             conflicts = await detect_cross_service_conflicts(
-                "symbols", {"symbols": ["btcusdt"]}  # lowercase
+                "symbols",
+                {"symbols": ["btcusdt"]},  # lowercase
             )
 
             # Should skip invalid symbols and not make requests
