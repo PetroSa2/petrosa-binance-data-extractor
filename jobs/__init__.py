@@ -9,7 +9,7 @@ This package contains various data extraction jobs:
 - extract_trades.py: Trades data extraction
 """
 
-__version__ = "2.0.0"
+__version__ = "1.1.32"
 __author__ = "Petrosa Team"
 
 # Note: We don't import job classes here to avoid circular imports
