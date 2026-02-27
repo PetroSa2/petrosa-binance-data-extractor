@@ -30,7 +30,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Petrosa Data Extractor Configuration API",
         description="Runtime configuration for data extraction CronJobs",
-        version="1.0.0",
+        version="1.1.32",
         lifespan=lifespan,
     )
 
@@ -52,7 +52,7 @@ def create_app() -> FastAPI:
         """Root endpoint with API information."""
         return {
             "service": "Data Extractor Configuration API",
-            "version": "1.0.0",
+            "version": "1.1.32",
             "endpoints": [
                 "/api/v1/config/cronjobs",
                 "/api/v1/config/symbols",
