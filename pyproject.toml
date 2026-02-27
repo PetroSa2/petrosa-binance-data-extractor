@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "petrosa-binance-data-extractor"
-version = "1.0.99"
+version = "1.1.32"
 description = "Binance market data extraction service"
 readme = "README.md"
 license = {text = "MIT"}
