@@ -1,0 +1,19 @@
+# Bandit configuration file in YAML format
+### Excludes
+exclude_dirs:
+  - 'tests/'
+  - '.venv/'
+  - 'venv/'
+  - 'htmlcov/'
+  - '.git/'
+  - '__pycache__/'
+  - '*.egg-info/'
+
+### Skips
+# B101: assert_used (common in tests, but also useful in some production sanity checks)
+# B601: paramiko_calls (if used)
+skips: ['B101', 'B601']
+
+### Levels
+severity: medium
+confidence: medium
