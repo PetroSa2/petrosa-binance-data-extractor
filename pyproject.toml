@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "petrosa-realtime-strategies"
-version = "1.0.0"
-description = "Real-time trading signal generation service for Binance Futures"
+name = "petrosa-binance-data-extractor"
+version = "1.0.99"
+description = "Binance market data extraction service"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
