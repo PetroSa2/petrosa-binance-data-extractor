@@ -172,6 +172,183 @@ spec:
                   key: DEFAULT_SYMBOLS
             resources:
               requests:
+                memory: "512Mi"
+                cpu: "300m"
+              limits:
+                memory: "1Gi"
+                cpu: "800m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: binance-klines-m15-data-manager-production
+  namespace: petrosa-apps
+  labels:
+    app: binance-extractor
+    component: klines-extractor
+    database: data_manager
+    interval: 15m
+    version: production
+spec:
+  schedule: "2 */15 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: binance-extractor
+        component: klines-extractor
+        database: data_manager
+        interval: 15m
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: binance-extractor
+            component: klines-extractor
+            database: data_manager
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: klines-extractor
+            image: yurisa2/petrosa-binance-data-extractor:VERSION_PLACEHOLDER
+            imagePullPolicy: Always
+            command:
+            - python
+            - -m
+            - jobs.extract_klines_data_manager
+            args:
+            - --period=15m
+            env:
+            - name: BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_KEY
+            - name: BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: BINANCE_API_SECRET
+            - name: DATA_MANAGER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DATA_MANAGER_URL
+            - name: DB_ADAPTER
+              value: "data_manager"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: LOG_LEVEL
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENVIRONMENT
+            - name: ENABLE_OTEL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: ENABLE_OTEL
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_SERVICE_VERSION
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=binance-data-extractor,service.version=VERSION_PLACEHOLDER"
+            - name: OTEL_METRICS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_METRICS_EXPORTER
+            - name: OTEL_TRACES_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                name: petrosa-common-config
+                  key: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_LOGS_EXPORTER
+            - name: OTEL_PROPAGATORS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: OTEL_PROPAGATORS
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: petrosa-sensitive-credentials
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_NO_AUTO_INIT
+              value: "0"
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_URL
+            - name: NATS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_ENABLED
+            - name: NATS_SUBJECT_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX
+            - name: NATS_SUBJECT_PREFIX_PRODUCTION
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_PRODUCTION
+            - name: NATS_SUBJECT_PREFIX_GAP_FILLER
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: NATS_SUBJECT_PREFIX_GAP_FILLER
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_DEPLOYMENT_NAME
+              value: "binance-klines-m15-data-manager-production"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DEFAULT_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: petrosa-common-config
+                  key: DEFAULT_SYMBOLS
+            resources:
+              requests:
                 memory: "384Mi"
                 cpu: "250m"
               limits:
