@@ -1,0 +1,23 @@
+# Code Owners
+# https://help.github.com/articles/about-codeowners/
+
+# Default owner for everything in the repo
+*       @PetroSa2
+
+# API and Services
+/api/       @PetroSa2
+/services/  @PetroSa2
+
+# Adapters and Clients
+/adapters/  @PetroSa2
+/clients/   @PetroSa2
+
+# Database and Models
+/db/        @PetroSa2
+/models/    @PetroSa2
+
+# Kubernetes manifests
+/k8s/       @PetroSa2
+
+# GitHub workflows
+/.github/workflows/   @PetroSa2
