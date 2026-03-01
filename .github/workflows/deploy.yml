@@ -145,8 +145,8 @@ jobs:
           echo "✅ Build, Push, and GitOps Update successful!"
           echo "📦 Version: ${VERSION}"
           echo "🚀 Deployed via petrosa_k8s hub"
-        elif [ "${{ needs.gitops-update.result }}" == "skipped" ] && [ "${{ github.event_name }}" == "pull_request" ]; then
-          echo "ℹ️ Pull Request: Build and Push successful (GitOps update skipped for PR)"
+        elif [ "${{ needs.gitops-update.result }}" == "skipped" ]; then
+          echo "ℹ️ Build and Push successful (GitOps update skipped)"
           echo "📦 Version: ${VERSION}"
         else
           echo "❌ GitOps Update failed (or was unsuccessful)!"
