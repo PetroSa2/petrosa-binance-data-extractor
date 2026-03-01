@@ -109,11 +109,8 @@ jobs:
       - name: Update data-extractor image tag in GitOps manifests
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
-          # Update the image tag in manifests
-          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
-          
-          # Also update the version label if needed
-          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/version: VERSION_PLACEHOLDER/version: $VERSION/g"
+          # Update all VERSION_PLACEHOLDER occurrences in manifests (image tags, labels, etc.)
+          find petrosa_k8s/k8s/data-extractor -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
           
           echo "Updated data-extractor image tag to $VERSION in petrosa_k8s/k8s/data-extractor/"
 
