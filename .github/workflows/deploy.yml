@@ -88,100 +88,70 @@ jobs:
           COMMIT_SHA=${{ github.sha }}
           BUILD_DATE=${{ steps.meta.outputs.date }}
 
-  deploy:
-    name: Deploy to Kubernetes
+  gitops-update:
+    name: GitOps Update
     needs: [build-and-push, create-release]
     runs-on: ubuntu-latest
-    environment: production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Install kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.28.0'
-    - name: Configure kubectl for MicroK8s
-      run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-        chmod 600 $HOME/.kube/config
-        kubectl cluster-info --insecure-skip-tls-verify
-        kubectl get nodes --insecure-skip-tls-verify
-    - name: Update Image Tags in Manifests
-      run: |
-        IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
-        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|VERSION_PLACEHOLDER|${IMAGE_TAG}|g"
+      - name: Checkout petrosa_k8s
+        uses: actions/checkout@v4
+        with:
+          repository: PetroSa2/petrosa_k8s
+          ref: main
+          token: ${{ secrets.GITOPS_BOT_TOKEN }}
+          path: petrosa_k8s
 
-        # Also replace the image name to use the correct format with secrets
-        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs sed -i "s|yurisa2/petrosa-binance-data-extractor|${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor|g"
+      - name: Rebase on main
+        run: ./scripts/gitops-rebase-main.sh
+        working-directory: petrosa_k8s
 
-        echo "Updated manifests with image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor:${IMAGE_TAG}"
+      - name: Update data-extractor image tag in GitOps manifests
+        run: |
+          VERSION="${{ needs.build-and-push.outputs.version }}"
+          # Update the image tag in manifests
+          find petrosa_k8s/k8s/data-extractor -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
+          
+          # Also update the version label if needed
+          find petrosa_k8s/k8s/data-extractor -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/version: VERSION_PLACEHOLDER/version: $VERSION/g"
+          
+          echo "Updated data-extractor image tag to $VERSION in petrosa_k8s/k8s/data-extractor/"
 
-        # Verify the changes
-        echo "Verifying image tag updates:"
-        grep -r "image:.*petrosa-binance-data-extractor" k8s/ || echo "No image references found"
-
-        # Double-check that no VERSION_PLACEHOLDER remain
-        PLACEHOLDER_COUNT=$(grep -r "VERSION_PLACEHOLDER" k8s/ | wc -l || echo "0")
-        if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
-          echo "⚠️ Warning: Found $PLACEHOLDER_COUNT references to VERSION_PLACEHOLDER"
-          grep -r "VERSION_PLACEHOLDER" k8s/
-        else
-          echo "✅ All image references updated to versioned tag: ${IMAGE_TAG}"
-        fi
-    - name: Apply Kubernetes Manifests
-      run: |
-        kubectl apply --insecure-skip-tls-verify -f k8s/ -n petrosa-apps
-    - name: Verify CronJobs deployment
-      run: |
-        echo "🔍 Verifying CronJobs deployment..."
-        kubectl get cronjobs -n petrosa-apps -l app=binance-extractor --insecure-skip-tls-verify
-        kubectl get svc -n petrosa-apps -l app=binance-data-extractor --insecure-skip-tls-verify
-        kubectl get ingress -n petrosa-apps -l app=binance-data-extractor --insecure-skip-tls-verify
-
-        echo ""
-        echo "📊 Deployment Summary:"
-        echo "  ✅ Kubernetes CronJobs deployed successfully"
-        echo "  🐳 Image: ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor:${{ needs.build-and-push.outputs.version }}"
-        echo "  📍 Namespace: petrosa-apps"
-        echo "  🔗 Service: petrosa-binance-data-extractor-service"
-        echo "  🌐 Ingress: petrosa-binance-data-extractor-ingress"
-        echo ""
-        echo "🔍 Next steps:"
-        echo "  1. Check CronJob schedules: kubectl get cronjobs -n petrosa-apps --insecure-skip-tls-verify"
-        echo "  2. Monitor CronJob executions: kubectl get jobs -n petrosa-apps --insecure-skip-tls-verify"
-        echo "  3. Check recent job logs: kubectl logs -n petrosa-apps -l app=binance-extractor --tail=100 --insecure-skip-tls-verify"
-        echo "  4. Verify data extraction is working"
-        echo "  5. Monitor application logs for any issues"
-        echo ""
-        echo "🔍 Verify deployed CronJob image versions:"
-        kubectl get cronjobs -n petrosa-apps -l app=binance-extractor --insecure-skip-tls-verify -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.spec.jobTemplate.spec.template.spec.containers[0].image}{"\n"}{end}'
+      - name: Commit and push to petrosa_k8s
+        working-directory: petrosa_k8s
+        run: |
+          git config user.name "gitops-bot"
+          git config user.email "gitops-bot@users.noreply.github.com"
+          git add k8s/data-extractor/
+          if git diff --staged --quiet; then
+            echo "No changes to commit (version might already be up to date)"
+          else
+            git commit -m "gitops: data-extractor image ${{ needs.build-and-push.outputs.version }}"
+            git push origin main
+          fi
 
   notify:
     name: notify
-    needs: [build-and-push, deploy, create-release]
+    needs: [build-and-push, gitops-update, create-release]
     runs-on: ubuntu-latest
     if: always()
     steps:
     - name: Notify Deployment Status
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
-        TAG_CREATED="${{ needs.create-release.outputs.tag-created }}"
         IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
-        if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "✅ Deployment successful!"
+        
+        if [ "${{ needs.gitops-update.result }}" == "success" ]; then
+          echo "✅ Build, Push, and GitOps Update successful!"
           echo "📦 Version: ${VERSION}"
-          echo "🐳 Image Tag: ${IMAGE_TAG}"
-          if [ "$TAG_CREATED" == "true" ]; then
-            echo "🏷️  New tag created: ${VERSION}"
-          else
-            echo "🏷️  Using existing tag: ${VERSION}"
-          fi
-          echo "🚀 Deployed to MicroK8s with versioned image tag"
+          echo "🚀 Deployed via petrosa_k8s hub"
+        elif [ "${{ needs.gitops-update.result }}" == "skipped" ] && [ "${{ github.event_name }}" == "pull_request" ]; then
+          echo "ℹ️ Pull Request: Build and Push successful (GitOps update skipped for PR)"
+          echo "📦 Version: ${VERSION}"
         else
-          echo "❌ Deployment failed!"
+          echo "❌ GitOps Update failed (or was unsuccessful)!"
           echo "📦 Version: ${VERSION}"
-          echo "🐳 Image Tag: ${IMAGE_TAG}"
+          echo "🐳 Image pushed, but manifest update in petrosa_k8s failed."
         fi
 
   cleanup:
