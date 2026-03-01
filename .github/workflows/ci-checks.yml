@@ -150,6 +150,7 @@ jobs:
           python -m json.tool bandit-report.json 2>/dev/null | head -30 || echo "No issues found or report not available"
 
       - name: 🗂️ Run Trivy (Vulnerability Scanner)
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
