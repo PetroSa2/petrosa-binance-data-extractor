@@ -136,7 +136,6 @@ jobs:
     - name: Notify Deployment Status
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
-        IMAGE_TAG="${{ needs.build-and-push.outputs.version }}"
         
         if [ "${{ needs.gitops-update.result }}" == "success" ]; then
           echo "✅ Build, Push, and GitOps Update successful!"
