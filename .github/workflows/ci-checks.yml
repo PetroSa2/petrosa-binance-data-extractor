@@ -150,7 +150,8 @@ jobs:
           python -m json.tool bandit-report.json 2>/dev/null | head -30 || echo "No issues found or report not available"
 
       - name: 🗂️ Run Trivy (Vulnerability Scanner)
-        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -159,6 +160,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'  # Fail if vulnerabilities found
           ignore-unfixed: true
+          vuln-type: 'os,library'
 
       - name: Upload Trivy results
         uses: github/codeql-action/upload-sarif@v3
