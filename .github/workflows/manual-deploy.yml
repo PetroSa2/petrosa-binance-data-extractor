@@ -31,13 +31,13 @@ jobs:
     permissions:
       contents: write
       packages: write
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for tags
-          
+
       - name: Get current version
         id: current_version
         run: |
@@ -45,7 +45,7 @@ jobs:
           CURRENT=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Current version: $CURRENT"
           echo "version=$CURRENT" >> $GITHUB_OUTPUT
-          
+
       - name: Bump version
         id: bump_version
         run: |
@@ -53,26 +53,26 @@ jobs:
           NEW_VERSION=$(./scripts/bump-version.sh "${{ steps.current_version.outputs.version }}" "${{ inputs.version_bump }}")
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          
+
       - name: Create git tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${{ steps.bump_version.outputs.new_version }}" -m "Manual deployment: ${{ inputs.reason }}"
           git push origin "${{ steps.bump_version.outputs.new_version }}"
-          
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-          
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -83,7 +83,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/petrosa-binance-data-extractor:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
+
       - name: Checkout petrosa_k8s
         uses: actions/checkout@v4
         with:
@@ -101,10 +101,10 @@ jobs:
           VERSION="${{ steps.bump_version.outputs.new_version }}"
           # Update the image tag in manifests
           find petrosa_k8s/k8s/data-extractor -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
-          
+
           # Also update the version label if needed
           find petrosa_k8s/k8s/data-extractor -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/version: VERSION_PLACEHOLDER/version: $VERSION/g"
-          
+
           echo "Updated data-extractor image tag to $VERSION in petrosa_k8s/k8s/data-extractor/"
 
       - name: Commit and push to petrosa_k8s
@@ -119,12 +119,12 @@ jobs:
             git commit -m "gitops: data-extractor image ${{ steps.bump_version.outputs.new_version }}"
             git push origin main
           fi
-          
+
       - name: Create deployment record
         run: |
           mkdir -p deployments
           TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
+
           # NOTE: This log is created in workflow artifacts, not committed to repo.
           # This is intentional to avoid cluttering git history with deployment records.
           # AUDIT TRAIL: Access via GitHub Actions artifacts or workflow run logs.
@@ -141,16 +141,16 @@ jobs:
           Timestamp: $TIMESTAMP
           Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           ========================================
-          
+
           EOF
-          
+
           cat deployments/history.log
-          
+
       - name: Create summary
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
           # GitOps Push Successful ✅
-          
+
           ## Details
           - **Service**: `binance-data-extractor`
           - **Environment**: `${{ inputs.environment }}`
@@ -158,9 +158,9 @@ jobs:
           - **Bump Type**: `${{ inputs.version_bump }}`
           - **Triggered by**: @${{ github.actor }}
           - **Reason**: ${{ inputs.reason }}
-          
+
           ## GitOps Transition
-          The new image tag has been pushed to [PetroSa2/petrosa_k8s](https://github.com/PetroSa2/petrosa_k8s). 
+          The new image tag has been pushed to [PetroSa2/petrosa_k8s](https://github.com/PetroSa2/petrosa_k8s).
 
           The centralized GitOps workflow in `petrosa_k8s` will now:
           1. Detect the change in `k8s/data-extractor/`
@@ -177,19 +177,19 @@ jobs:
           kubectl get cronjobs -n petrosa-apps -l app=binance-extractor
           ```
           EOF
-          
+
       - name: Notify on failure
         if: failure()
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
           # Deployment Failed ❌
-          
+
           ## Details
           - **Service**: \`binance-data-extractor\`
           - **Environment**: \`${{ inputs.environment }}\`
           - **Version**: \`${{ steps.bump_version.outputs.new_version }}\`
           - **Triggered by**: @${{ github.actor }}
-          
+
           Please check the workflow logs for details.
           EOF
 
