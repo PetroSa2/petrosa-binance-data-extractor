@@ -109,10 +109,14 @@ jobs:
       - name: Update data-extractor image tag in GitOps manifests
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
-          # Update all VERSION_PLACEHOLDER occurrences in manifests (image tags, labels, etc.)
-          find petrosa_k8s/k8s/data-extractor -name "*.yaml" -o -name "*.yml" | xargs sed -i "s/VERSION_PLACEHOLDER/$VERSION/g"
-          
-          echo "Updated data-extractor image tag to $VERSION in petrosa_k8s/k8s/data-extractor/"
+          NAMESPACE="${{ secrets.DOCKERHUB_USERNAME }}"
+          # Update the image tag and version labels in manifests robustly
+          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/image: .*\/petrosa-binance-data-extractor:.*/image: ${NAMESPACE}\/petrosa-binance-data-extractor:${VERSION}/g"
+          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/version: .*/version: ${VERSION}/g"
+          # Also handle any lingering placeholders
+          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g"
+
+          echo "Updated data-extractor image tag to ${VERSION} in petrosa_k8s/k8s/data-extractor/"
 
       - name: Commit and push to petrosa_k8s
         working-directory: petrosa_k8s
@@ -136,7 +140,7 @@ jobs:
     - name: Notify Deployment Status
       run: |
         VERSION="${{ needs.create-release.outputs.version }}"
-        
+
         if [ "${{ needs.gitops-update.result }}" == "success" ]; then
           echo "✅ Build, Push, and GitOps Update successful!"
           echo "📦 Version: ${VERSION}"
