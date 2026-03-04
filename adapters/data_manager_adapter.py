@@ -7,6 +7,7 @@ petrosa-data-manager API for data persistence.
 
 import asyncio
 from datetime import datetime
+from inspect import isawaitable
 from typing import Any
 
 import constants
@@ -167,12 +168,13 @@ class DataManagerAdapter:
 
             else:
                 # Generic insert for other collection types
-                result = await self._client._client.insert(
+                result = self._client._client.insert(
                     database=self.database,
                     collection=collection_name,
-                    data=data_dicts,
-                    validate=True,
+                    records=data_dicts,
                 )
+                if isawaitable(result):
+                    result = await result
 
             written_count = result.get("inserted_count", 0)
             logger.info(f"Wrote {written_count} records to {collection_name}")
@@ -209,15 +211,19 @@ class DataManagerAdapter:
                 filter_dict["symbol"] = symbol
 
             # Query for latest records
-            result = await self._client._client.query(
+            result = self._client._client.query(
                 database=self.database,
                 collection=collection_name,
-                filter=filter_dict,
-                sort={"close_time": -1}
-                if "klines" in collection_name
-                else {"timestamp": -1},
-                limit=limit,
+                params={
+                    "filter": filter_dict,
+                    "sort": {"close_time": -1}
+                    if "klines" in collection_name
+                    else {"timestamp": -1},
+                    "limit": limit,
+                },
             )
+            if isawaitable(result):
+                result = await result
 
             return result.get("data", [])
 
