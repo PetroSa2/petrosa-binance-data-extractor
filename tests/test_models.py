@@ -223,6 +223,30 @@ class TestTradeModel:
 
         assert trade.collection_name == "trades"
 
+    def test_trade_to_dict_datetime_serialization(self):
+        """Test that to_dict() serializes datetime fields to ISO strings."""
+        now = datetime.now(UTC)
+        trade = TradeModel(
+            symbol="BTCUSDT",
+            timestamp=now,
+            trade_id=123456,
+            price=Decimal("50000"),
+            quantity=Decimal("0.01"),
+            quote_quantity=Decimal("500"),
+            is_buyer_maker=True,
+            trade_time=now,
+        )
+
+        result = trade.to_dict()
+
+        assert isinstance(
+            result["timestamp"], str
+        ), "timestamp must be a JSON-serializable string"
+        assert isinstance(
+            result["trade_time"], str
+        ), "trade_time must be a JSON-serializable string"
+        assert "id" not in result
+
 
 class TestFundingRateModel:
     """Test FundingRateModel functionality."""
@@ -277,6 +301,26 @@ class TestFundingRateModel:
         periods_per_year = Decimal("365") * Decimal("24") / Decimal("8")  # 1095 periods
         expected_annual = Decimal("0.0001") * periods_per_year
         assert funding_rate.annualized_funding_rate == expected_annual
+
+    def test_funding_rate_to_dict_datetime_serialization(self):
+        """Test that to_dict() serializes datetime fields to ISO strings."""
+        now = datetime.now(UTC)
+        funding_rate = FundingRateModel(
+            symbol="BTCUSDT",
+            timestamp=now,
+            funding_rate=Decimal("0.0001"),
+            funding_time=now,
+        )
+
+        result = funding_rate.to_dict()
+
+        assert isinstance(
+            result["timestamp"], str
+        ), "timestamp must be a JSON-serializable string"
+        assert isinstance(
+            result["funding_time"], str
+        ), "funding_time must be a JSON-serializable string"
+        assert "id" not in result
 
 
 class TestExtractionMetadata:

@@ -99,7 +99,7 @@ class TradeModel(BaseSymbolModel):
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database storage."""
-        return self.model_dump(exclude={"id"})
+        return self.model_dump(exclude={"id"}, mode="json")
 
     @property
     def collection_name(self) -> str:
