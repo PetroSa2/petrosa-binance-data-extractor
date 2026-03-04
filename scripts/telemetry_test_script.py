@@ -21,12 +21,13 @@ def test_telemetry():
 
         logger.info("Testing OpenTelemetry setup...")
 
+        # Set environment variables for initialization
+        os.environ["OTEL_SERVICE_NAME"] = "binance-data-extractor-test"
+        os.environ["OTEL_SERVICE_VERSION"] = "2.0.0"
+        os.environ["ENVIRONMENT"] = "test"
+
         # Initialize telemetry
-        success = initialize_telemetry(
-            service_name="binance-data-extractor-test",
-            service_version="2.0.0",
-            environment="test",
-        )
+        success = initialize_telemetry()
 
         if not success:
             logger.error("Failed to initialize telemetry")

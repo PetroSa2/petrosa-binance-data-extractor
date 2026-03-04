@@ -16,9 +16,11 @@ import os
 try:
     import constants
 except ImportError:
+
     class _MockConstants:
         OTEL_EXPORTER_OTLP_ENDPOINT = ""
         OTEL_RESOURCE_ATTRIBUTES = ""
+
     constants = _MockConstants()  # type: ignore
 
 logger = logging.getLogger(__name__)
@@ -27,17 +29,17 @@ logger = logging.getLogger(__name__)
 # Core OTEL availability — each block is independent
 # ---------------------------------------------------------------------------
 try:
-    from opentelemetry import trace, metrics  # noqa: F401
+    from opentelemetry import metrics, trace  # noqa: F401
+    from opentelemetry.instrumentation.logging import LoggingInstrumentor  # noqa: F401
+    from opentelemetry.instrumentation.requests import (
+        RequestsInstrumentor,  # noqa: F401
+    )
     from opentelemetry.sdk.resources import Resource  # noqa: F401
     from opentelemetry.sdk.trace import TracerProvider  # noqa: F401
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter  # noqa: F401
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-        OTLPSpanExporter as GRPCSpanExporter,  # noqa: F401
+    from opentelemetry.sdk.trace.export import (  # noqa: F401
+        BatchSpanProcessor,
+        ConsoleSpanExporter,
     )
-    # Alias used by existing tests that patch utils.telemetry.OTLPSpanExporter
-    OTLPSpanExporter = GRPCSpanExporter  # noqa: F401
-    from opentelemetry.instrumentation.logging import LoggingInstrumentor  # noqa: F401
-    from opentelemetry.instrumentation.requests import RequestsInstrumentor  # noqa: F401
 
     OTEL_AVAILABLE = True
 except ImportError as _e:
@@ -49,16 +51,37 @@ except ImportError as _e:
     TracerProvider = None  # type: ignore
     BatchSpanProcessor = None  # type: ignore
     ConsoleSpanExporter = None  # type: ignore
-    GRPCSpanExporter = None  # type: ignore
-    OTLPSpanExporter = None  # type: ignore
     LoggingInstrumentor = None  # type: ignore
     RequestsInstrumentor = None  # type: ignore
+
+# Independent guards for exporters
+try:
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+        OTLPSpanExporter as GRPCSpanExporter,  # noqa: F401
+    )
+except ImportError:
+    GRPCSpanExporter = None  # type: ignore
+
+try:
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+        OTLPSpanExporter as HTTPSpanExporter,  # noqa: F401
+    )
+except ImportError:
+    HTTPSpanExporter = None  # type: ignore
+
+# Alias used by existing tests that patch utils.telemetry.OTLPSpanExporter
+# Default to HTTP if available, otherwise fallback to GRPC
+OTLPSpanExporter = HTTPSpanExporter or GRPCSpanExporter  # noqa: F401
+
 
 # ---------------------------------------------------------------------------
 # Optional instrumentors — each in its own guard
 # ---------------------------------------------------------------------------
 try:
-    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor  # noqa: F401
+    from opentelemetry.instrumentation.sqlalchemy import (
+        SQLAlchemyInstrumentor,  # noqa: F401
+    )
+
     SQLALCHEMY_INSTR_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_INSTR_AVAILABLE = False
@@ -66,6 +89,7 @@ except ImportError:
 
 try:
     from opentelemetry.instrumentation.pymongo import PymongoInstrumentor  # noqa: F401
+
     PYMONGO_AVAILABLE = True
 except ImportError:
     PYMONGO_AVAILABLE = False
@@ -73,6 +97,7 @@ except ImportError:
 
 try:
     from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor  # noqa: F401
+
     URLLIB3_AVAILABLE = True
 except ImportError:
     URLLIB3_AVAILABLE = False
@@ -89,6 +114,7 @@ METRICS_AVAILABLE = OTEL_AVAILABLE
 # AttributeFilterSpanProcessor — backward-compat shim for tests
 # ---------------------------------------------------------------------------
 if OTEL_AVAILABLE and BatchSpanProcessor is not None:
+
     class AttributeFilterSpanProcessor(BatchSpanProcessor):
         """
         Custom span processor that filters out invalid attribute values before export.
@@ -112,12 +138,14 @@ if OTEL_AVAILABLE and BatchSpanProcessor is not None:
             if not hasattr(span, "_attributes") or not span._attributes:
                 return
             invalid_keys = [
-                key for key, value in span._attributes.items()
+                key
+                for key, value in span._attributes.items()
                 if isinstance(value, (dict, list))
             ]
             for key in invalid_keys:
                 del span._attributes[key]
 else:
+
     class AttributeFilterSpanProcessor:  # type: ignore
         """No-op shim when OpenTelemetry is unavailable."""
 
@@ -152,7 +180,7 @@ class TelemetryManager:
         self.meter_provider = None
         self.logger = self.__class__.logger
 
-    def initialize_telemetry(self) -> bool:
+    def initialize_telemetry(self, *args, **kwargs) -> bool:
         """Initialize OpenTelemetry with proper configuration."""
         if not OTEL_AVAILABLE:
             self.logger.warning("OpenTelemetry not available, skipping initialization")
@@ -161,6 +189,34 @@ class TelemetryManager:
         if self.initialized:
             self.logger.info("OpenTelemetry already initialized")
             return True
+
+        # Map legacy arguments to environment variables for backward compatibility
+        if "service_name" in kwargs:
+            os.environ.setdefault("OTEL_SERVICE_NAME", kwargs["service_name"])
+        if "service_version" in kwargs:
+            os.environ.setdefault("OTEL_SERVICE_VERSION", kwargs["service_version"])
+        if "environment" in kwargs:
+            os.environ.setdefault("ENVIRONMENT", kwargs["environment"])
+
+        try:
+            from petrosa_otel import setup_telemetry as petrosa_setup_telemetry
+
+            ok = petrosa_setup_telemetry(
+                service_name=os.getenv("OTEL_SERVICE_NAME", "binance-data-extractor"),
+                service_version=os.getenv("OTEL_SERVICE_VERSION", "2.0.0"),
+                service_type="cronjob",
+                otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+                protocol=os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf"),
+                enable_mysql=True,
+                enable_mongodb=True,
+                auto_attach_logging=False,
+            )
+            if ok:
+                self.initialized = True
+                self.logger.info("OpenTelemetry initialized via petrosa-otel")
+                return True
+        except Exception as e:
+            self.logger.warning("petrosa-otel setup failed, using legacy shim: %s", e)
 
         try:
             resource = self._create_resource()
@@ -174,12 +230,16 @@ class TelemetryManager:
             self.logger.error(f"Failed to initialize OpenTelemetry: {e}")
             return False
 
-    def _create_resource(self, service_name=None, service_version=None, environment=None):
+    def _create_resource(
+        self, service_name=None, service_version=None, environment=None
+    ):
         """Create OpenTelemetry resource."""
         if not OTEL_AVAILABLE or Resource is None:
             return None
 
-        service_name = service_name or os.getenv("OTEL_SERVICE_NAME", "binance-data-extractor")
+        service_name = service_name or os.getenv(
+            "OTEL_SERVICE_NAME", "binance-data-extractor"
+        )
         service_version = service_version or os.getenv("OTEL_SERVICE_VERSION", "2.0.0")
         environment = environment or os.getenv("ENVIRONMENT", "production")
 
@@ -193,7 +253,9 @@ class TelemetryManager:
 
             # Merge any custom resource attributes from constants
             try:
-                custom_attrs_str = getattr(constants, "OTEL_RESOURCE_ATTRIBUTES", "") or os.getenv("OTEL_RESOURCE_ATTRIBUTES", "")
+                custom_attrs_str = getattr(
+                    constants, "OTEL_RESOURCE_ATTRIBUTES", ""
+                ) or os.getenv("OTEL_RESOURCE_ATTRIBUTES", "")
                 if custom_attrs_str:
                     for attr in custom_attrs_str.split(","):
                         if "=" in attr:
@@ -230,12 +292,30 @@ class TelemetryManager:
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT") or getattr(
             constants, "OTEL_EXPORTER_OTLP_ENDPOINT", ""
         )
-        if otlp_endpoint and GRPCSpanExporter is not None:
+        exporter_protocol = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "").lower()
+
+        # Determine which exporter class to use
+        exporter_cls = None
+        if exporter_protocol in ("http/protobuf", "http", "otlp/http"):
+            exporter_cls = HTTPSpanExporter or GRPCSpanExporter
+        elif exporter_protocol in ("grpc", "otlp/grpc"):
+            exporter_cls = GRPCSpanExporter or HTTPSpanExporter
+        else:
+            # Auto-detect or default
+            exporter_cls = HTTPSpanExporter or GRPCSpanExporter
+
+        if otlp_endpoint and exporter_cls is not None:
             try:
-                headers = self._parse_headers(os.getenv("OTEL_EXPORTER_OTLP_HEADERS", ""))
-                otlp_exporter = GRPCSpanExporter(endpoint=otlp_endpoint, headers=headers)
+                headers = self._parse_headers(
+                    os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
+                )
+                otlp_exporter = exporter_cls(endpoint=otlp_endpoint, headers=headers)
                 span_processors.append(AttributeFilterSpanProcessor(otlp_exporter))
-                self.logger.info(f"OTLP exporter configured for endpoint: {otlp_endpoint}")
+                self.logger.info(
+                    "OTLP exporter configured for endpoint: %s (%s)",
+                    otlp_endpoint,
+                    exporter_protocol,
+                )
             except Exception as e:
                 self.logger.error(f"Failed to configure OTLP exporter: {e}")
 
@@ -260,7 +340,9 @@ class TelemetryManager:
             if SQLAlchemyInstrumentor is not None:
                 SQLAlchemyInstrumentor().instrument()
             if LoggingInstrumentor is not None:
-                LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.NOTSET)
+                LoggingInstrumentor().instrument(
+                    set_logging_format=True, log_level=logging.NOTSET
+                )
             if URLLIB3_AVAILABLE and URLLib3Instrumentor is not None:
                 URLLib3Instrumentor().instrument()
             if PYMONGO_AVAILABLE and PymongoInstrumentor is not None:
@@ -311,12 +393,14 @@ class TelemetryManager:
 # Module-level convenience functions (used by job scripts)
 # ---------------------------------------------------------------------------
 
+
 def get_tracer(name: str):
     """Get a tracer instance. Returns None if OTEL not available."""
     if not OTEL_AVAILABLE:
         return None
     try:
         from opentelemetry import trace as _trace
+
         return _trace.get_tracer(name)
     except Exception as exc:
         logger.warning("Failed to get tracer %s: %s", name, exc)
@@ -329,10 +413,17 @@ def get_meter(name: str):
         return None
     try:
         from opentelemetry import metrics as _metrics
+
         return _metrics.get_meter(name)
     except Exception as exc:
         logger.warning("Failed to get meter %s: %s", name, exc)
         return None
+
+
+def initialize_telemetry(*args, **kwargs) -> bool:
+    """Initialize telemetry via TelemetryManager wrapper."""
+    manager = TelemetryManager()
+    return manager.initialize_telemetry(*args, **kwargs)
 
 
 def flush_telemetry(timeout_ms: int = 5000) -> None:
@@ -353,6 +444,7 @@ def flush_telemetry(timeout_ms: int = 5000) -> None:
 
     try:
         from opentelemetry import trace as _trace
+
         tp = _trace.get_tracer_provider()
         if hasattr(tp, "force_flush"):
             tp.force_flush(timeout_millis=timeout_ms)
@@ -362,6 +454,7 @@ def flush_telemetry(timeout_ms: int = 5000) -> None:
 
     try:
         from opentelemetry._logs import get_logger_provider
+
         lp = get_logger_provider()
         if hasattr(lp, "force_flush"):
             lp.force_flush(timeout_millis=timeout_ms)
@@ -371,6 +464,7 @@ def flush_telemetry(timeout_ms: int = 5000) -> None:
 
     try:
         from opentelemetry import metrics as _metrics
+
         mp = _metrics.get_meter_provider()
         if hasattr(mp, "force_flush"):
             mp.force_flush(timeout_millis=timeout_ms)
