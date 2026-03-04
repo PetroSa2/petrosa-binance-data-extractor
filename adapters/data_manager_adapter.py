@@ -23,6 +23,14 @@ class DataManagerAdapter:
 
     Replaces direct database connections with API calls to petrosa-data-manager.
     """
+    HEALTHY_STATUSES = {"healthy", "ok"}
+
+    @staticmethod
+    def is_healthy_status(status: Any) -> bool:
+        """Return True when Data Manager reports an accepted healthy status."""
+        if not isinstance(status, str):
+            return False
+        return status.lower() in DataManagerAdapter.HEALTHY_STATUSES
 
     def __init__(
         self,
@@ -64,7 +72,7 @@ class DataManagerAdapter:
 
             # Test connection with health check
             health = await self._client.health_check()
-            if health.get("status") != "healthy":
+            if not self.is_healthy_status(health.get("status")):
                 raise ConnectionError(f"Data Manager health check failed: {health}")
 
             self._connected = True

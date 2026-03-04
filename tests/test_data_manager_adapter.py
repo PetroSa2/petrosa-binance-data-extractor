@@ -77,6 +77,24 @@ class TestDataManagerAdapterConnection:
             mock_client.health_check.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_connect_success_with_ok_status(self):
+        """Test successful connection when liveness returns status=ok."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+
+        with patch(
+            "adapters.data_manager_adapter.DataManagerClient"
+        ) as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.health_check = AsyncMock(return_value={"status": "ok"})
+            mock_client_class.return_value = mock_client
+
+            await adapter.connect()
+
+            assert adapter._connected is True
+            assert adapter._client is not None
+            mock_client.health_check.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_connect_already_connected(self):
         """Test connecting when already connected."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
