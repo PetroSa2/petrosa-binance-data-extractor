@@ -79,7 +79,26 @@ class TestTelemetryManager:
                 mock_info.assert_called()
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
-    def test_initialize_telemetry_import_error(self):
+    @patch("petrosa_otel.setup_telemetry")
+    def test_initialize_telemetry_via_petrosa_otel_success(self, mock_setup_telemetry):
+        """Test successful telemetry initialization via petrosa-otel."""
+        mock_setup_telemetry.return_value = True
+        manager = telemetry.TelemetryManager()
+
+        with patch.object(manager, "_create_resource") as mock_create_resource:
+            result = manager.initialize_telemetry(service_name="test-service")
+
+            assert result is True
+            assert manager.initialized is True
+            mock_setup_telemetry.assert_called_once()
+            # Verify legacy path was skipped
+            mock_create_resource.assert_not_called()
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch(
+        "petrosa_otel.setup_telemetry", side_effect=Exception("petrosa-otel failure")
+    )
+    def test_initialize_telemetry_import_error(self, mock_petrosa_setup):
         """Test initialization with import error."""
         manager = telemetry.TelemetryManager()
 
@@ -187,7 +206,8 @@ class TestTelemetryManager:
 
         mock_provider_instance.get_tracer.return_value = DummyContextManager()
 
-        manager._setup_tracing(mock_resource)
+        with patch.dict(os.environ, {"OTEL_CONSOLE_EXPORTER": "true"}):
+            manager._setup_tracing(mock_resource)
 
         mock_tracer_provider.assert_called_with(resource=mock_resource)
         mock_trace.set_tracer_provider.assert_called_with(mock_provider_instance)
@@ -197,6 +217,7 @@ class TestTelemetryManager:
     @patch("utils.telemetry.TracerProvider")
     @patch("utils.telemetry.BatchSpanProcessor")
     @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.HTTPSpanExporter")
     @patch("utils.telemetry.ConsoleSpanExporter")
     @patch("utils.telemetry.AttributeFilterSpanProcessor")
     @patch("utils.telemetry.trace")
@@ -205,6 +226,7 @@ class TestTelemetryManager:
         mock_trace,
         mock_processor,
         mock_console_exporter,
+        mock_http_exporter,
         mock_grpc_exporter,
         mock_batch_processor,
         mock_tracer_provider,
@@ -231,12 +253,13 @@ class TestTelemetryManager:
             {
                 "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
                 "ENVIRONMENT": "testing",
+                "OTEL_CONSOLE_EXPORTER": "true",
             },
         ):
             manager._setup_tracing(mock_resource)
 
-            # Verify GRPC exporter WAS called (current behavior)
-            assert mock_grpc_exporter.called
+            # Verify HTTPSpanExporter WAS called (default protocol is http/protobuf)
+            assert mock_http_exporter.called
 
             # Verify console exporter WAS also called
             assert mock_console_exporter.called
@@ -245,6 +268,7 @@ class TestTelemetryManager:
     @patch("utils.telemetry.TracerProvider")
     @patch("utils.telemetry.BatchSpanProcessor")
     @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.HTTPSpanExporter")
     @patch("utils.telemetry.ConsoleSpanExporter")
     @patch("utils.telemetry.AttributeFilterSpanProcessor")
     @patch("utils.telemetry.trace")
@@ -253,6 +277,7 @@ class TestTelemetryManager:
         mock_trace,
         mock_processor,
         mock_console_exporter,
+        mock_http_exporter,
         mock_grpc_exporter,
         mock_batch_processor,
         mock_tracer_provider,
@@ -266,8 +291,8 @@ class TestTelemetryManager:
         mock_tracer_provider.return_value = mock_provider_instance
         mock_provider_instance.get_tracer.return_value = DummyContextManager()
 
-        mock_grpc_instance = Mock()
-        mock_grpc_exporter.return_value = mock_grpc_instance
+        mock_http_instance = Mock()
+        mock_http_exporter.return_value = mock_http_instance
 
         mock_console_instance = Mock()
         mock_console_exporter.return_value = mock_console_instance
@@ -278,12 +303,13 @@ class TestTelemetryManager:
             {
                 "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
                 "ENVIRONMENT": "production",
+                "OTEL_CONSOLE_EXPORTER": "true",
             },
         ):
             manager._setup_tracing(mock_resource)
 
-            # Verify GRPC exporter WAS called
-            assert mock_grpc_exporter.called
+            # Verify HTTPSpanExporter WAS called
+            assert mock_http_exporter.called
 
             # Verify console exporter WAS also called
             assert mock_console_exporter.called
@@ -416,11 +442,56 @@ class TestTelemetryManager:
         mock_metrics.get_meter.assert_called_with("test-meter")
 
 
-@pytest.mark.skip(
-    "Module-level singleton cannot be reliably mocked in this environment"
-)
 class TestModuleFunctions:
-    pass
+    """Test the module-level convenience functions."""
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("opentelemetry.trace.get_tracer")
+    def test_get_tracer_module(self, mock_get_tracer):
+        """Test module-level get_tracer."""
+        mock_tracer = Mock()
+        mock_get_tracer.return_value = mock_tracer
+        result = telemetry.get_tracer("test-tracer")
+        assert result == mock_tracer
+        mock_get_tracer.assert_called_with("test-tracer")
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("opentelemetry.metrics.get_meter")
+    def test_get_meter_module(self, mock_get_meter):
+        """Test module-level get_meter."""
+        mock_meter = Mock()
+        mock_get_meter.return_value = mock_meter
+        result = telemetry.get_meter("test-meter")
+        assert result == mock_meter
+        mock_get_meter.assert_called_with("test-meter")
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.TelemetryManager.initialize_telemetry")
+    def test_initialize_telemetry_module(self, mock_initialize):
+        """Test module-level initialize_telemetry."""
+        mock_initialize.return_value = True
+        result = telemetry.initialize_telemetry(service_name="test")
+        assert result is True
+        mock_initialize.assert_called_once()
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("opentelemetry.trace.get_tracer_provider")
+    @patch("opentelemetry.metrics.get_meter_provider")
+    @patch("opentelemetry._logs.get_logger_provider")
+    def test_flush_telemetry(self, mock_get_lp, mock_get_mp, mock_get_tp):
+        """Test flush_telemetry."""
+        mock_tp = Mock()
+        mock_get_tp.return_value = mock_tp
+        mock_lp = Mock()
+        mock_get_lp.return_value = mock_lp
+        mock_mp = Mock()
+        mock_get_mp.return_value = mock_mp
+
+        telemetry.flush_telemetry()
+
+        mock_tp.force_flush.assert_called()
+        mock_lp.force_flush.assert_called()
+        mock_mp.force_flush.assert_called()
 
 
 class DummyContextManager:
@@ -495,8 +566,10 @@ class TestErrorHandling:
         new="https://test-endpoint.com",
     )
     @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.HTTPSpanExporter")
     def test_exporter_initialization_error(
         self,
+        mock_http_exporter,
         mock_grpc_exporter,
         mock_trace,
         mock_processor,
@@ -511,15 +584,19 @@ class TestErrorHandling:
         mock_provider_instance = Mock()
         mock_tracer_provider.return_value = mock_provider_instance
 
-        # Make GRPCSpanExporter raise an error
-        mock_grpc_exporter.side_effect = RuntimeError("Exporter error")
+        # Make HTTPSpanExporter raise an error (default protocol)
+        mock_http_exporter.side_effect = RuntimeError("Exporter error")
 
         # Mock console exporter to work
         mock_console_instance = Mock()
         mock_console_exporter.return_value = mock_console_instance
 
         with patch.dict(
-            os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com"}
+            os.environ,
+            {
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
+                "OTEL_CONSOLE_EXPORTER": "true",
+            },
         ):
             with patch.object(telemetry.TelemetryManager.logger, "error") as mock_error:
                 # This should handle the error gracefully

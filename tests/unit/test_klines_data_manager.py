@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from adapters.data_manager_adapter import DataManagerAdapter
 from fetchers.klines_data_manager import KlinesFetcherDataManager
 from models.kline import KlineModel
 
@@ -23,6 +24,7 @@ def mock_data_manager_adapter():
     mock.query_latest = AsyncMock(return_value=[])
     mock.find_gaps = AsyncMock(return_value=[])
     mock.health_check = AsyncMock(return_value={"status": "healthy"})
+    mock.is_healthy_status = DataManagerAdapter.is_healthy_status
     return mock
 
 
@@ -157,6 +159,19 @@ async def test_health_check_healthy(klines_fetcher, mock_binance_client):
 
     assert result["overall"] == "healthy"
     assert result["data_manager"]["status"] == "healthy"
+    assert result["binance_api"]["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_health_check_data_manager_ok_status(klines_fetcher, mock_binance_client):
+    """Test health_check when Data Manager liveness returns status=ok."""
+    mock_binance_client.get_server_time.return_value = {}  # Simulate success
+    klines_fetcher.data_adapter.health_check.return_value = {"status": "ok"}
+
+    result = await klines_fetcher.health_check()
+
+    assert result["overall"] == "healthy"
+    assert result["data_manager"]["status"] == "ok"
     assert result["binance_api"]["status"] == "healthy"
 
 

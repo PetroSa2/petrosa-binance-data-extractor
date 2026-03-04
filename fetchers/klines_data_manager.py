@@ -340,7 +340,7 @@ class KlinesFetcherDataManager:
                 "data_manager": dm_health,
                 "binance_api": binance_health,
                 "overall": "healthy"
-                if dm_health.get("status") == "healthy"
+                if self.data_adapter.is_healthy_status(dm_health.get("status"))
                 and binance_health.get("status") == "healthy"
                 else "unhealthy",
             }

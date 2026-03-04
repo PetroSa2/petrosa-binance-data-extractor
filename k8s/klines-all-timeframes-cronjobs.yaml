@@ -304,11 +304,11 @@ spec:
               value: "1"
             resources:
               requests:
-                memory: "384Mi"
-                cpu: "250m"
+                memory: "512Mi"
+                cpu: "300m"
               limits:
-                memory: "768Mi"
-                cpu: "600m"
+                memory: "1Gi"
+                cpu: "800m"
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
