@@ -6,6 +6,7 @@ with the petrosa-data-manager API for data persistence.
 """
 
 import os
+from inspect import isawaitable
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -213,12 +214,13 @@ class DataManagerClient:
                 f"Inserting {len(klines_data)} klines for {symbol} ({interval})"
             )
 
-            result = await self._client.insert(
+            result = self._client.insert(
                 database=database,
                 collection=collection_name,
-                data=klines_data,
-                validate=True,  # Enable schema validation
+                records=klines_data,
             )
+            if isawaitable(result):
+                result = await result
 
             logger.info(
                 f"Successfully inserted {result.get('inserted_count', 0)} klines for {symbol}"
@@ -264,12 +266,13 @@ class DataManagerClient:
         try:
             logger.info(f"Inserting {len(trades_data)} trades for {symbol}")
 
-            result = await self._client.insert(
+            result = self._client.insert(
                 database=database,
                 collection=collection_name,
-                data=trades_data,
-                validate=True,
+                records=trades_data,
             )
+            if isawaitable(result):
+                result = await result
 
             logger.info(
                 f"Successfully inserted {result.get('inserted_count', 0)} trades for {symbol}"
@@ -306,12 +309,13 @@ class DataManagerClient:
         try:
             logger.info(f"Inserting {len(funding_data)} funding rates for {symbol}")
 
-            result = await self._client.insert(
+            result = self._client.insert(
                 database=database,
                 collection=collection_name,
-                data=funding_data,
-                validate=True,
+                records=funding_data,
             )
+            if isawaitable(result):
+                result = await result
 
             logger.info(
                 f"Successfully inserted {result.get('inserted_count', 0)} funding rates for {symbol}"
@@ -343,13 +347,17 @@ class DataManagerClient:
 
         try:
             # Query for the latest record
-            result = await self._client.query(
+            result = self._client.query(
                 database=database,
                 collection=collection_name,
-                filter={"symbol": symbol},
-                sort={"close_time": -1},
-                limit=1,
+                params={
+                    "filter": {"symbol": symbol},
+                    "sort": {"close_time": -1},
+                    "limit": 1,
+                },
             )
+            if isawaitable(result):
+                result = await result
 
             if result.get("data") and len(result["data"]) > 0:
                 latest_record = result["data"][0]
@@ -398,19 +406,23 @@ class DataManagerClient:
 
         try:
             # Query for existing timestamps in the range
-            result = await self._client.query(
+            result = self._client.query(
                 database=database,
                 collection=collection_name,
-                filter={
-                    "symbol": symbol,
-                    "close_time": {
-                        "$gte": start_time.isoformat(),
-                        "$lte": end_time.isoformat(),
+                params={
+                    "filter": {
+                        "symbol": symbol,
+                        "close_time": {
+                            "$gte": start_time.isoformat(),
+                            "$lte": end_time.isoformat(),
+                        },
                     },
+                    "sort": {"close_time": 1},
+                    "fields": ["close_time"],
                 },
-                sort={"close_time": 1},
-                fields=["close_time"],
             )
+            if isawaitable(result):
+                result = await result
 
             # Extract timestamps
             existing_timestamps = []
