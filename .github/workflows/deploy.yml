@@ -93,8 +93,21 @@ jobs:
     needs: [build-and-push, create-release]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      performed: ${{ steps.token-check.outputs.available }}
     steps:
+      - name: Validate GitOps token
+        id: token-check
+        run: |
+          if [ -z "${{ secrets.GITOPS_BOT_TOKEN }}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GITOPS_BOT_TOKEN is not configured. Skipping GitOps update."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout petrosa_k8s
+        if: steps.token-check.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
           repository: PetroSa2/petrosa_k8s
@@ -103,10 +116,12 @@ jobs:
           path: petrosa_k8s
 
       - name: Rebase on main
+        if: steps.token-check.outputs.available == 'true'
         run: ./scripts/gitops-rebase-main.sh
         working-directory: petrosa_k8s
 
       - name: Update data-extractor image tag in GitOps manifests
+        if: steps.token-check.outputs.available == 'true'
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
           NAMESPACE="${{ secrets.DOCKERHUB_USERNAME }}"
@@ -119,6 +134,7 @@ jobs:
           echo "Updated data-extractor image tag to ${VERSION} in petrosa_k8s/k8s/data-extractor/"
 
       - name: Commit and push to petrosa_k8s
+        if: steps.token-check.outputs.available == 'true'
         working-directory: petrosa_k8s
         run: |
           git config user.name "gitops-bot"
@@ -142,9 +158,14 @@ jobs:
         VERSION="${{ needs.create-release.outputs.version }}"
 
         if [ "${{ needs.gitops-update.result }}" == "success" ]; then
-          echo "✅ Build, Push, and GitOps Update successful!"
-          echo "📦 Version: ${VERSION}"
-          echo "🚀 Deployed via petrosa_k8s hub"
+          if [ "${{ needs.gitops-update.outputs.performed }}" == "true" ]; then
+            echo "✅ Build, Push, and GitOps Update successful!"
+            echo "📦 Version: ${VERSION}"
+            echo "🚀 Deployed via petrosa_k8s hub"
+          else
+            echo "ℹ️ Build and Push successful (GitOps update skipped: missing GITOPS_BOT_TOKEN)"
+            echo "📦 Version: ${VERSION}"
+          fi
         elif [ "${{ needs.gitops-update.result }}" == "skipped" ]; then
           echo "ℹ️ Build and Push successful (GitOps update skipped)"
           echo "📦 Version: ${VERSION}"
