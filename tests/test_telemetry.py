@@ -79,7 +79,10 @@ class TestTelemetryManager:
                 mock_info.assert_called()
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
-    def test_initialize_telemetry_import_error(self):
+    @patch(
+        "petrosa_otel.setup_telemetry", side_effect=Exception("petrosa-otel failure")
+    )
+    def test_initialize_telemetry_import_error(self, mock_petrosa_setup):
         """Test initialization with import error."""
         manager = telemetry.TelemetryManager()
 
@@ -197,6 +200,7 @@ class TestTelemetryManager:
     @patch("utils.telemetry.TracerProvider")
     @patch("utils.telemetry.BatchSpanProcessor")
     @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.HTTPSpanExporter")
     @patch("utils.telemetry.ConsoleSpanExporter")
     @patch("utils.telemetry.AttributeFilterSpanProcessor")
     @patch("utils.telemetry.trace")
@@ -205,6 +209,7 @@ class TestTelemetryManager:
         mock_trace,
         mock_processor,
         mock_console_exporter,
+        mock_http_exporter,
         mock_grpc_exporter,
         mock_batch_processor,
         mock_tracer_provider,
@@ -235,8 +240,8 @@ class TestTelemetryManager:
         ):
             manager._setup_tracing(mock_resource)
 
-            # Verify GRPC exporter WAS called (current behavior)
-            assert mock_grpc_exporter.called
+            # Verify HTTPSpanExporter WAS called (default protocol is http/protobuf)
+            assert mock_http_exporter.called
 
             # Verify console exporter WAS also called
             assert mock_console_exporter.called
@@ -245,6 +250,7 @@ class TestTelemetryManager:
     @patch("utils.telemetry.TracerProvider")
     @patch("utils.telemetry.BatchSpanProcessor")
     @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.HTTPSpanExporter")
     @patch("utils.telemetry.ConsoleSpanExporter")
     @patch("utils.telemetry.AttributeFilterSpanProcessor")
     @patch("utils.telemetry.trace")
@@ -253,6 +259,7 @@ class TestTelemetryManager:
         mock_trace,
         mock_processor,
         mock_console_exporter,
+        mock_http_exporter,
         mock_grpc_exporter,
         mock_batch_processor,
         mock_tracer_provider,
@@ -266,8 +273,8 @@ class TestTelemetryManager:
         mock_tracer_provider.return_value = mock_provider_instance
         mock_provider_instance.get_tracer.return_value = DummyContextManager()
 
-        mock_grpc_instance = Mock()
-        mock_grpc_exporter.return_value = mock_grpc_instance
+        mock_http_instance = Mock()
+        mock_http_exporter.return_value = mock_http_instance
 
         mock_console_instance = Mock()
         mock_console_exporter.return_value = mock_console_instance
@@ -282,8 +289,8 @@ class TestTelemetryManager:
         ):
             manager._setup_tracing(mock_resource)
 
-            # Verify GRPC exporter WAS called
-            assert mock_grpc_exporter.called
+            # Verify HTTPSpanExporter WAS called
+            assert mock_http_exporter.called
 
             # Verify console exporter WAS also called
             assert mock_console_exporter.called
@@ -495,8 +502,10 @@ class TestErrorHandling:
         new="https://test-endpoint.com",
     )
     @patch("utils.telemetry.GRPCSpanExporter")
+    @patch("utils.telemetry.HTTPSpanExporter")
     def test_exporter_initialization_error(
         self,
+        mock_http_exporter,
         mock_grpc_exporter,
         mock_trace,
         mock_processor,
@@ -511,8 +520,8 @@ class TestErrorHandling:
         mock_provider_instance = Mock()
         mock_tracer_provider.return_value = mock_provider_instance
 
-        # Make GRPCSpanExporter raise an error
-        mock_grpc_exporter.side_effect = RuntimeError("Exporter error")
+        # Make HTTPSpanExporter raise an error (default protocol)
+        mock_http_exporter.side_effect = RuntimeError("Exporter error")
 
         # Mock console exporter to work
         mock_console_instance = Mock()
