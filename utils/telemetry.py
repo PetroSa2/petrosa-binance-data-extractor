@@ -287,9 +287,10 @@ class TelemetryManager:
         span_processors = []
 
         # Conditionally add console exporter to prevent production log flooding
-        if ConsoleSpanExporter is not None and os.getenv(
-            "OTEL_CONSOLE_EXPORTER", "false"
-        ).lower() == "true":
+        if (
+            ConsoleSpanExporter is not None
+            and os.getenv("OTEL_CONSOLE_EXPORTER", "false").lower() == "true"
+        ):
             console_exporter = ConsoleSpanExporter()
             span_processors.append(AttributeFilterSpanProcessor(console_exporter))
 
