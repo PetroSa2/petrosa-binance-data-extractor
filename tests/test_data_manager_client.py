@@ -109,30 +109,37 @@ class TestBaseDataManagerClient:
             assert exc_info.value is not None
 
     def test_query_success(self):
-        """Test successful query operation."""
+        """Test successful query operation uses GET /api/v1/{database}/{collection}."""
         client = BaseDataManagerClient(base_url="http://localhost:8000")
 
-        with patch.object(client.session, "post") as mock_post:
+        with patch.object(client.session, "get") as mock_get:
             mock_response = Mock()
             mock_response.json.return_value = {
                 "data": [{"id": 1, "value": "test"}],
                 "count": 1,
             }
             mock_response.raise_for_status = Mock()
-            mock_post.return_value = mock_response
+            mock_get.return_value = mock_response
 
             result = client.query("mongodb", "test_collection", {"filter": {"id": 1}})
 
             assert result["count"] == 1
             assert len(result["data"]) == 1
-            mock_post.assert_called_once()
+            mock_get.assert_called_once()
+            # Verify URL uses the correct endpoint
+            call_url = mock_get.call_args[0][0]
+            assert call_url == "http://localhost:8000/api/v1/mongodb/test_collection"
+            # Verify filter is passed as JSON-encoded query param
+            call_params = mock_get.call_args[1]["params"]
+            assert "filter" in call_params
+            assert '"id": 1' in call_params["filter"]
 
     def test_query_timeout_error(self):
         """Test query with timeout error."""
         client = BaseDataManagerClient(base_url="http://localhost:8000")
 
         with patch.object(
-            client.session, "post", side_effect=requests.exceptions.Timeout("Timeout")
+            client.session, "get", side_effect=requests.exceptions.Timeout("Timeout")
         ):
             with pytest.raises(TimeoutError) as exc_info:
                 client.query("mongodb", "test_collection", {"filter": {}})
@@ -144,7 +151,7 @@ class TestBaseDataManagerClient:
 
         with patch.object(
             client.session,
-            "post",
+            "get",
             side_effect=requests.exceptions.ConnectionError("Connection refused"),
         ):
             with pytest.raises(ConnectionError) as exc_info:
@@ -273,12 +280,12 @@ class TestPerformance:
         """Test querying large result set."""
         client = BaseDataManagerClient(base_url="http://localhost:8000")
 
-        with patch.object(client.session, "post") as mock_post:
+        with patch.object(client.session, "get") as mock_get:
             mock_response = Mock()
             large_result = [{"id": i, "value": f"test_{i}"} for i in range(5000)]
             mock_response.json.return_value = {"data": large_result, "count": 5000}
             mock_response.raise_for_status = Mock()
-            mock_post.return_value = mock_response
+            mock_get.return_value = mock_response
 
             result = client.query("mongodb", "test_collection", {"filter": {}})
 
