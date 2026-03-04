@@ -85,13 +85,14 @@ class TestTelemetryManager:
         mock_setup_telemetry.return_value = True
         manager = telemetry.TelemetryManager()
 
-        result = manager.initialize_telemetry(service_name="test-service")
+        with patch.object(manager, "_create_resource") as mock_create_resource:
+            result = manager.initialize_telemetry(service_name="test-service")
 
-        assert result is True
-        assert manager.initialized is True
-        mock_setup_telemetry.assert_called_once()
-        # Verify legacy path was not called by checking one of its actions
-        # (Since we mocked petrosa_otel to return True, legacy path should be skipped)
+            assert result is True
+            assert manager.initialized is True
+            mock_setup_telemetry.assert_called_once()
+            # Verify legacy path was skipped
+            mock_create_resource.assert_not_called()
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
     @patch(
@@ -438,11 +439,56 @@ class TestTelemetryManager:
         mock_metrics.get_meter.assert_called_with("test-meter")
 
 
-@pytest.mark.skip(
-    "Module-level singleton cannot be reliably mocked in this environment"
-)
 class TestModuleFunctions:
-    pass
+    """Test the module-level convenience functions."""
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("opentelemetry.trace.get_tracer")
+    def test_get_tracer_module(self, mock_get_tracer):
+        """Test module-level get_tracer."""
+        mock_tracer = Mock()
+        mock_get_tracer.return_value = mock_tracer
+        result = telemetry.get_tracer("test-tracer")
+        assert result == mock_tracer
+        mock_get_tracer.assert_called_with("test-tracer")
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("opentelemetry.metrics.get_meter")
+    def test_get_meter_module(self, mock_get_meter):
+        """Test module-level get_meter."""
+        mock_meter = Mock()
+        mock_get_meter.return_value = mock_meter
+        result = telemetry.get_meter("test-meter")
+        assert result == mock_meter
+        mock_get_meter.assert_called_with("test-meter")
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("utils.telemetry.TelemetryManager.initialize_telemetry")
+    def test_initialize_telemetry_module(self, mock_initialize):
+        """Test module-level initialize_telemetry."""
+        mock_initialize.return_value = True
+        result = telemetry.initialize_telemetry(service_name="test")
+        assert result is True
+        mock_initialize.assert_called_once()
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("opentelemetry.trace.get_tracer_provider")
+    @patch("opentelemetry.metrics.get_meter_provider")
+    @patch("opentelemetry._logs.get_logger_provider")
+    def test_flush_telemetry(self, mock_get_lp, mock_get_mp, mock_get_tp):
+        """Test flush_telemetry."""
+        mock_tp = Mock()
+        mock_get_tp.return_value = mock_tp
+        mock_lp = Mock()
+        mock_get_lp.return_value = mock_lp
+        mock_mp = Mock()
+        mock_get_mp.return_value = mock_mp
+
+        telemetry.flush_telemetry()
+
+        mock_tp.force_flush.assert_called()
+        mock_lp.force_flush.assert_called()
+        mock_mp.force_flush.assert_called()
 
 
 class DummyContextManager:
