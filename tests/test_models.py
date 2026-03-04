@@ -130,6 +130,41 @@ class TestKlineModel:
 
         assert kline.collection_name == "klines_h1"
 
+    def test_kline_to_dict_datetime_serialization(self):
+        """Test that to_dict() serializes datetime fields to ISO strings (not datetime objects)."""
+        now = datetime.now(UTC)
+        kline = KlineModel(
+            symbol="BTCUSDT",
+            timestamp=now,
+            open_time=now,
+            close_time=now,
+            interval="5m",
+            open_price=Decimal("50000"),
+            high_price=Decimal("50100"),
+            low_price=Decimal("49900"),
+            close_price=Decimal("50050"),
+            volume=Decimal("100"),
+            quote_asset_volume=Decimal("5000000"),
+            number_of_trades=1000,
+            taker_buy_base_asset_volume=Decimal("50"),
+            taker_buy_quote_asset_volume=Decimal("2500000"),
+        )
+
+        result = kline.to_dict()
+
+        # Verify datetime fields are serialized to strings, not datetime objects
+        assert isinstance(
+            result["timestamp"], str
+        ), "timestamp must be a JSON-serializable string"
+        assert isinstance(
+            result["open_time"], str
+        ), "open_time must be a JSON-serializable string"
+        assert isinstance(
+            result["close_time"], str
+        ), "close_time must be a JSON-serializable string"
+        # Verify 'id' is excluded
+        assert "id" not in result
+
 
 class TestTradeModel:
     """Test TradeModel functionality."""
