@@ -30,24 +30,15 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from opentelemetry import metrics, trace  # noqa: F401
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-        OTLPSpanExporter as GRPCSpanExporter,  # noqa: F401
-    )
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-        OTLPSpanExporter as HTTPSpanExporter,  # noqa: F401
+    from opentelemetry.instrumentation.logging import LoggingInstrumentor  # noqa: F401
+    from opentelemetry.instrumentation.requests import (
+        RequestsInstrumentor,  # noqa: F401
     )
     from opentelemetry.sdk.resources import Resource  # noqa: F401
     from opentelemetry.sdk.trace import TracerProvider  # noqa: F401
     from opentelemetry.sdk.trace.export import (  # noqa: F401
         BatchSpanProcessor,
         ConsoleSpanExporter,
-    )
-
-    # Alias used by existing tests that patch utils.telemetry.OTLPSpanExporter
-    OTLPSpanExporter = GRPCSpanExporter  # noqa: F401
-    from opentelemetry.instrumentation.logging import LoggingInstrumentor  # noqa: F401
-    from opentelemetry.instrumentation.requests import (
-        RequestsInstrumentor,  # noqa: F401
     )
 
     OTEL_AVAILABLE = True
@@ -60,11 +51,28 @@ except ImportError as _e:
     TracerProvider = None  # type: ignore
     BatchSpanProcessor = None  # type: ignore
     ConsoleSpanExporter = None  # type: ignore
-    GRPCSpanExporter = None  # type: ignore
-    HTTPSpanExporter = None  # type: ignore
-    OTLPSpanExporter = None  # type: ignore
     LoggingInstrumentor = None  # type: ignore
     RequestsInstrumentor = None  # type: ignore
+
+# Independent guards for exporters
+try:
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+        OTLPSpanExporter as GRPCSpanExporter,  # noqa: F401
+    )
+except ImportError:
+    GRPCSpanExporter = None  # type: ignore
+
+try:
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+        OTLPSpanExporter as HTTPSpanExporter,  # noqa: F401
+    )
+except ImportError:
+    HTTPSpanExporter = None  # type: ignore
+
+# Alias used by existing tests that patch utils.telemetry.OTLPSpanExporter
+# Default to HTTP if available, otherwise fallback to GRPC
+OTLPSpanExporter = HTTPSpanExporter or GRPCSpanExporter  # noqa: F401
+
 
 # ---------------------------------------------------------------------------
 # Optional instrumentors — each in its own guard
@@ -172,7 +180,7 @@ class TelemetryManager:
         self.meter_provider = None
         self.logger = self.__class__.logger
 
-    def initialize_telemetry(self) -> bool:
+    def initialize_telemetry(self, *args, **kwargs) -> bool:
         """Initialize OpenTelemetry with proper configuration."""
         if not OTEL_AVAILABLE:
             self.logger.warning("OpenTelemetry not available, skipping initialization")
@@ -181,6 +189,14 @@ class TelemetryManager:
         if self.initialized:
             self.logger.info("OpenTelemetry already initialized")
             return True
+
+        # Map legacy arguments to environment variables for backward compatibility
+        if "service_name" in kwargs:
+            os.environ.setdefault("OTEL_SERVICE_NAME", kwargs["service_name"])
+        if "service_version" in kwargs:
+            os.environ.setdefault("OTEL_SERVICE_VERSION", kwargs["service_version"])
+        if "environment" in kwargs:
+            os.environ.setdefault("ENVIRONMENT", kwargs["environment"])
 
         try:
             from petrosa_otel import setup_telemetry as petrosa_setup_telemetry
@@ -276,12 +292,17 @@ class TelemetryManager:
         otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT") or getattr(
             constants, "OTEL_EXPORTER_OTLP_ENDPOINT", ""
         )
-        exporter_protocol = os.getenv(
-            "OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf"
-        ).lower()
-        exporter_cls = GRPCSpanExporter
+        exporter_protocol = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "").lower()
+
+        # Determine which exporter class to use
+        exporter_cls = None
         if exporter_protocol in ("http/protobuf", "http", "otlp/http"):
-            exporter_cls = HTTPSpanExporter
+            exporter_cls = HTTPSpanExporter or GRPCSpanExporter
+        elif exporter_protocol in ("grpc", "otlp/grpc"):
+            exporter_cls = GRPCSpanExporter or HTTPSpanExporter
+        else:
+            # Auto-detect or default
+            exporter_cls = HTTPSpanExporter or GRPCSpanExporter
 
         if otlp_endpoint and exporter_cls is not None:
             try:
@@ -399,10 +420,10 @@ def get_meter(name: str):
         return None
 
 
-def initialize_telemetry() -> bool:
+def initialize_telemetry(*args, **kwargs) -> bool:
     """Initialize telemetry via TelemetryManager wrapper."""
     manager = TelemetryManager()
-    return manager.initialize_telemetry()
+    return manager.initialize_telemetry(*args, **kwargs)
 
 
 def flush_telemetry(timeout_ms: int = 5000) -> None:

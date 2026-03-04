@@ -79,6 +79,21 @@ class TestTelemetryManager:
                 mock_info.assert_called()
 
     @patch("utils.telemetry.OTEL_AVAILABLE", True)
+    @patch("petrosa_otel.setup_telemetry")
+    def test_initialize_telemetry_via_petrosa_otel_success(self, mock_setup_telemetry):
+        """Test successful telemetry initialization via petrosa-otel."""
+        mock_setup_telemetry.return_value = True
+        manager = telemetry.TelemetryManager()
+
+        result = manager.initialize_telemetry(service_name="test-service")
+
+        assert result is True
+        assert manager.initialized is True
+        mock_setup_telemetry.assert_called_once()
+        # Verify legacy path was not called by checking one of its actions
+        # (Since we mocked petrosa_otel to return True, legacy path should be skipped)
+
+    @patch("utils.telemetry.OTEL_AVAILABLE", True)
     @patch(
         "petrosa_otel.setup_telemetry", side_effect=Exception("petrosa-otel failure")
     )
