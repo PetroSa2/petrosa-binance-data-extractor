@@ -161,6 +161,19 @@ async def test_health_check_healthy(klines_fetcher, mock_binance_client):
 
 
 @pytest.mark.asyncio
+async def test_health_check_data_manager_ok_status(klines_fetcher, mock_binance_client):
+    """Test health_check when Data Manager liveness returns status=ok."""
+    mock_binance_client.get_server_time.return_value = {}  # Simulate success
+    klines_fetcher.data_adapter.health_check.return_value = {"status": "ok"}
+
+    result = await klines_fetcher.health_check()
+
+    assert result["overall"] == "healthy"
+    assert result["data_manager"]["status"] == "ok"
+    assert result["binance_api"]["status"] == "healthy"
+
+
+@pytest.mark.asyncio
 async def test_health_check_data_manager_unhealthy(klines_fetcher, mock_binance_client):
     """Test health_check when Data Manager is unhealthy."""
     mock_binance_client.get_server_time.return_value = {}  # Simulate success
