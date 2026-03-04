@@ -155,7 +155,9 @@ class KlineModel(BaseSymbolModel):
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database storage."""
-        return self.model_dump(exclude={"id"})  # Exclude UUID for storage
+        return self.model_dump(
+            exclude={"id"}, mode="json"
+        )  # mode='json' serializes datetime to ISO strings
 
     @property
     def collection_name(self) -> str:
