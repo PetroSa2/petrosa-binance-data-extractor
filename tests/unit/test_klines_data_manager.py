@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from adapters.data_manager_adapter import DataManagerAdapter
 from fetchers.klines_data_manager import KlinesFetcherDataManager
 from models.kline import KlineModel
 
@@ -23,6 +24,7 @@ def mock_data_manager_adapter():
     mock.query_latest = AsyncMock(return_value=[])
     mock.find_gaps = AsyncMock(return_value=[])
     mock.health_check = AsyncMock(return_value={"status": "healthy"})
+    mock.is_healthy_status = DataManagerAdapter.is_healthy_status
     return mock
 
 
