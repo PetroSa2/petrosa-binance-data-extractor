@@ -1,5 +1,5 @@
 """
-Tests for actions taken in response to PR review feedback.
+Tests for telemetry shims and Kubernetes manifest validation.
 """
 
 import os
@@ -43,11 +43,18 @@ def test_k8s_manifest_resources():
         "k8s/klines-all-timeframes-cronjobs.yaml",
     ]
 
+    # All listed manifests are required for this test; fail fast if any are missing.
+    missing_manifests = [
+        manifest_path
+        for manifest_path in manifests
+        if not os.path.exists(os.path.join(subproject_root, manifest_path))
+    ]
+    assert (
+        not missing_manifests
+    ), f"Expected Kubernetes manifest files are missing: {missing_manifests}"
+
     for manifest_path in manifests:
         full_path = os.path.join(subproject_root, manifest_path)
-        if not os.path.exists(full_path):
-            continue
-
         with open(full_path) as f:
             docs = list(yaml.safe_load_all(f))
 

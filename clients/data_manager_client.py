@@ -81,10 +81,15 @@ class BaseDataManagerClient:
             raise APIError(f"API error: {e}")
 
     def query(self, database: str, collection: str, params: dict) -> dict:
-        """Query records via Data Manager API using GET /api/v1/{database}/{collection}."""
+        """Query records via Data Manager API using GET /api/v1/{database}/{collection}.
+
+        Encoding per Data Manager API contract:
+        - filter, sort: JSON-encoded strings (e.g., '{"symbol": "BTCUSDT"}')
+        - limit, offset: passed as integers
+        - fields: comma-separated string (e.g., 'close_time,symbol')
+        """
         url = f"{self.base_url}/api/v1/{database}/{collection}"
 
-        # Convert dict params to JSON-encoded query string parameters
         query_params: dict[str, Any] = {}
         if "filter" in params:
             query_params["filter"] = json.dumps(params["filter"])
