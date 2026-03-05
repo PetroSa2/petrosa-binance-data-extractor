@@ -196,6 +196,93 @@ def get_messenger() -> NATSMessenger:
     return _messenger
 
 
+async def publish_extraction_completion_async(
+    symbol: str,
+    period: str,
+    records_fetched: int,
+    records_written: int,
+    success: bool,
+    duration_seconds: float,
+    errors: list | None = None,
+    gaps_found: int = 0,
+    gaps_filled: int = 0,
+    extraction_type: str = "klines",
+    use_production_prefix: bool = False,
+    use_gap_filler_prefix: bool = False,
+) -> None:
+    """
+    Asynchronous version of publishing extraction completion messages.
+    """
+    messenger = get_messenger()
+
+    # Use production or gap filler prefix if requested
+    original_prefix = None
+    if use_production_prefix:
+        # Override the subject prefix for production messages
+        original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
+        os.environ["NATS_SUBJECT_PREFIX"] = os.getenv(
+            "NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production"
+        )
+    elif use_gap_filler_prefix:
+        # Override the subject prefix for gap filler messages
+        original_prefix = os.getenv("NATS_SUBJECT_PREFIX")
+        os.environ["NATS_SUBJECT_PREFIX"] = os.getenv(
+            "NATS_SUBJECT_PREFIX_GAP_FILLER", "binance.extraction.gap-filler"
+        )
+
+    try:
+        await messenger.publish_extraction_completion(
+            symbol=symbol,
+            period=period,
+            records_fetched=records_fetched,
+            records_written=records_written,
+            success=success,
+            duration_seconds=duration_seconds,
+            errors=errors,
+            gaps_found=gaps_found,
+            gaps_filled=gaps_filled,
+            extraction_type=extraction_type,
+        )
+    finally:
+        # Restore original prefix if it was changed
+        if original_prefix:
+            os.environ["NATS_SUBJECT_PREFIX"] = original_prefix
+        # NOTE: We don't disconnect here in async mode as the messenger might be reused
+        # If disconnection is needed, caller should handle it or we should add a context manager
+
+
+async def publish_batch_extraction_completion_async(
+    symbols: list,
+    period: str,
+    total_records_fetched: int,
+    total_records_written: int,
+    success: bool,
+    duration_seconds: float,
+    errors: list | None = None,
+    total_gaps_found: int = 0,
+    total_gaps_filled: int = 0,
+    extraction_type: str = "klines",
+) -> None:
+    """
+    Asynchronous version of publishing batch extraction completion messages.
+    """
+    messenger = get_messenger()
+
+    await messenger.publish_batch_extraction_completion(
+        symbols=symbols,
+        period=period,
+        total_records_fetched=total_records_fetched,
+        total_records_written=total_records_written,
+        success=success,
+        duration_seconds=duration_seconds,
+        errors=errors,
+        total_gaps_found=total_gaps_found,
+        total_gaps_filled=total_gaps_filled,
+        extraction_type=extraction_type,
+    )
+    # NOTE: We don't disconnect here in async mode as the messenger might be reused
+
+
 def publish_extraction_completion_sync(
     symbol: str,
     period: str,
