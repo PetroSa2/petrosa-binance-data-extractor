@@ -170,11 +170,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: DEFAULT_SYMBOLS
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "512Mi"
@@ -352,18 +347,13 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: DEFAULT_SYMBOLS
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
-                memory: "384Mi"
-                cpu: "250m"
+                memory: "512Mi"
+                cpu: "300m"
               limits:
-                memory: "768Mi"
-                cpu: "600m"
+                memory: "1Gi"
+                cpu: "800m"
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000
@@ -529,11 +519,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             - name: DEFAULT_SYMBOLS
               valueFrom:
                 configMapKeyRef:
@@ -716,11 +701,6 @@ spec:
                 configMapKeyRef:
                   name: petrosa-common-config
                   key: DEFAULT_SYMBOLS
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             resources:
               requests:
                 memory: "256Mi"
@@ -893,11 +873,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: DEFAULT_SYMBOLS
-              valueFrom:
-                configMapKeyRef:
-                  name: petrosa-common-config
-                  key: DEFAULT_SYMBOLS
             - name: DEFAULT_SYMBOLS
               valueFrom:
                 configMapKeyRef:

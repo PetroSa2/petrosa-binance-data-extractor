@@ -5,9 +5,10 @@ This module provides a simplified interface for the data extractor to interact
 with the petrosa-data-manager API for data persistence.
 """
 
+import json
 import os
-from inspect import isawaitable
 from datetime import datetime, timedelta
+from inspect import isawaitable
 from typing import Any
 
 import requests
@@ -80,11 +81,32 @@ class BaseDataManagerClient:
             raise APIError(f"API error: {e}")
 
     def query(self, database: str, collection: str, params: dict) -> dict:
-        """Query records via Data Manager API."""
-        url = f"{self.base_url}/api/v1/data/query"
-        payload = {"database": database, "collection": collection, **params}
+        """Query records via Data Manager API using GET /api/v1/{database}/{collection}.
+
+        Encoding per Data Manager API contract:
+        - filter, sort: JSON-encoded strings (e.g., '{"symbol": "BTCUSDT"}')
+        - limit, offset: passed as integers
+        - fields: comma-separated string (e.g., 'close_time,symbol')
+        """
+        url = f"{self.base_url}/api/v1/{database}/{collection}"
+
+        query_params: dict[str, Any] = {}
+        if "filter" in params:
+            query_params["filter"] = json.dumps(params["filter"])
+        if "sort" in params:
+            query_params["sort"] = json.dumps(params["sort"])
+        if "limit" in params:
+            query_params["limit"] = params["limit"]
+        if "offset" in params:
+            query_params["offset"] = params["offset"]
+        if "fields" in params:
+            fields = params["fields"]
+            query_params["fields"] = (
+                ",".join(fields) if isinstance(fields, list) else fields
+            )
+
         try:
-            response = self.session.post(url, json=payload, timeout=self.timeout)
+            response = self.session.get(url, params=query_params, timeout=self.timeout)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.Timeout as e:

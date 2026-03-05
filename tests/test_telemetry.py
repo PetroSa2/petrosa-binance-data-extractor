@@ -206,7 +206,8 @@ class TestTelemetryManager:
 
         mock_provider_instance.get_tracer.return_value = DummyContextManager()
 
-        manager._setup_tracing(mock_resource)
+        with patch.dict(os.environ, {"OTEL_CONSOLE_EXPORTER": "true"}):
+            manager._setup_tracing(mock_resource)
 
         mock_tracer_provider.assert_called_with(resource=mock_resource)
         mock_trace.set_tracer_provider.assert_called_with(mock_provider_instance)
@@ -252,6 +253,7 @@ class TestTelemetryManager:
             {
                 "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
                 "ENVIRONMENT": "testing",
+                "OTEL_CONSOLE_EXPORTER": "true",
             },
         ):
             manager._setup_tracing(mock_resource)
@@ -301,6 +303,7 @@ class TestTelemetryManager:
             {
                 "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
                 "ENVIRONMENT": "production",
+                "OTEL_CONSOLE_EXPORTER": "true",
             },
         ):
             manager._setup_tracing(mock_resource)
@@ -589,7 +592,11 @@ class TestErrorHandling:
         mock_console_exporter.return_value = mock_console_instance
 
         with patch.dict(
-            os.environ, {"OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com"}
+            os.environ,
+            {
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "https://test-endpoint.com",
+                "OTEL_CONSOLE_EXPORTER": "true",
+            },
         ):
             with patch.object(telemetry.TelemetryManager.logger, "error") as mock_error:
                 # This should handle the error gracefully
