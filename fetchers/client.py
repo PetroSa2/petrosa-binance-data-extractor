@@ -3,11 +3,11 @@ HTTP client wrapper for Binance API with retry and rate limiting.
 """
 
 import json
-import logging
 from datetime import datetime
 from typing import Any
 
 import constants
+from utils.logger import get_logger
 from utils.metrics import get_metrics
 from utils.retry import RateLimiter, with_retries_and_rate_limit
 from utils.time_utils import get_current_utc_time
@@ -22,7 +22,7 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class BinanceAPIError(Exception):
