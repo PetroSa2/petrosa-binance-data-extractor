@@ -27,7 +27,10 @@ from utils.logger import (  # noqa: E402
     log_extraction_start,
     setup_logging,
 )
-from utils.messaging import publish_extraction_completion_sync  # noqa: E402
+from utils.messaging import (  # noqa: E402
+    publish_extraction_completion_async,
+    publish_extraction_completion_sync,
+)
 from utils.time_utils import format_duration, get_current_utc_time  # noqa: E402
 
 # Initialize OpenTelemetry as early as possible
@@ -171,7 +174,7 @@ class DataManagerKlinesExtractor:
             # Send NATS message for symbol completion
             if constants.NATS_ENABLED:
                 try:
-                    publish_extraction_completion_sync(
+                    await publish_extraction_completion_async(
                         symbol=symbol,
                         period=self.period,
                         records_fetched=result["records_fetched"],
