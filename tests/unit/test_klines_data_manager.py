@@ -198,3 +198,68 @@ async def test_health_check_binance_unhealthy(klines_fetcher, mock_binance_clien
     assert result["overall"] == "unhealthy"
     assert result["data_manager"]["status"] == "healthy"
     assert result["binance_api"]["status"] == "unhealthy"
+
+@pytest.mark.asyncio
+async def test_invalid_interval(klines_fetcher):
+    with pytest.raises(ValueError):
+        await klines_fetcher.fetch_and_store_klines("BTCUSDT", "invalid", datetime.now(), datetime.now())
+
+@pytest.mark.asyncio
+async def test_fetch_with_limit(klines_fetcher, mock_binance_client):
+    start_time = datetime(2023, 1, 1, tzinfo=UTC)
+    end_time = start_time + timedelta(minutes=5)
+    mock_kline_data = [[1672531200000, "100", "110", "90", "105", "1000", 1672531259999, "105000", 100, "500", "52500", "0"]]
+    mock_binance_client.get_klines.return_value = mock_kline_data
+    result = await klines_fetcher.fetch_and_store_klines("BTCUSDT", "1m", start_time, end_time, limit=1)
+    assert len(result) == 1
+
+@pytest.mark.asyncio
+async def test_parse_kline_data_failure(klines_fetcher, mock_binance_client):
+    start_time = datetime(2023, 1, 1, tzinfo=UTC)
+    end_time = start_time + timedelta(minutes=5)
+    mock_kline_data = [["invalid", "data", "format"]]
+    mock_binance_client.get_klines.side_effect = [mock_kline_data, []]
+    result = await klines_fetcher.fetch_and_store_klines("BTCUSDT", "1m", start_time, end_time)
+    assert len(result) == 0
+
+@pytest.mark.asyncio
+@patch("fetchers.klines_data_manager.time.sleep")
+async def test_fetch_binance_api_error_429(mock_sleep, klines_fetcher, mock_binance_client):
+    from fetchers.client import BinanceAPIError
+    start_time = datetime(2023, 1, 1, tzinfo=UTC)
+    end_time = start_time + timedelta(minutes=1)
+    error_429 = BinanceAPIError("Rate limit", status_code=429)
+    mock_binance_client.get_klines.side_effect = [error_429, []]
+    result = await klines_fetcher.fetch_and_store_klines("BTCUSDT", "1m", start_time, end_time)
+    assert len(result) == 0
+    mock_sleep.assert_called_with(60)
+
+@pytest.mark.asyncio
+async def test_fetch_binance_api_error_other(klines_fetcher, mock_binance_client):
+    from fetchers.client import BinanceAPIError
+    start_time = datetime(2023, 1, 1, tzinfo=UTC)
+    end_time = start_time + timedelta(minutes=1)
+    error_other = BinanceAPIError("Other error", status_code=500)
+    mock_binance_client.get_klines.side_effect = error_other
+    with pytest.raises(BinanceAPIError):
+        await klines_fetcher.fetch_and_store_klines("BTCUSDT", "1m", start_time, end_time)
+
+@pytest.mark.asyncio
+async def test_fetch_unexpected_error(klines_fetcher, mock_binance_client):
+    start_time = datetime(2023, 1, 1, tzinfo=UTC)
+    end_time = start_time + timedelta(minutes=1)
+    mock_binance_client.get_klines.side_effect = RuntimeError("Unexpected")
+    with pytest.raises(RuntimeError):
+        await klines_fetcher.fetch_and_store_klines("BTCUSDT", "1m", start_time, end_time)
+
+@pytest.mark.asyncio
+async def test_get_latest_timestamp_exception(klines_fetcher):
+    klines_fetcher.data_adapter.query_latest.side_effect = Exception("DB Error")
+    result = await klines_fetcher.get_latest_timestamp("BTCUSDT", "1m")
+    assert result is None
+
+@pytest.mark.asyncio
+async def test_find_gaps_exception(klines_fetcher):
+    klines_fetcher.data_adapter.find_gaps.side_effect = Exception("DB Error")
+    result = await klines_fetcher.find_gaps("BTCUSDT", "1m", datetime.now(), datetime.now())
+    assert result == []

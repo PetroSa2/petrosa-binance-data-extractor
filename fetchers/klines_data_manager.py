@@ -92,8 +92,8 @@ class KlinesFetcherDataManager:
             "Fetching and storing klines",
             symbol=symbol,
             interval=interval,
-            start_time=start_time,
-            end_time=end_time,
+            start_time=start_time.isoformat(),
+            end_time=end_time.isoformat(),
         )
 
         all_klines: list[KlineModel] = []
@@ -171,7 +171,7 @@ class KlinesFetcherDataManager:
                             "Fetched klines chunk",
                             klines_count=len(chunk_klines),
                             symbol=symbol,
-                            last_time=last_kline_time,
+                            last_time=last_kline_time.isoformat(),
                         )
                         current_start = last_kline_time + timedelta(seconds=1)
                     else:
