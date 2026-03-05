@@ -2,13 +2,7 @@
 Pydantic model for Binance Futures Kline (candlestick) data.
 """
 
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
-
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
