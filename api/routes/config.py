@@ -514,7 +514,9 @@ def _get_service_urls() -> dict[str, str]:
     """
     return {
         "data-manager": os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:80"),
-        "tradeengine": os.getenv("TRADEENGINE_URL", "http://petrosa-tradeengine-service:80"),
+        "tradeengine": os.getenv(
+            "TRADEENGINE_URL", "http://petrosa-tradeengine-service:80"
+        ),
     }
 
 
@@ -575,7 +577,9 @@ async def detect_cross_service_conflicts(
                                     )
                     elif response.status_code == 404:
                         # Data-manager service not available, log but don't fail
-                        logger.debug("Data-manager service not available for conflict check")
+                        logger.debug(
+                            "Data-manager service not available for conflict check"
+                        )
                     else:
                         logger.debug(
                             f"Unexpected status code {response.status_code} when checking "
@@ -596,13 +600,19 @@ async def detect_cross_service_conflicts(
                 # Validate symbol format before URL construction to prevent injection
                 for symbol in symbols[:3]:  # Check first 3 symbols
                     # Basic validation: symbols should be uppercase alphanumeric
-                    if not symbol.isupper() or not symbol.replace("USDT", "").replace("BUSD", "").isalnum():
-                        logger.debug(f"Invalid symbol format: {symbol}, skipping tradeengine check")
+                    if (
+                        not symbol.isupper()
+                        or not symbol.replace("USDT", "").replace("BUSD", "").isalnum()
+                    ):
+                        logger.debug(
+                            f"Invalid symbol format: {symbol}, skipping tradeengine check"
+                        )
                         continue
 
                     try:
                         # URL encode symbol to prevent injection
                         from urllib.parse import quote
+
                         encoded_symbol = quote(symbol, safe="")
                         response = await client.get(
                             f"{service_urls['tradeengine']}/api/v1/config/limits/symbol/{encoded_symbol}"
@@ -622,7 +632,9 @@ async def detect_cross_service_conflicts(
                                 f"tradeengine for symbol {symbol}"
                             )
                     except httpx.TimeoutException:
-                        logger.debug(f"Timeout checking tradeengine for symbol {symbol}")
+                        logger.debug(
+                            f"Timeout checking tradeengine for symbol {symbol}"
+                        )
                     except httpx.RequestError as e:
                         logger.debug(
                             f"Request error checking tradeengine for symbol {symbol}: {e}"

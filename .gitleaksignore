@@ -1,0 +1,3 @@
+regex: mongodb://.*
+regex: mongodb\+srv://.*
+regex: new-relic-license-key

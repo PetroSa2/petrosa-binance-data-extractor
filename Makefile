@@ -42,7 +42,7 @@ install: ## Install production dependencies only
 
 install-dev: ## Install development dependencies
 	@echo "🔧 Installing development dependencies..."
-	pip install -r requirements-dev.txt
+	./venv/bin/pip install -r requirements-dev.txt
 
 clean: ## Clean up cache and temporary files
 	@echo "🧹 Cleaning up cache and temporary files..."
@@ -56,13 +56,13 @@ clean: ## Clean up cache and temporary files
 # Code Quality
 format: ## Format code with ruff (replaces black + isort)
 	@echo "🎨 Formatting code with ruff..."
-	ruff format .
-	ruff check . --select I --fix
+	./venv/bin/ruff format .
+	./venv/bin/ruff check . --select I --fix
 	@echo "✅ Code formatting completed!"
 
 lint: ## Run linting checks with ruff (replaces flake8)
 	@echo "✨ Running linting checks..."
-	ruff check . --fix
+	./venv/bin/ruff check . --fix
 	@echo "✅ Linting completed!"
 
 type-check: ## Run type checking with mypy

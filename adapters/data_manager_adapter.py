@@ -24,6 +24,7 @@ class DataManagerAdapter:
 
     Replaces direct database connections with API calls to petrosa-data-manager.
     """
+
     HEALTHY_STATUSES = {"healthy", "ok"}
 
     @staticmethod
