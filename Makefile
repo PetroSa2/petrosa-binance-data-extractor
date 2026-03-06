@@ -10,6 +10,7 @@ COVERAGE_THRESHOLD := 40
 IMAGE_NAME := petrosa-binance-data-extractor
 NAMESPACE := petrosa-apps
 PYTEST := $(if $(wildcard ./venv/bin/pytest),./venv/bin/pytest,pytest)
+RUFF := $(if $(wildcard ./venv/bin/ruff),./venv/bin/ruff,ruff)
 
 # PHONY targets
 .PHONY: help setup install install-dev clean
@@ -56,13 +57,13 @@ clean: ## Clean up cache and temporary files
 # Code Quality
 format: ## Format code with ruff (replaces black + isort)
 	@echo "🎨 Formatting code with ruff..."
-	./venv/bin/ruff format .
-	./venv/bin/ruff check . --select I --fix
+	$(RUFF) format .
+	$(RUFF) check . --select I --fix
 	@echo "✅ Code formatting completed!"
 
 lint: ## Run linting checks with ruff (replaces flake8)
 	@echo "✨ Running linting checks..."
-	./venv/bin/ruff check . --fix
+	$(RUFF) check . --fix
 	@echo "✅ Linting completed!"
 
 type-check: ## Run type checking with mypy
