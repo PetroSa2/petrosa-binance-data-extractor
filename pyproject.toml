@@ -114,8 +114,8 @@ Repository = "https://github.com/petrosa/petrosa-binance-data-extractor"
 Discussions = "https://github.com/petrosa/petrosa-binance-data-extractor/discussions"
 
 [tool.setuptools.packages.find]
-include = ["jobs*", "fetchers*", "models*", "db*", "config*", "utils*"]
-exclude = ["tests*", "docs*", "scripts*", "k8s*", "socket_client*"]
+include = ["jobs*", "fetchers*", "models*", "db*", "config*", "utils*", "adapters*", "api*", "clients*", "services*"]
+exclude = ["tests*", "docs*", "scripts*", "k8s*", "socket_client*", "venv*", ".venv*", "build*", "dist*"]
 
 [tool.black]
 line-length = 88
