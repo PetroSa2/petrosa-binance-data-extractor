@@ -44,7 +44,6 @@ spec:
             - jobs.extract_klines_data_manager
             args:
             - --period=5m
-            - --incremental
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -232,7 +231,6 @@ spec:
             - jobs.extract_klines_data_manager
             args:
             - --period=15m
-            - --incremental
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -420,7 +418,6 @@ spec:
             - jobs.extract_klines_data_manager
             args:
             - --period=30m
-            - --incremental
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -608,7 +605,6 @@ spec:
             - jobs.extract_klines_data_manager
             args:
             - --period=1h
-            - --incremental
             env:
             - name: BINANCE_API_KEY
               valueFrom:
@@ -796,7 +792,6 @@ spec:
             - jobs.extract_klines_data_manager
             args:
             - --period=1d
-            - --incremental
             env:
             - name: BINANCE_API_KEY
               valueFrom:
