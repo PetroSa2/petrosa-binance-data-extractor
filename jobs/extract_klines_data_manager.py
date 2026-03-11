@@ -35,14 +35,15 @@ from utils.time_utils import format_duration, get_current_utc_time  # noqa: E402
 
 # Initialize OpenTelemetry as early as possible
 try:
-    from petrosa_otel import initialize_telemetry_standard  # noqa: E402
+    from petrosa_otel import setup_telemetry  # noqa: E402
 
     if not os.getenv("OTEL_NO_AUTO_INIT"):
-        initialize_telemetry_standard(
+        setup_telemetry(
             service_name=constants.OTEL_SERVICE_NAME_KLINES,
             service_type="cronjob",
             enable_mysql=True,
             enable_mongodb=True,
+            auto_attach_logging=True,
         )
 except ImportError:
     pass

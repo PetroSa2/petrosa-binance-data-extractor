@@ -33,7 +33,20 @@ from utils.time_utils import (  # noqa: E402
     parse_datetime_string,
 )
 
-# OpenTelemetry will be initialized in main() following standardized pattern
+# Initialize OpenTelemetry as early as possible
+try:
+    from petrosa_otel import setup_telemetry  # noqa: E402
+
+    if not os.getenv("OTEL_NO_AUTO_INIT"):
+        setup_telemetry(
+            service_name=constants.OTEL_SERVICE_NAME_KLINES,
+            service_type="cronjob",
+            enable_mysql=True,
+            enable_mongodb=True,
+            auto_attach_logging=True,
+        )
+except ImportError:
+    pass
 
 
 def parse_arguments():
