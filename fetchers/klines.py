@@ -74,6 +74,16 @@ class KlinesFetcher:
         start_time = align_timestamp_to_interval(start_time, interval)
         end_time = align_timestamp_to_interval(end_time, interval)
 
+        if start_time >= end_time:
+            logger.info(
+                "Requested time range for %s (%s) is empty after alignment: %s to %s",
+                symbol,
+                interval,
+                start_time,
+                end_time,
+            )
+            return []
+
         # Validate time range
         validate_time_range(start_time, end_time)
 
