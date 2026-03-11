@@ -77,29 +77,8 @@ def main():
     """Main extraction function."""
     args = parse_arguments()
 
-    # 1. Setup OpenTelemetry FIRST (before any logging configuration)
-    try:
-        from petrosa_otel import attach_logging_handler, initialize_telemetry_standard
-
-        initialize_telemetry_standard(
-            service_name=constants.OTEL_SERVICE_NAME_TRADES,
-            service_type="cronjob",
-            enable_mysql=True,
-            enable_mongodb=True,
-        )
-    except ImportError:
-        pass  # Continue without OpenTelemetry if not available
-
-    # 2. Setup logging (may call basicConfig)
+    # Setup logging (may call basicConfig)
     logger = setup_logging(level=args.log_level)
-
-    # 3. Attach OTel logging handler LAST (after logging is configured)
-    try:
-        from petrosa_otel import attach_logging_handler
-
-        attach_logging_handler()
-    except ImportError:
-        pass  # Continue without OpenTelemetry if not available
 
     logger.info("Starting Binance trades extraction job")
 
