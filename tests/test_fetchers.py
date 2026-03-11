@@ -318,7 +318,9 @@ class TestKlinesFetcher:
         start_time = datetime(2022, 1, 1, 10, 15, tzinfo=UTC)
         end_time = datetime(2022, 1, 1, 10, 10, tzinfo=UTC)
 
-        with pytest.raises(ValueError, match="Start time must be before end time") as exc_info:
+        with pytest.raises(
+            ValueError, match="Start time must be before end time"
+        ) as exc_info:
             self.fetcher.fetch_klines("BTCUSDT", "15m", start_time, end_time)
         assert exc_info.type is ValueError
 
