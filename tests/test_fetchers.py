@@ -302,6 +302,26 @@ class TestKlinesFetcher:
         assert len(results["BTCUSDT"]) == 1
         assert len(results["ETHUSDT"]) == 1
 
+    def test_fetch_klines_empty_range_after_alignment(self):
+        """Test fetching klines with a range that is empty after alignment."""
+        # 10:01 to 10:14 with 15m interval should both align to 10:00
+        start_time = datetime(2022, 1, 1, 10, 1, tzinfo=UTC)
+        end_time = datetime(2022, 1, 1, 10, 14, tzinfo=UTC)
+
+        klines = self.fetcher.fetch_klines("BTCUSDT", "15m", start_time, end_time)
+
+        assert klines == []
+        self.mock_client.get_klines.assert_not_called()
+
+    def test_fetch_klines_invalid_range_raises_error(self):
+        """Test fetching klines with an invalid range (start > end) raises ValueError."""
+        start_time = datetime(2022, 1, 1, 10, 15, tzinfo=UTC)
+        end_time = datetime(2022, 1, 1, 10, 10, tzinfo=UTC)
+
+        with pytest.raises(ValueError, match="Start time must be before end time") as exc_info:
+            self.fetcher.fetch_klines("BTCUSDT", "15m", start_time, end_time)
+        assert exc_info.type is ValueError
+
 
 class TestTradesFetcher:
     """Test TradesFetcher functionality."""
