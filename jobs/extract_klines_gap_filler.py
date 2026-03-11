@@ -39,7 +39,7 @@ from utils.time_utils import (  # noqa: E402
 try:
     from petrosa_otel import setup_telemetry  # noqa: E402
 
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
+    if os.getenv("OTEL_NO_AUTO_INIT", "").lower() not in ("1", "true", "yes", "on"):
         service_name = os.getenv(
             "OTEL_SERVICE_NAME_KLINES", constants.OTEL_SERVICE_NAME_KLINES
         )

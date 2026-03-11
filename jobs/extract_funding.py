@@ -27,7 +27,7 @@ from utils.time_utils import format_duration, parse_datetime_string  # noqa: E40
 try:
     from petrosa_otel import setup_telemetry  # noqa: E402
 
-    if not os.getenv("OTEL_NO_AUTO_INIT"):
+    if os.getenv("OTEL_NO_AUTO_INIT", "").lower() not in ("1", "true", "yes", "on"):
         setup_telemetry(
             service_name=constants.OTEL_SERVICE_NAME_FUNDING,
             service_type="cronjob",
