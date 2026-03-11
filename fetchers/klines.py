@@ -70,11 +70,25 @@ class KlinesFetcher:
         symbol = symbol.upper()
         end_time = end_time or get_current_utc_time()
 
+        # Initial validation of input range to catch genuine errors (start > end)
+        # before we potentially hide them by alignment
+        validate_time_range(start_time, end_time)
+
         # Align timestamps to interval boundaries
         start_time = align_timestamp_to_interval(start_time, interval)
         end_time = align_timestamp_to_interval(end_time, interval)
 
-        # Validate time range
+        if start_time >= end_time:
+            logger.info(
+                "Requested time range for %s (%s) is empty after alignment: %s to %s",
+                symbol,
+                interval,
+                start_time,
+                end_time,
+            )
+            return []
+
+        # Validate aligned time range (e.g. max_days)
         validate_time_range(start_time, end_time)
 
         logger.info(
