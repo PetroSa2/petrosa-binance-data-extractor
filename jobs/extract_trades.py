@@ -30,8 +30,6 @@ try:
         setup_telemetry(
             service_name=constants.OTEL_SERVICE_NAME_TRADES,
             service_type="cronjob",
-            otlp_endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT,
-            protocol=constants.OTEL_EXPORTER_OTLP_PROTOCOL,
             enable_mysql=True,
             enable_mongodb=True,
             auto_attach_logging=True,
@@ -79,6 +77,14 @@ def main():
 
     # Setup logging (may call basicConfig)
     logger = setup_logging(level=args.log_level)
+
+    # Attach OTel logging handler LAST (after logging is configured)
+    try:
+        from petrosa_otel import attach_logging_handler
+
+        attach_logging_handler()
+    except ImportError:
+        pass
 
     logger.info("Starting Binance trades extraction job")
 

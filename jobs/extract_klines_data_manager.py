@@ -41,8 +41,6 @@ try:
         setup_telemetry(
             service_name=constants.OTEL_SERVICE_NAME_KLINES,
             service_type="cronjob",
-            otlp_endpoint=constants.OTEL_EXPORTER_OTLP_ENDPOINT,
-            protocol=constants.OTEL_EXPORTER_OTLP_PROTOCOL,
             enable_mysql=True,
             enable_mongodb=True,
             auto_attach_logging=True,
