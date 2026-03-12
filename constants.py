@@ -18,7 +18,10 @@ BINANCE_FUTURES_API_URL = os.getenv(
 )
 
 # Default trading symbols
-DEFAULT_SYMBOLS = os.getenv("DEFAULT_SYMBOLS", "BTCUSDT,ETHUSDT,BNBUSDT").split(",")
+DEFAULT_SYMBOLS = os.getenv(
+    "DEFAULT_SYMBOLS",
+    "BTCUSDT,ETHUSDT,BNBUSDT,ADAUSDT,SOLUSDT,LINKUSDT,LTCUSDT,XRPUSDT",
+).split(",")
 
 # Supported intervals
 SUPPORTED_INTERVALS = [
