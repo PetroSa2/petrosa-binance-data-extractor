@@ -25,7 +25,7 @@ numpy<2.0
 # For local development, install from path:
 # pip install -e ../petrosa_k8s/petrosa-otel[all]
 # For production, this will be published to private PyPI
-petrosa-otel[all]>=1.0.0
+petrosa-otel[all]>=1.0.4
 # Explicit SQLAlchemy instrumentation (required by utils/telemetry.py and MySQL adapter)
 opentelemetry-instrumentation-sqlalchemy>=0.45b0
 
