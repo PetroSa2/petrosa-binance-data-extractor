@@ -22,6 +22,7 @@ except ImportError:
     attach_logging_handler = None
 
 from api.routes import config, jobs
+from utils.logger import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +37,25 @@ async def lifespan(app: FastAPI):
         and os.getenv("OTEL_NO_AUTO_INIT", "").lower() not in ("1", "true", "yes", "on")
     ):
         try:
-            logger.info("Initializing OpenTelemetry for Data Extractor API")
             setup_telemetry(
-                service_name="binance-data-extractor-api",
+                service_name=os.getenv(
+                    "OTEL_SERVICE_NAME", "petrosa-data-extractor-api"
+                ),
                 service_type="fastapi",
                 enable_fastapi=True,
                 enable_http=True,
+                auto_attach_logging=False,  # We attach manually below
             )
         except Exception as e:
-            logger.warning(f"Failed to initialize OpenTelemetry: {e}")
+            # Can't use logger yet as it's not configured
+            print(f"Failed to initialize OpenTelemetry: {e}")
 
-    # Startup
+    # 2. Setup logging (may call basicConfig and configure structlog)
+    # This should happen AFTER setup_telemetry but BEFORE attach_logging_handler
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    log_format = os.getenv("LOG_FORMAT", "json")
+    setup_logging(level=log_level, format_type=log_format)
+
     logger.info("Starting Data Extractor Configuration API")
 
     # 3. Attach OTel logging handler LAST (after logging is configured)
