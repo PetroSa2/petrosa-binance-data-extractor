@@ -33,8 +33,20 @@ from utils.time_utils import (  # noqa: E402
     parse_datetime_string,
 )
 
-# Note: OpenTelemetry is initialized inside the main() function to ensure
-# it happens after configuration is parsed.
+# Note: OpenTelemetry is initialized as early as possible.
+try:
+    from petrosa_otel import setup_telemetry  # noqa: E402
+
+    if os.getenv("OTEL_NO_AUTO_INIT", "").lower() not in ("1", "true", "yes", "on"):
+        setup_telemetry(
+            service_name=constants.OTEL_SERVICE_NAME_KLINES,
+            service_type="cronjob",
+            enable_mysql=True,
+            enable_mongodb=True,
+            auto_attach_logging=True,
+        )
+except ImportError:
+    pass
 
 
 def parse_arguments():
@@ -310,31 +322,8 @@ def main():
     """Main extraction function."""
     args = parse_arguments()
 
-    # 1. Setup OpenTelemetry
-    try:
-        from petrosa_otel import setup_telemetry
-
-        if os.getenv("OTEL_NO_AUTO_INIT", "").lower() not in ("1", "true", "yes", "on"):
-            setup_telemetry(
-                service_name=constants.OTEL_SERVICE_NAME_KLINES,
-                service_type="cronjob",
-                enable_mysql=True,
-                enable_mongodb=True,
-                auto_attach_logging=False,  # We attach manually below
-            )
-    except ImportError:
-        pass
-
     # 2. Setup logging (may call basicConfig)
     logger = setup_logging(level=args.log_level)
-
-    # Attach OTel logging handler LAST (after logging is configured)
-    try:
-        from petrosa_otel import attach_logging_handler
-
-        attach_logging_handler()
-    except ImportError:
-        pass
 
     logger.info("Starting Binance klines extraction job")
 
