@@ -12,6 +12,7 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+import constants  # noqa: E402
 from services.config_manager import (  # noqa: E402
     ConfigManager,
     get_config_manager,
@@ -38,7 +39,7 @@ class TestConfigManager:
         manager.adapter._connected = True
 
         symbols = manager.get_symbols()
-        assert symbols == ["BTCUSDT", "ETHUSDT", "BNBUSDT"]  # Default from constants
+        assert symbols == constants.DEFAULT_SYMBOLS  # Default from constants
 
     @patch("services.config_manager.MongoDBAdapter")
     def test_get_symbols_from_config(self, mock_adapter_class):
