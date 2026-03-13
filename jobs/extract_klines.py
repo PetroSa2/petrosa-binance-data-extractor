@@ -33,7 +33,7 @@ from utils.time_utils import (  # noqa: E402
     parse_datetime_string,
 )
 
-# Initialize OpenTelemetry as early as possible
+# Note: OpenTelemetry is initialized as early as possible.
 try:
     from petrosa_otel import setup_telemetry  # noqa: E402
 
@@ -322,16 +322,8 @@ def main():
     """Main extraction function."""
     args = parse_arguments()
 
-    # Setup logging (may call basicConfig)
+    # 2. Setup logging (may call basicConfig)
     logger = setup_logging(level=args.log_level)
-
-    # Attach OTel logging handler LAST (after logging is configured)
-    try:
-        from petrosa_otel import attach_logging_handler
-
-        attach_logging_handler()
-    except ImportError:
-        pass
 
     logger.info("Starting Binance klines extraction job")
 
