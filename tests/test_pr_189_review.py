@@ -35,6 +35,7 @@ def test_setup_metrics_no_op_awareness():
     assert manager._setup_metrics(Mock()) is None
 
 
+@pytest.mark.skip(reason="Manifests moved to petrosa_k8s monorepo")
 def test_k8s_manifest_resources():
     """Assert m15 CronJob container limits are 1Gi / 800m."""
     manifests = [
@@ -83,6 +84,7 @@ def test_k8s_manifest_resources():
         assert m15_found, f"m15 CronJob not found in {manifest_path}"
 
 
+@pytest.mark.skip(reason="Manifests moved to petrosa_k8s monorepo")
 def test_k8s_manifest_no_duplicate_env():
     """Assert no duplicate env.name keys per container in all k8s/*.yaml files."""
     k8s_dir = os.path.join(subproject_root, "k8s")
