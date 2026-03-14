@@ -38,14 +38,21 @@ The version comes from:
 ## Critical Rules
 
 ### ✅ DO
-- Use `VERSION_PLACEHOLDER` in all Kubernetes manifests
+- Use `VERSION_PLACEHOLDER` in all Kubernetes manifests in the `k8s/` directory
 - Let the CI/CD pipeline handle version replacement
 - Use semantic versioning for releases (e.g., `v1.0.1`)
+- Always keep `VERSION_PLACEHOLDER` in your source k8s/ manifests - even after deployment
 
 ### ❌ DON'T
 - **NEVER manually replace VERSION_PLACEHOLDER** in manifests
-- **NEVER hardcode versions** in Kubernetes files
+- **NEVER hardcode versions** (e.g., `v1.2.15`) in Kubernetes files
 - **NEVER commit manifests with actual versions** instead of placeholders
+- **DO NOT remove VERSION_PLACEHOLDER** after deployment - it must remain for the next release
+
+## CI/CD Enforcement (CRITICAL)
+
+### Automatic Validation
+All CI/CD pipelines now include a **mandatory validation step** that checks for `VERSION_PLACEHOLDER` before attempting GitOps updates. **If you replace it with a hardcoded version, the CI will FAIL with an error.**
 
 ## Files That Use VERSION_PLACEHOLDER
 
