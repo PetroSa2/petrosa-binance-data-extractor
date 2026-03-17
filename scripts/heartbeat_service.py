@@ -30,6 +30,12 @@ class HeartbeatMessage(BaseModel):
     status: str = "healthy"
     metadata: dict = Field(default_factory=dict)
 
+    def to_json(self) -> str:
+        """Compatibility helper for Pydantic v1/v2."""
+        if hasattr(self, "model_dump_json"):
+            return self.model_dump_json()
+        return self.json()
+
 
 class HeartbeatPublisher:
     """Publishes periodic heartbeats to NATS."""
@@ -53,15 +59,15 @@ class HeartbeatPublisher:
 
                 message = HeartbeatMessage(service=self.service_name)
                 await self.nats_client.publish(
-                    self.subject, 
-                    message.model_dump_json().encode()
+                    self.subject,
+                    message.to_json().encode()
                 )
                 logger.debug(f"Published heartbeat to {self.subject}")
-                
+
             except Exception as e:
                 logger.error(f"Error publishing heartbeat: {e}")
                 self.nats_client = None  # Force reconnection next loop
-            
+
             await asyncio.sleep(self.interval)
 
     def stop(self):
@@ -72,7 +78,7 @@ class HeartbeatPublisher:
 async def main():
     service_name = os.getenv("SERVICE_NAME", "data-extractor")
     nats_url = os.getenv("NATS_URL", "nats://localhost:4222")
-    
+
     logger.info(f"🚀 Starting heartbeat service for {service_name}")
     publisher = HeartbeatPublisher(service_name, nats_url)
     await publisher.start()
