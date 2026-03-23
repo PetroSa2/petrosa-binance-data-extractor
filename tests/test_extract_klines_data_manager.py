@@ -10,7 +10,8 @@ Tests cover:
 """
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

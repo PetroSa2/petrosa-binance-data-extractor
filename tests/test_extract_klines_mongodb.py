@@ -11,7 +11,8 @@ Tests cover:
 - Chaos testing (connection failures, corrupted data)
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from datetime import UTC
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

@@ -391,7 +391,7 @@ class DataManagerClient:
                     # Ensure timestamp is timezone-aware
                     if isinstance(timestamp, str):
                         timestamp = datetime.fromisoformat(
-                            timestamp.replace("Z", "+00:00")
+                            timestamp
                         )
                     return timestamp
 
@@ -453,7 +453,7 @@ class DataManagerClient:
                 if timestamp:
                     if isinstance(timestamp, str):
                         timestamp = datetime.fromisoformat(
-                            timestamp.replace("Z", "+00:00")
+                            timestamp
                         )
                     existing_timestamps.append(timestamp)
 

@@ -6,7 +6,8 @@ Tests for production klines extraction.
 import os
 import sys
 import threading
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+from datetime import UTC
 from decimal import Decimal
 from unittest.mock import Mock, patch
 

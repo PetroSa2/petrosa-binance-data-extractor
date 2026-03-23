@@ -5,7 +5,8 @@ Tests for data models.
 
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+from datetime import UTC
 from decimal import Decimal
 
 # Add project root to path

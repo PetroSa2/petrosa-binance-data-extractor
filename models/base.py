@@ -51,7 +51,7 @@ class BaseTimestampedModel(BaseModel):
         elif isinstance(v, str):
             # Try to parse ISO format
             try:
-                return datetime.fromisoformat(v.replace("Z", "+00:00"))
+                return datetime.fromisoformat(v)
             except ValueError:
                 # Try timestamp string
                 return datetime.utcfromtimestamp(

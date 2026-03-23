@@ -5,7 +5,8 @@ Tests for database adapters.
 
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+from datetime import UTC
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 

@@ -12,7 +12,8 @@ Tests cover:
 - Chaos (extreme timestamps)
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from datetime import UTC
 
 import pytest
 

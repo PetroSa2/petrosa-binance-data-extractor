@@ -244,7 +244,7 @@ class KlinesFetcherDataManager:
                 if timestamp:
                     if isinstance(timestamp, str):
                         timestamp = datetime.fromisoformat(
-                            timestamp.replace("Z", "+00:00")
+                            timestamp
                         )
                     return timestamp
 
