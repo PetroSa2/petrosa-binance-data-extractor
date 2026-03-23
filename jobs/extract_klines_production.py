@@ -236,7 +236,7 @@ class ProductionKlinesExtractor:
                         f"No timestamp found in latest record for {symbol}: {latest_record}"
                     )
                     timestamp = datetime.fromisoformat(
-                        constants.DEFAULT_START_DATE.replace("Z", "+00:00")
+                        constants.DEFAULT_START_DATE
                     )
 
                 # Ensure timestamp is timezone-aware
@@ -250,7 +250,7 @@ class ProductionKlinesExtractor:
             else:
                 # No data found, start from default start date
                 return datetime.fromisoformat(
-                    constants.DEFAULT_START_DATE.replace("Z", "+00:00")
+                    constants.DEFAULT_START_DATE
                 )
 
         try:
@@ -263,7 +263,7 @@ class ProductionKlinesExtractor:
             )
             # Fallback to default start date
             return datetime.fromisoformat(
-                constants.DEFAULT_START_DATE.replace("Z", "+00:00")
+                constants.DEFAULT_START_DATE
             )
 
     def calculate_extraction_window(
@@ -364,7 +364,7 @@ class ProductionKlinesExtractor:
                 # Calculate extraction window (handle None case)
                 if last_timestamp is None:
                     last_timestamp = datetime.fromisoformat(
-                        constants.DEFAULT_START_DATE.replace("Z", "+00:00")
+                        constants.DEFAULT_START_DATE
                     )
                 start_time, end_time = self.calculate_extraction_window(last_timestamp)
 

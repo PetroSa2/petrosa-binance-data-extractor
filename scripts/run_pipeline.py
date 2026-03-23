@@ -17,7 +17,7 @@ Usage:
 import argparse
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any
 

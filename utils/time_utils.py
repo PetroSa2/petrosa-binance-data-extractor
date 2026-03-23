@@ -3,7 +3,8 @@ Time utility functions for date parsing, timezone conversion, and gap detection.
 """
 
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone, UTC
+
 
 import constants
 
@@ -28,7 +29,7 @@ def parse_binance_timestamp(timestamp: int | str | datetime) -> datetime:
     if isinstance(timestamp, str):
         # Try to parse as ISO format first
         try:
-            return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(
+            return datetime.fromisoformat(timestamp).astimezone(
                 UTC
             )
         except ValueError:
@@ -79,14 +80,16 @@ def parse_datetime_string(date_string: str) -> datetime:
     Returns:
         UTC datetime object
     """
-    # Remove timezone info if present for parsing
+    # Remove whitespace
     date_string = date_string.strip()
 
-    # Handle ISO format with Z
-    if date_string.endswith("Z"):
-        date_string = date_string[:-1] + "+00:00"
+    # Try ISO format first (Python 3.11+ handles Z natively)
+    try:
+        return datetime.fromisoformat(date_string).astimezone(UTC)
+    except ValueError:
+        pass
 
-    # Try different formats
+    # Try other common formats
     formats = [
         "%Y-%m-%dT%H:%M:%S%z",  # ISO with timezone
         "%Y-%m-%dT%H:%M:%S",  # ISO without timezone
