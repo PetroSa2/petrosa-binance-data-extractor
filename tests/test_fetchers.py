@@ -5,8 +5,7 @@ Tests for data fetchers.
 
 import os
 import sys
-from datetime import datetime, timezone
-from datetime import UTC
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -20,6 +19,8 @@ from fetchers.client import BinanceAPIError, BinanceClient  # noqa: E402
 from fetchers.funding import FundingRatesFetcher  # noqa: E402
 from fetchers.klines import KlinesFetcher  # noqa: E402
 from fetchers.trades import TradesFetcher  # noqa: E402
+
+UTC = UTC
 
 
 class TestBinanceClient:

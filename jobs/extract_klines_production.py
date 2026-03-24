@@ -235,9 +235,7 @@ class ProductionKlinesExtractor:
                     self.logger.warning(
                         f"No timestamp found in latest record for {symbol}: {latest_record}"
                     )
-                    timestamp = datetime.fromisoformat(
-                        constants.DEFAULT_START_DATE
-                    )
+                    timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE)
 
                 # Ensure timestamp is timezone-aware
                 if timestamp:
@@ -249,9 +247,7 @@ class ProductionKlinesExtractor:
                 return timestamp
             else:
                 # No data found, start from default start date
-                return datetime.fromisoformat(
-                    constants.DEFAULT_START_DATE
-                )
+                return datetime.fromisoformat(constants.DEFAULT_START_DATE)
 
         try:
             return retry_with_backoff(
@@ -262,9 +258,7 @@ class ProductionKlinesExtractor:
                 "Could not get last timestamp for %s after retries: %s", symbol, e
             )
             # Fallback to default start date
-            return datetime.fromisoformat(
-                constants.DEFAULT_START_DATE
-            )
+            return datetime.fromisoformat(constants.DEFAULT_START_DATE)
 
     def calculate_extraction_window(
         self, last_timestamp: datetime

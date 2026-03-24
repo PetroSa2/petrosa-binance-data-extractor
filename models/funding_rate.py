@@ -2,14 +2,15 @@
 Pydantic model for Binance Futures Funding Rate data.
 """
 
-from datetime import datetime, timezone
-from datetime import UTC
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
 from pydantic import ConfigDict, Field, field_validator
 
 from .base import BaseSymbolModel
+
+UTC = UTC
 
 
 class FundingRateModel(BaseSymbolModel):

@@ -243,9 +243,7 @@ class KlinesFetcherDataManager:
 
                 if timestamp:
                     if isinstance(timestamp, str):
-                        timestamp = datetime.fromisoformat(
-                            timestamp
-                        )
+                        timestamp = datetime.fromisoformat(timestamp)
                     return timestamp
 
             return None

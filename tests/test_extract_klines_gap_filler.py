@@ -4,8 +4,7 @@ Unit tests for jobs/extract_klines_gap_filler.py
 """
 import os
 import sys
-from datetime import datetime, timezone
-from datetime import UTC
+from datetime import UTC, datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -15,6 +14,8 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import jobs.extract_klines_gap_filler as gap_filler  # noqa: E402
+
+UTC = UTC
 
 
 class TestRetryWithBackoff:

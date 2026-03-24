@@ -10,8 +10,7 @@ Tests cover:
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
-from datetime import UTC
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -21,6 +20,8 @@ from jobs.extract_klines_data_manager import (
     main,
     parse_arguments,
 )
+
+UTC = UTC
 
 
 class TestDataManagerKlinesExtractor:

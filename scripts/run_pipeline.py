@@ -17,7 +17,7 @@ Usage:
 import argparse
 import sys
 import time
-from datetime import datetime, UTC
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +28,8 @@ sys.path.insert(0, str(project_root))
 import constants  # noqa: E402
 from utils.logger import get_logger, setup_logging  # noqa: E402
 from utils.telemetry import TelemetryManager  # noqa: E402
+
+UTC = UTC
 
 
 class PipelineRunner:
