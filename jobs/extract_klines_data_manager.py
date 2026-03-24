@@ -126,9 +126,7 @@ class DataManagerKlinesExtractor:
 
             if last_timestamp is None:
                 # No data found, start from default start date
-                last_timestamp = datetime.fromisoformat(
-                    constants.DEFAULT_START_DATE
-                )
+                last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE)
 
             # Calculate extraction window
             start_time, end_time = self._calculate_extraction_window(last_timestamp)

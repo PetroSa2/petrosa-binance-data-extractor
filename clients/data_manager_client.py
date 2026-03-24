@@ -390,9 +390,7 @@ class DataManagerClient:
                 if timestamp:
                     # Ensure timestamp is timezone-aware
                     if isinstance(timestamp, str):
-                        timestamp = datetime.fromisoformat(
-                            timestamp
-                        )
+                        timestamp = datetime.fromisoformat(timestamp)
                     return timestamp
 
             return None
@@ -452,9 +450,7 @@ class DataManagerClient:
                 timestamp = record.get("close_time")
                 if timestamp:
                     if isinstance(timestamp, str):
-                        timestamp = datetime.fromisoformat(
-                            timestamp
-                        )
+                        timestamp = datetime.fromisoformat(timestamp)
                     existing_timestamps.append(timestamp)
 
             # Find gaps (simplified implementation)

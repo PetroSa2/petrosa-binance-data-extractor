@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -7,6 +6,8 @@ import pytest
 from adapters.data_manager_adapter import DataManagerAdapter
 from fetchers.klines_data_manager import KlinesFetcherDataManager
 from models.kline import KlineModel
+
+UTC = UTC
 
 
 @pytest.fixture

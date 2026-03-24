@@ -12,8 +12,7 @@ Tests cover:
 - Chaos (extreme timestamps)
 """
 
-from datetime import datetime, timedelta, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -36,6 +35,8 @@ from utils.time_utils import (
     table_suffix_to_binance_interval,
     validate_time_range,
 )
+
+UTC = UTC
 
 
 class TestParseBinanceTimestamp:

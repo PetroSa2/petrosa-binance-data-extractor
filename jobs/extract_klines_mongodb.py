@@ -11,7 +11,7 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timedelta, timezone
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +33,8 @@ from utils.time_utils import (  # noqa: E402
     get_current_utc_time,
     parse_datetime_string,
 )
+
+UTC = UTC
 
 # Initialize OpenTelemetry as early as possible
 try:
@@ -244,7 +246,9 @@ def extract_klines_for_symbol(
                     else (
                         int(period[:-1]) * 60
                         if period.endswith("h")
-                        else int(period[:-1]) * 24 * 60 if period.endswith("d") else 5
+                        else int(period[:-1]) * 24 * 60
+                        if period.endswith("d")
+                        else 5
                     )
                 )  # Default to 5m
                 start_date = last_timestamp - timedelta(minutes=interval_minutes)
@@ -264,7 +268,9 @@ def extract_klines_for_symbol(
                     else (
                         int(period[:-1]) * 60
                         if period.endswith("h")
-                        else int(period[:-1]) * 24 * 60 if period.endswith("d") else 5
+                        else int(period[:-1]) * 24 * 60
+                        if period.endswith("d")
+                        else 5
                     )
                 )  # Default to 5m
                 start_date = current_time - timedelta(minutes=interval_minutes * 10)

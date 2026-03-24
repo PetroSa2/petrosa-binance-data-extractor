@@ -5,8 +5,7 @@ Tests for data models.
 
 import os
 import sys
-from datetime import datetime, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 
 # Add project root to path
@@ -22,6 +21,8 @@ from models.base import (  # noqa: E402
 from models.funding_rate import FundingRateModel  # noqa: E402
 from models.kline import KlineModel  # noqa: E402
 from models.trade import TradeModel  # noqa: E402
+
+UTC = UTC
 
 
 class TestBaseModels:

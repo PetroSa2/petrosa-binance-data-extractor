@@ -16,14 +16,14 @@ from pydantic import BaseModel, Field
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("heartbeat")
 
 
 class HeartbeatMessage(BaseModel):
     """Standardized heartbeat message model."""
+
     service: str
     timestamp: float = Field(default_factory=time.time)
     version: str = os.getenv("VERSION", "1.0.0")
@@ -58,10 +58,7 @@ class HeartbeatPublisher:
                     self.nats_client = await nats.connect(self.nats_url)
 
                 message = HeartbeatMessage(service=self.service_name)
-                await self.nats_client.publish(
-                    self.subject,
-                    message.to_json().encode()
-                )
+                await self.nats_client.publish(self.subject, message.to_json().encode())
                 logger.debug(f"Published heartbeat to {self.subject}")
 
             except Exception as e:

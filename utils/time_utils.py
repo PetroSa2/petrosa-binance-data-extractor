@@ -3,10 +3,11 @@ Time utility functions for date parsing, timezone conversion, and gap detection.
 """
 
 import re
-from datetime import datetime, timedelta, timezone; UTC = timezone.utc
-
+from datetime import UTC, datetime, timedelta, timezone
 
 import constants
+
+UTC = UTC
 
 
 def parse_binance_timestamp(timestamp: int | str | datetime) -> datetime:
@@ -29,9 +30,7 @@ def parse_binance_timestamp(timestamp: int | str | datetime) -> datetime:
     if isinstance(timestamp, str):
         # Try to parse as ISO format first
         try:
-            return datetime.fromisoformat(timestamp).astimezone(
-                UTC
-            )
+            return datetime.fromisoformat(timestamp).astimezone(UTC)
         except ValueError:
             # Try to parse as timestamp string
             timestamp_float = float(timestamp)

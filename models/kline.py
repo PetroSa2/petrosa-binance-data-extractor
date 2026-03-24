@@ -2,13 +2,15 @@
 Pydantic model for Binance Futures Kline (candlestick) data.
 """
 
-from datetime import datetime, timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from .base import BaseSymbolModel
+
+UTC = UTC
 
 
 class KlineModel(BaseSymbolModel):

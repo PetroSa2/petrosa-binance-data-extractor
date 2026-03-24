@@ -4,8 +4,7 @@ Unit tests for jobs/extract_klines.py
 """
 import os
 import sys
-from datetime import datetime, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timezone
 from unittest.mock import Mock, patch
 
 # Add project root to path
@@ -13,6 +12,8 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 import jobs.extract_klines as extract_klines  # noqa: E402
+
+UTC = UTC
 
 
 class TestParseArguments:

@@ -11,8 +11,7 @@ Tests cover:
 - Chaos testing (connection failures, corrupted data)
 """
 
-from datetime import datetime, timedelta, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -25,6 +24,8 @@ from jobs.extract_klines_mongodb import (
     main,
     parse_arguments,
 )
+
+UTC = UTC
 
 
 class TestParseArguments:

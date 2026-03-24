@@ -5,8 +5,7 @@ Tests for database adapters.
 
 import os
 import sys
-from datetime import datetime, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 
@@ -20,6 +19,8 @@ from db.base_adapter import BaseAdapter, DatabaseError  # noqa: E402
 from db.mongodb_adapter import MongoDBAdapter  # noqa: E402
 from db.mysql_adapter import MySQLAdapter  # noqa: E402
 from models.kline import KlineModel  # noqa: E402
+
+UTC = UTC
 
 
 class TestBaseAdapter:

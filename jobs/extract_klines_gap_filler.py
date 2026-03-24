@@ -265,9 +265,7 @@ class GapFillerExtractor:
 
     def get_start_date(self) -> datetime:
         """Get the start date from constants."""
-        return datetime.fromisoformat(
-            constants.DEFAULT_START_DATE
-        )
+        return datetime.fromisoformat(constants.DEFAULT_START_DATE)
 
     def get_end_date(self) -> datetime:
         """Get the current time as end date."""

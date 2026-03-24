@@ -1,13 +1,14 @@
 """Tests for error handling in klines_data_manager.py."""
 
-from datetime import datetime, timedelta, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from fetchers.client import BinanceAPIError
 from fetchers.klines_data_manager import KlinesFetcherDataManager
+
+UTC = UTC
 
 
 @pytest.fixture

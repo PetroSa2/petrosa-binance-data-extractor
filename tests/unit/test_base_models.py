@@ -7,13 +7,14 @@ and edge cases for all base model classes.
 
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
-from datetime import timezone; UTC = timezone.utc
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from pydantic import ValidationError
 
 from models.base import BaseSymbolModel, BaseTimestampedModel, ExtractionMetadata
+
+UTC = UTC
 
 
 @pytest.mark.unit
