@@ -11,7 +11,7 @@ Tests cover:
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

@@ -7,7 +7,7 @@ import os
 import sys
 import threading
 from datetime import datetime, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 from decimal import Decimal
 from unittest.mock import Mock, patch
 

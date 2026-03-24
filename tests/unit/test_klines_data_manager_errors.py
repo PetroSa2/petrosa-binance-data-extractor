@@ -1,7 +1,7 @@
 """Tests for error handling in klines_data_manager.py."""
 
 from datetime import datetime, timedelta, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

@@ -17,7 +17,7 @@ Usage:
 import argparse
 import sys
 import time
-from datetime import datetime, UTC
+from datetime import datetime, timezone; UTC = timezone.utc
 from pathlib import Path
 from typing import Any
 

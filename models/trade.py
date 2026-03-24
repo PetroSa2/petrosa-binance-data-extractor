@@ -3,7 +3,7 @@ Pydantic model for Binance Futures Trade data.
 """
 
 from datetime import datetime, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 from decimal import Decimal
 from typing import Any
 

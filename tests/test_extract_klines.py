@@ -5,7 +5,7 @@ Unit tests for jobs/extract_klines.py
 import os
 import sys
 from datetime import datetime, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 from unittest.mock import Mock, patch
 
 # Add project root to path

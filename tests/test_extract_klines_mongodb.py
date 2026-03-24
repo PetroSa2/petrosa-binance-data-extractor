@@ -12,7 +12,7 @@ Tests cover:
 """
 
 from datetime import datetime, timedelta, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

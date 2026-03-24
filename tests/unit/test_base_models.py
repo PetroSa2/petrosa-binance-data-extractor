@@ -8,7 +8,7 @@ and edge cases for all base model classes.
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
-from datetime import UTC
+from datetime import timezone; UTC = timezone.utc
 
 import pytest
 from pydantic import ValidationError
