@@ -11,7 +11,7 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,8 +25,7 @@ from utils.logger import (  # noqa: E402
     log_extraction_start,
     setup_logging,
 )
-
-# NATS messaging disabled for MongoDB jobs
+from utils.messaging import publish_extraction_completion_sync  # noqa: E402
 from utils.telemetry import flush_telemetry  # noqa: E402
 from utils.time_utils import (  # noqa: E402
     binance_interval_to_table_suffix,
@@ -187,9 +186,9 @@ def create_timeseries_collection(
             timeseries={
                 "timeField": "timestamp",
                 "metaField": "symbol",
-                "granularity": "minutes"
-                if period in ["1m", "3m", "5m", "15m", "30m"]
-                else "hours",
+                "granularity": (
+                    "minutes" if period in ["1m", "3m", "5m", "15m", "30m"] else "hours"
+                ),
             },
         )
 
@@ -242,11 +241,11 @@ def extract_klines_for_symbol(
                 interval_minutes = (
                     int(period[:-1])
                     if period.endswith("m")
-                    else int(period[:-1]) * 60
-                    if period.endswith("h")
-                    else int(period[:-1]) * 24 * 60
-                    if period.endswith("d")
-                    else 5
+                    else (
+                        int(period[:-1]) * 60
+                        if period.endswith("h")
+                        else int(period[:-1]) * 24 * 60 if period.endswith("d") else 5
+                    )
                 )  # Default to 5m
                 start_date = last_timestamp - timedelta(minutes=interval_minutes)
                 logger.info(
@@ -262,11 +261,11 @@ def extract_klines_for_symbol(
                 interval_minutes = (
                     int(period[:-1])
                     if period.endswith("m")
-                    else int(period[:-1]) * 60
-                    if period.endswith("h")
-                    else int(period[:-1]) * 24 * 60
-                    if period.endswith("d")
-                    else 5
+                    else (
+                        int(period[:-1]) * 60
+                        if period.endswith("h")
+                        else int(period[:-1]) * 24 * 60 if period.endswith("d") else 5
+                    )
                 )  # Default to 5m
                 start_date = current_time - timedelta(minutes=interval_minutes * 10)
                 logger.info(
@@ -408,7 +407,27 @@ def main():
             if result["status"] == "error":
                 errors.append(f"{symbol}: {result.get('error', 'Unknown error')}")
 
-            # NATS messaging disabled for MongoDB jobs
+            # Send NATS message for symbol completion
+            if constants.NATS_ENABLED:
+                try:
+                    publish_extraction_completion_sync(
+                        symbol=symbol,
+                        period=args.period,
+                        records_fetched=result["records_fetched"],
+                        records_written=result["records_written"],
+                        success=result["status"] != "error",
+                        duration_seconds=result["duration_seconds"],
+                        errors=(
+                            result.get("error", [])
+                            if result["status"] == "error"
+                            else []
+                        ),
+                        gaps_found=result.get("gaps_found", 0),
+                        extraction_type="klines",
+                        use_production_prefix=True,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send NATS message for {symbol}: {e}")
 
         # Log extraction completion
         extraction_duration = time.time() - extraction_start_time
@@ -419,7 +438,49 @@ def main():
             duration_seconds=extraction_duration,
         )
 
-        # NATS batch messaging disabled for MongoDB jobs
+        # Send NATS batch completion message
+        if constants.NATS_ENABLED:
+            try:
+                # get_messenger is imported internally by publish_extraction_completion_sync,
+                # but we need it here for the batch call. Let's import it locally.
+                import asyncio
+
+                from utils.messaging import get_messenger
+
+                async def publish_batch():
+                    messenger = get_messenger()
+                    # set env var for production
+                    original_prefix = os.environ.get("NATS_SUBJECT_PREFIX")
+                    os.environ["NATS_SUBJECT_PREFIX"] = os.getenv(
+                        "NATS_SUBJECT_PREFIX_PRODUCTION",
+                        "binance.extraction.production",
+                    )
+                    try:
+                        await messenger.publish_batch_extraction_completion(
+                            symbols=constants.DEFAULT_SYMBOLS,
+                            period=args.period,
+                            total_records_fetched=sum(
+                                r["records_fetched"] for r in results
+                            ),
+                            total_records_written=total_records_written,
+                            success=len(errors) == 0,
+                            duration_seconds=extraction_duration,
+                            errors=errors,
+                            extraction_type="klines",
+                        )
+                    finally:
+                        if original_prefix is not None:
+                            os.environ["NATS_SUBJECT_PREFIX"] = original_prefix
+                        else:
+                            del os.environ["NATS_SUBJECT_PREFIX"]
+                        await messenger.disconnect()
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(publish_batch())
+                loop.close()
+            except Exception as e:
+                logger.warning(f"Failed to send batch NATS message: {e}")
 
         logger.info(
             f"Extraction completed: {total_records_written} records in {format_duration(extraction_duration)}"
