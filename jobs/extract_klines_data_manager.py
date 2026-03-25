@@ -28,6 +28,8 @@ from utils.logger import (  # noqa: E402
     setup_logging,
 )
 from utils.messaging import (  # noqa: E402
+    get_messenger,
+    publish_batch_extraction_completion_async,
     publish_extraction_completion_async,
     publish_extraction_completion_sync,
 )
@@ -295,6 +297,40 @@ class DataManagerKlinesExtractor:
         self.logger.info(f"🔧 Total gaps filled: {self.stats['total_gaps_filled']}")
         self.logger.info(f"⏱️  Total duration: {format_duration(total_duration)}")
 
+        # Send batch NATS message
+        if constants.NATS_ENABLED and self.stats["symbols_processed"] > 0:
+            try:
+                # Use os.environ to pass prefix to the sync/async helper if needed,
+                # but publish_batch_extraction_completion_async uses get_messenger()
+                # and doesn't have use_production_prefix flag like the single one.
+                # However, we can set the env var manually here.
+                old_prefix = os.getenv("NATS_SUBJECT_PREFIX")
+                os.environ["NATS_SUBJECT_PREFIX"] = os.getenv(
+                    "NATS_SUBJECT_PREFIX_PRODUCTION", "binance.extraction.production"
+                )
+
+                await publish_batch_extraction_completion_async(
+                    symbols=[r["symbol"] for r in results if r["success"]],
+                    period=self.period,
+                    total_records_fetched=self.stats["total_records_fetched"],
+                    total_records_written=self.stats["total_records_written"],
+                    success=self.stats["symbols_failed"] == 0,
+                    duration_seconds=total_duration,
+                    errors=self.stats["errors"] if self.stats["errors"] else None,
+                    total_gaps_found=0,
+                    total_gaps_filled=self.stats["total_gaps_filled"],
+                    extraction_type="klines",
+                )
+
+                if old_prefix:
+                    os.environ["NATS_SUBJECT_PREFIX"] = old_prefix
+                else:
+                    del os.environ["NATS_SUBJECT_PREFIX"]
+
+                self.logger.info(f"🚀 Published batch extraction completion for {self.stats['symbols_processed']} symbols")
+            except Exception as e:
+                self.logger.warning(f"Failed to send batch NATS message: {e}")
+
         if self.stats["errors"]:
             self.logger.warning(f"⚠️  Errors encountered: {len(self.stats['errors'])}")
             for error in self.stats["errors"][:5]:  # Show first 5 errors
@@ -451,21 +487,25 @@ async def main():
         # Exit with appropriate code
         if result["success"]:
             logger.info("🎉 Data Manager extraction completed successfully!")
+            await get_messenger().disconnect()
             sys.exit(0)
         else:
             logger.error(
                 f"❌ Data Manager extraction completed with {result['symbols_failed']} failures"
             )
+            await get_messenger().disconnect()
             sys.exit(1)
 
     except KeyboardInterrupt:
         logger.info("⚠️ Extraction interrupted by user")
+        await get_messenger().disconnect()
         sys.exit(130)
     except Exception as e:
         logger.error(f"💥 Fatal error during extraction: {e}")
         import traceback  # noqa: E402
 
         traceback.print_exc()
+        await get_messenger().disconnect()
         sys.exit(1)
 
 
