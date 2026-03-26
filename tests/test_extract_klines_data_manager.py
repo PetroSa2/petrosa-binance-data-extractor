@@ -128,7 +128,9 @@ class TestDataManagerKlinesExtractor:
             "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
         ) as mock_fetcher_class, patch(
             "jobs.extract_klines_data_manager.constants"
-        ) as mock_constants:
+        ) as mock_constants, patch(
+            "jobs.extract_klines_data_manager.publish_extraction_completion_async"
+        ) as mock_publish:
             mock_fetcher = AsyncMock()
             mock_fetcher_class.return_value = mock_fetcher
 

@@ -327,7 +327,9 @@ class DataManagerKlinesExtractor:
                 else:
                     del os.environ["NATS_SUBJECT_PREFIX"]
 
-                self.logger.info(f"🚀 Published batch extraction completion for {self.stats['symbols_processed']} symbols")
+                self.logger.info(
+                    f"🚀 Published batch extraction completion for {self.stats['symbols_processed']} symbols"
+                )
             except Exception as e:
                 self.logger.warning(f"Failed to send batch NATS message: {e}")
 
