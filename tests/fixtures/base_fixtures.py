@@ -7,7 +7,7 @@ with realistic market data, comprehensive mocking, and proper async handling.
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
@@ -180,8 +180,8 @@ def sample_kline_models(realistic_klines_data) -> list[Kline]:
             Kline(
                 symbol="BTCUSDT",
                 interval="1m",
-                open_time=datetime.utcfromtimestamp(data["openTime"] / 1000),
-                close_time=datetime.utcfromtimestamp(data["closeTime"] / 1000),
+                open_time=datetime.fromtimestamp(data["openTime"] / 1000, UTC),
+                close_time=datetime.fromtimestamp(data["closeTime"] / 1000, UTC),
                 open_price=Decimal(data["open"]),
                 high_price=Decimal(data["high"]),
                 low_price=Decimal(data["low"]),
@@ -191,7 +191,7 @@ def sample_kline_models(realistic_klines_data) -> list[Kline]:
                 number_of_trades=data["numberOfTrades"],
                 taker_buy_base_asset_volume=Decimal(data["takerBuyBaseAssetVolume"]),
                 taker_buy_quote_asset_volume=Decimal(data["takerBuyQuoteAssetVolume"]),
-                timestamp=datetime.utcfromtimestamp(data["openTime"] / 1000),
+                timestamp=datetime.fromtimestamp(data["openTime"] / 1000, UTC),
             )
         )
     return models
@@ -206,11 +206,11 @@ def sample_funding_models(realistic_funding_data) -> list[FundingRate]:
             FundingRate(
                 symbol=data["symbol"],
                 funding_rate=Decimal(data["fundingRate"]),
-                funding_time=datetime.utcfromtimestamp(data["fundingTime"] / 1000),
-                next_funding_time=datetime.utcfromtimestamp(
+                funding_time=datetime.fromtimestamp(data["fundingTime"] / 1000, UTC),
+                next_funding_time=datetime.fromtimestamp(
                     data["nextFundingTime"] / 1000
-                ),
-                timestamp=datetime.utcfromtimestamp(data["fundingTime"] / 1000),
+                , UTC),
+                timestamp=datetime.fromtimestamp(data["fundingTime"] / 1000, UTC),
             )
         )
     return models
@@ -228,10 +228,10 @@ def sample_trade_models(realistic_trades_data) -> list[Trade]:
                 price=Decimal(data["price"]),
                 quantity=Decimal(data["qty"]),
                 quote_quantity=Decimal(data["quoteQty"]),
-                trade_time=datetime.utcfromtimestamp(data["time"] / 1000),
+                trade_time=datetime.fromtimestamp(data["time"] / 1000, UTC),
                 is_buyer_maker=data["isBuyerMaker"],
                 is_best_match=data["isBestMatch"],
-                timestamp=datetime.utcfromtimestamp(data["time"] / 1000),
+                timestamp=datetime.fromtimestamp(data["time"] / 1000, UTC),
             )
         )
     return models
@@ -242,8 +242,8 @@ def sample_extraction_metadata() -> ExtractionMetadata:
     """Create sample extraction metadata."""
     return ExtractionMetadata(
         period="15m",
-        start_time=datetime.utcfromtimestamp(TestingConstants.BASE_TIMESTAMP / 1000),
-        end_time=datetime.utcfromtimestamp(TestingConstants.BASE_TIMESTAMP / 1000)
+        start_time=datetime.fromtimestamp(TestingConstants.BASE_TIMESTAMP / 1000, UTC),
+        end_time=datetime.fromtimestamp(TestingConstants.BASE_TIMESTAMP / 1000, UTC)
         + timedelta(hours=24),
         total_records=1000,
         gaps_detected=2,

@@ -3,7 +3,7 @@ Funding rates data fetcher for Binance Futures.
 """
 
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 import constants
@@ -352,8 +352,8 @@ class FundingRatesFetcher:
             if not premium_data:
                 return {}
 
-            next_funding_time = datetime.utcfromtimestamp(
-                int(premium_data["nextFundingTime"]) / 1000
+            next_funding_time = datetime.fromtimestamp(
+                int(premium_data["nextFundingTime"]) / 1000, UTC
             )
 
             return {

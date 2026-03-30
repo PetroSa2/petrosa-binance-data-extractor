@@ -6,7 +6,7 @@ Provides functionality to list, update, and manage CronJobs.
 
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 try:
@@ -169,7 +169,7 @@ class CronJobManager:
             # Create Job from CronJob template
             job = client.V1Job(
                 metadata=client.V1ObjectMeta(
-                    name=f"manual-extract-{timeframe}-{int(datetime.utcnow().timestamp())}",
+                    name=f"manual-extract-{timeframe}-{int(datetime.now(UTC).timestamp())}",
                     namespace=self.namespace,
                     labels={
                         "app": "binance-extractor",

@@ -3,7 +3,7 @@ HTTP client wrapper for Binance API with retry and rate limiting.
 """
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 import constants
@@ -197,7 +197,7 @@ class BinanceClient:
         try:
             response = self.get("/fapi/v1/time")
             timestamp = response["serverTime"]
-            return datetime.utcfromtimestamp(timestamp / 1000)
+            return datetime.fromtimestamp(timestamp / 1000, UTC)
         except requests.exceptions.RequestException as e:
             logger.warning("Failed to get server time: %s, using local time", e)
             return get_current_utc_time()

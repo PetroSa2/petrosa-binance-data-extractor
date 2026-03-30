@@ -104,6 +104,12 @@ test: validate-python ## Run all tests with coverage (fail if below 40%)
 	OTEL_NO_AUTO_INIT=1 ENVIRONMENT=testing $(PYTEST) tests/ -v --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=$(COVERAGE_THRESHOLD)
 	@echo "✅ Tests completed!"
 
+test-coverage: test ## Alias for test (standardized)
+
+test-quality: validate-python ## Run test quality check (assertions check)
+	@echo "🔍 Checking test quality..."
+	python3 scripts/check-test-assertions.py $(shell find tests -name "test_*.py")
+
 unit: ## Run unit tests only
 	@echo "🧪 Running unit tests..."
 	$(PYTEST) tests/ -m "unit" -v --tb=short
