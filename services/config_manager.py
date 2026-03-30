@@ -5,7 +5,7 @@ Persists configuration to MongoDB and provides access to runtime settings.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import constants
@@ -137,7 +137,7 @@ class ConfigManager:
             "value": value.get("value"),
             "changed_by": value.get("changed_by"),
             "reason": value.get("reason"),
-            "updated_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(UTC),
         }
 
         collection.update_one({"key": key}, {"$set": doc}, upsert=True)

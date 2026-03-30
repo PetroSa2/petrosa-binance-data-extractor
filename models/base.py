@@ -3,7 +3,7 @@ Base Pydantic models and shared fields for all Binance data models.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -17,7 +17,7 @@ class BaseTimestampedModel(BaseModel):
 
     # Metadata fields
     extracted_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="When this record was extracted"
+        default_factory=lambda: datetime.now(UTC), description="When this record was extracted"
     )
     extractor_version: str = Field(
         default="1.0.0", description="Version of the extractor that created this record"
@@ -45,9 +45,9 @@ class BaseTimestampedModel(BaseModel):
         if isinstance(v, int):
             # Assume milliseconds if > 1e10, otherwise seconds
             if v > 1e10:
-                return datetime.fromtimestamp(v / 1000, timezone.utc)
+                return datetime.fromtimestamp(v / 1000, UTC)
             else:
-                return datetime.fromtimestamp(v, timezone.utc)
+                return datetime.fromtimestamp(v, UTC)
         elif isinstance(v, str):
             # Try to parse ISO format
             try:
@@ -56,7 +56,7 @@ class BaseTimestampedModel(BaseModel):
                 # Try timestamp string
                 return datetime.fromtimestamp(
                     (float(v) / 1000 if float(v) > 1e10 else float(v)),
-                    timezone.utc
+                    UTC
                 )
         return v
 

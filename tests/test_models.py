@@ -22,8 +22,6 @@ from models.funding_rate import FundingRateModel  # noqa: E402
 from models.kline import KlineModel  # noqa: E402
 from models.trade import TradeModel  # noqa: E402
 
-UTC = UTC
-
 
 class TestBaseModels:
     """Test base model functionality."""
@@ -38,13 +36,13 @@ class TestBaseModels:
         # Test with integer milliseconds
         ms_timestamp = 1640995200000
         model = BaseTimestampedModel(timestamp=ms_timestamp)
-        expected = datetime.fromtimestamp(ms_timestamp / 1000, timezone.utc)
+        expected = datetime.fromtimestamp(ms_timestamp / 1000, UTC)
         assert model.timestamp == expected
 
         # Test with integer seconds
         s_timestamp = 1640995200
         model = BaseTimestampedModel(timestamp=s_timestamp)
-        expected = datetime.fromtimestamp(s_timestamp, timezone.utc)
+        expected = datetime.fromtimestamp(s_timestamp, UTC)
         assert model.timestamp == expected
 
     def test_base_symbol_model_symbol_validation(self):

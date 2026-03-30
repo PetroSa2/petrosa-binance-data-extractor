@@ -6,7 +6,7 @@ success rates, latency trends, and resource utilization.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -95,7 +95,7 @@ async def get_performance_metrics(
         # Parse timeframe and calculate start time
         window_seconds = aggregator.parse_timeframe(timeframe)
 
-        start_time = datetime.now(timezone.utc) - timedelta(seconds=window_seconds)
+        start_time = datetime.now(UTC) - timedelta(seconds=window_seconds)
 
         # Get metrics
         metrics_dict = await aggregator.get_metrics(
@@ -121,7 +121,7 @@ async def get_performance_metrics(
             timeframe=timeframe,
             metrics=metrics_data,
             sample_count=sample_count,
-            collection_timestamp=datetime.now(timezone.utc),
+            collection_timestamp=datetime.now(UTC),
             metadata={
                 "window_seconds": window_seconds,
                 "strategy_id": strategy_id,
@@ -420,5 +420,5 @@ async def metrics_health():
     return {
         "status": "healthy",
         "service": "ta-bot-metrics-api",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
