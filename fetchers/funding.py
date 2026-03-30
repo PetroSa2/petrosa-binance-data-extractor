@@ -352,8 +352,8 @@ class FundingRatesFetcher:
             if not premium_data:
                 return {}
 
-            next_funding_time = datetime.utcfromtimestamp(
-                int(premium_data["nextFundingTime"]) / 1000
+            next_funding_time = datetime.fromtimestamp(
+                int(premium_data["nextFundingTime"]) / 1000, timezone.utc
             )
 
             return {

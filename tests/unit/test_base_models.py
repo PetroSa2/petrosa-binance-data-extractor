@@ -72,7 +72,7 @@ class TestBaseTimestampedModel:
         ms_timestamp = 1672531200000  # 2023-01-01 00:00:00 UTC
         model = BaseTimestampedModel(timestamp=ms_timestamp)
 
-        expected = datetime.utcfromtimestamp(ms_timestamp / 1000)
+        expected = datetime.fromtimestamp(ms_timestamp / 1000, timezone.utc)
         assert model.timestamp == expected
 
     def test_timestamp_parsing_seconds(self):
@@ -80,7 +80,7 @@ class TestBaseTimestampedModel:
         sec_timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
         model = BaseTimestampedModel(timestamp=sec_timestamp)
 
-        expected = datetime.utcfromtimestamp(sec_timestamp)
+        expected = datetime.fromtimestamp(sec_timestamp, timezone.utc)
         assert model.timestamp == expected
 
     def test_timestamp_parsing_iso_string(self):
@@ -97,7 +97,7 @@ class TestBaseTimestampedModel:
         timestamp_str = "1672531200"
         model = BaseTimestampedModel(timestamp=timestamp_str)
 
-        expected = datetime.utcfromtimestamp(1672531200)
+        expected = datetime.fromtimestamp(1672531200, timezone.utc)
         assert model.timestamp == expected
 
     def test_json_serialization(self):

@@ -8,7 +8,7 @@ operations are completed.
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 import nats
 from nats.aio.client import Client as NATSClient
@@ -93,7 +93,7 @@ class NATSMessenger:
             "extraction_type": extraction_type,
             "symbol": symbol,
             "period": period,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "success": success,
             "metrics": {
                 "records_fetched": records_fetched,
@@ -158,7 +158,7 @@ class NATSMessenger:
             "extraction_type": extraction_type,
             "symbols": symbols,
             "period": period,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "success": success,
             "metrics": {
                 "total_records_fetched": total_records_fetched,
