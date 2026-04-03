@@ -6,7 +6,7 @@
 asynctest>=0.13.0
 
 # Security Scanning
-bandit==1.7.5
+bandit==1.7.8
 
 # Code Quality & Formatting
 codecov==2.1.13
@@ -24,14 +24,14 @@ jupyter==1.0.0
 
 # Performance Testing
 locust==2.17.0
-mypy==1.8.0
+mypy==1.15.0
 notebook==7.0.6
 
 # Debugging
 # pdbpp==0.10.3  # Temporarily disabled due to compatibility issues
 
 # Pre-commit & Git Hooks
-pre-commit==3.6.0
+pre-commit==4.1.0
 
 # Testing Framework
 pytest==7.4.4
@@ -41,7 +41,7 @@ pytest-html==4.1.1
 pytest-mock==3.12.0
 pytest-timeout==2.1.0
 pytest-xdist==3.5.0
-ruff==0.1.15
+ruff==0.9.9
 # safety==3.6.0  # Temporarily disabled due to packaging conflict
 
 # Documentation
