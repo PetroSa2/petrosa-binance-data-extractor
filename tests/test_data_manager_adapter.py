@@ -110,9 +110,12 @@ class TestDataManagerAdapterConnection:
         """Test connection failure when health check fails."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
 
-        with patch(
-            "adapters.data_manager_adapter.DataManagerClient"
-        ) as mock_client_class, pytest.raises(ConnectionError):
+        with (
+            patch(
+                "adapters.data_manager_adapter.DataManagerClient"
+            ) as mock_client_class,
+            pytest.raises(ConnectionError),
+        ):
             mock_client = AsyncMock()
             mock_client.health_check = AsyncMock(return_value={"status": "unhealthy"})
             mock_client_class.return_value = mock_client
@@ -124,9 +127,12 @@ class TestDataManagerAdapterConnection:
         """Test connection failure due to network error."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
 
-        with patch(
-            "adapters.data_manager_adapter.DataManagerClient"
-        ) as mock_client_class, pytest.raises(Exception):
+        with (
+            patch(
+                "adapters.data_manager_adapter.DataManagerClient"
+            ) as mock_client_class,
+            pytest.raises(Exception),
+        ):
             mock_client = AsyncMock()
             mock_client.health_check = AsyncMock(side_effect=TimeoutError("Timeout"))
             mock_client_class.return_value = mock_client
@@ -539,9 +545,10 @@ class TestDataManagerAdapterContextManagers:
         """Test asynchronous context manager."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
 
-        with patch.object(adapter, "connect") as mock_connect, patch.object(
-            adapter, "disconnect"
-        ) as mock_disconnect:
+        with (
+            patch.object(adapter, "connect") as mock_connect,
+            patch.object(adapter, "disconnect") as mock_disconnect,
+        ):
             async with adapter:
                 pass
 

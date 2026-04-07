@@ -265,9 +265,9 @@ class MySQLAdapter(BaseAdapter):
                     record = instance.model_dump()
                     # Create unique ID for MySQL
                     if hasattr(instance, "timestamp") and hasattr(instance, "symbol"):
-                        record[
-                            "id"
-                        ] = f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
+                        record["id"] = (
+                            f"{instance.symbol}_{int(instance.timestamp.timestamp() * 1000)}"
+                        )
                     records.append(record)
 
                 # Insert records

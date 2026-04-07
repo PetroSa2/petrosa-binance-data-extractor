@@ -2,9 +2,17 @@
 """
 Unit tests for jobs/extract_klines_gap_filler.py
 """
+
 import os
 import sys
-from datetime import UTC, datetime, timezone
+from datetime import datetime, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 from unittest.mock import Mock, patch
 
 import pytest
@@ -185,10 +193,13 @@ class TestGapFillerExtractor:
         mock_klines_fetcher_cls.return_value = mock_fetcher
         mock_db_adapter.write.side_effect = lambda *args, **kwargs: 2
 
-        with patch.object(
-            extractor, "get_start_date", return_value=gap_start
-        ), patch.object(extractor, "get_end_date", return_value=gap_end), patch(
-            "jobs.extract_klines_gap_filler.get_adapter", return_value=mock_db_adapter
+        with (
+            patch.object(extractor, "get_start_date", return_value=gap_start),
+            patch.object(extractor, "get_end_date", return_value=gap_end),
+            patch(
+                "jobs.extract_klines_gap_filler.get_adapter",
+                return_value=mock_db_adapter,
+            ),
         ):
             result = extractor.process_symbol_gaps("BTCUSDT", mock_binance_client)
         assert result["success"] is True

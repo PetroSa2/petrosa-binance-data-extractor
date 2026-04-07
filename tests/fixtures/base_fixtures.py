@@ -7,7 +7,14 @@ with realistic market data, comprehensive mocking, and proper async handling.
 
 import asyncio
 import os
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 from decimal import Decimal
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
@@ -208,8 +215,8 @@ def sample_funding_models(realistic_funding_data) -> list[FundingRate]:
                 funding_rate=Decimal(data["fundingRate"]),
                 funding_time=datetime.fromtimestamp(data["fundingTime"] / 1000, UTC),
                 next_funding_time=datetime.fromtimestamp(
-                    data["nextFundingTime"] / 1000
-                , UTC),
+                    data["nextFundingTime"] / 1000, UTC
+                ),
                 timestamp=datetime.fromtimestamp(data["fundingTime"] / 1000, UTC),
             )
         )

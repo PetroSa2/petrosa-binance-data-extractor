@@ -6,7 +6,14 @@ success rates, latency trends, and resource utilization.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query

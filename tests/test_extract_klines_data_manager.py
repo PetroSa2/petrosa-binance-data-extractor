@@ -10,7 +10,14 @@ Tests cover:
 """
 
 import asyncio
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -124,11 +131,12 @@ class TestDataManagerKlinesExtractor:
 
         mock_client = MagicMock()
 
-        with patch(
-            "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
-        ) as mock_fetcher_class, patch(
-            "jobs.extract_klines_data_manager.constants"
-        ) as mock_constants:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch("jobs.extract_klines_data_manager.constants") as mock_constants,
+        ):
             mock_fetcher = AsyncMock()
             mock_fetcher_class.return_value = mock_fetcher
 
@@ -220,11 +228,12 @@ class TestDataManagerKlinesExtractor:
             symbols=symbols, period="15m", max_workers=3, lookback_hours=24
         )
 
-        with patch(
-            "jobs.extract_klines_data_manager.BinanceClient"
-        ) as mock_client_class, patch.object(
-            extractor, "extract_symbol_data"
-        ) as mock_extract:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.BinanceClient"
+            ) as mock_client_class,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+        ):
             mock_client = MagicMock()
             mock_client.close = MagicMock()
             mock_client_class.return_value = mock_client
@@ -260,11 +269,12 @@ class TestDataManagerKlinesExtractor:
             symbols=symbols, period="1h", max_workers=2, lookback_hours=48
         )
 
-        with patch(
-            "jobs.extract_klines_data_manager.BinanceClient"
-        ) as mock_client_class, patch.object(
-            extractor, "extract_symbol_data"
-        ) as mock_extract:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.BinanceClient"
+            ) as mock_client_class,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+        ):
             mock_client = MagicMock()
             mock_client.close = MagicMock()
             mock_client_class.return_value = mock_client
@@ -344,13 +354,15 @@ class TestMainFunction:
     @pytest.mark.asyncio
     async def test_main_success(self):
         """Test main function success path."""
-        with patch("sys.argv", ["script.py", "--period", "15m"]), patch(
-            "jobs.extract_klines_data_manager.DataManagerKlinesExtractor"
-        ) as mock_extractor_class, patch(
-            "jobs.extract_klines_data_manager.setup_logging"
-        ), patch(
-            "jobs.extract_klines_data_manager.constants"
-        ) as mock_constants, pytest.raises(SystemExit) as exc_info:
+        with (
+            patch("sys.argv", ["script.py", "--period", "15m"]),
+            patch(
+                "jobs.extract_klines_data_manager.DataManagerKlinesExtractor"
+            ) as mock_extractor_class,
+            patch("jobs.extract_klines_data_manager.setup_logging"),
+            patch("jobs.extract_klines_data_manager.constants") as mock_constants,
+            pytest.raises(SystemExit) as exc_info,
+        ):
             mock_constants.DEFAULT_SYMBOLS = ["BTCUSDT"]
             mock_constants.LOG_LEVEL = "INFO"
             mock_constants.DEFAULT_PERIOD = "15m"
@@ -376,13 +388,15 @@ class TestMainFunction:
     @pytest.mark.asyncio
     async def test_main_with_failures(self):
         """Test main function with extraction failures."""
-        with patch("sys.argv", ["script.py", "--period", "1h"]), patch(
-            "jobs.extract_klines_data_manager.DataManagerKlinesExtractor"
-        ) as mock_extractor_class, patch(
-            "jobs.extract_klines_data_manager.setup_logging"
-        ), patch(
-            "jobs.extract_klines_data_manager.constants"
-        ) as mock_constants, pytest.raises(SystemExit) as exc_info:
+        with (
+            patch("sys.argv", ["script.py", "--period", "1h"]),
+            patch(
+                "jobs.extract_klines_data_manager.DataManagerKlinesExtractor"
+            ) as mock_extractor_class,
+            patch("jobs.extract_klines_data_manager.setup_logging"),
+            patch("jobs.extract_klines_data_manager.constants") as mock_constants,
+            pytest.raises(SystemExit) as exc_info,
+        ):
             mock_constants.DEFAULT_SYMBOLS = ["BTCUSDT", "INVALID"]
             mock_constants.LOG_LEVEL = "INFO"
             mock_constants.DEFAULT_PERIOD = "1h"
@@ -635,11 +649,12 @@ class TestChaos:
             symbols=symbols, period="15m", max_workers=5, lookback_hours=24
         )
 
-        with patch(
-            "jobs.extract_klines_data_manager.BinanceClient"
-        ) as mock_client_class, patch.object(
-            extractor, "extract_symbol_data"
-        ) as mock_extract:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.BinanceClient"
+            ) as mock_client_class,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+        ):
             mock_client = MagicMock()
             mock_client.close = MagicMock()
             mock_client_class.return_value = mock_client

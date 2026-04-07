@@ -2,7 +2,6 @@
 Database adapters package.
 """
 
-
 from .base_adapter import BaseAdapter, DatabaseError
 from .mongodb_adapter import MongoDBAdapter
 from .mysql_adapter import MySQLAdapter
