@@ -11,7 +11,14 @@ Tests cover:
 - Chaos testing (connection failures, corrupted data)
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -33,9 +40,10 @@ class TestParseArguments:
 
     def test_parse_arguments_defaults(self):
         """Test parsing with default arguments."""
-        with patch("sys.argv", ["script.py"]), patch(
-            "jobs.extract_klines_mongodb.constants"
-        ) as mock_constants:
+        with (
+            patch("sys.argv", ["script.py"]),
+            patch("jobs.extract_klines_mongodb.constants") as mock_constants,
+        ):
             mock_constants.DEFAULT_PERIOD = "15m"
             mock_constants.DEFAULT_START_DATE = "2020-01-01T00:00:00Z"
             mock_constants.LOG_LEVEL = "INFO"
@@ -50,20 +58,23 @@ class TestParseArguments:
 
     def test_parse_arguments_custom(self):
         """Test parsing with custom arguments."""
-        with patch(
-            "sys.argv",
-            [
-                "script.py",
-                "--symbols",
-                "BTCUSDT,ETHUSDT",
-                "--period",
-                "1h",
-                "--backfill",
-                "--batch-size",
-                "1000",
-                "--dry-run",
-            ],
-        ), patch("jobs.extract_klines_mongodb.constants") as mock_constants:
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "script.py",
+                    "--symbols",
+                    "BTCUSDT,ETHUSDT",
+                    "--period",
+                    "1h",
+                    "--backfill",
+                    "--batch-size",
+                    "1000",
+                    "--dry-run",
+                ],
+            ),
+            patch("jobs.extract_klines_mongodb.constants") as mock_constants,
+        ):
             mock_constants.DEFAULT_PERIOD = "15m"
             mock_constants.DEFAULT_START_DATE = "2020-01-01T00:00:00Z"
             mock_constants.LOG_LEVEL = "INFO"
@@ -255,10 +266,9 @@ class TestExtractKlinesForSymbol:
         # Mock write_batch
         mock_db_adapter.write_batch.return_value = 2
 
-        with patch(
-            "jobs.extract_klines_mongodb.get_current_utc_time"
-        ) as mock_get_time, patch(
-            "jobs.extract_klines_mongodb.create_timeseries_collection"
+        with (
+            patch("jobs.extract_klines_mongodb.get_current_utc_time") as mock_get_time,
+            patch("jobs.extract_klines_mongodb.create_timeseries_collection"),
         ):
             mock_get_time.return_value = datetime.now(UTC)
 
@@ -297,10 +307,9 @@ class TestExtractKlinesForSymbol:
         mock_fetcher.fetch_klines.return_value = mock_klines
         mock_db_adapter.write_batch.return_value = 1
 
-        with patch(
-            "jobs.extract_klines_mongodb.get_current_utc_time"
-        ) as mock_get_time, patch(
-            "jobs.extract_klines_mongodb.create_timeseries_collection"
+        with (
+            patch("jobs.extract_klines_mongodb.get_current_utc_time") as mock_get_time,
+            patch("jobs.extract_klines_mongodb.create_timeseries_collection"),
         ):
             mock_get_time.return_value = datetime.now(UTC)
 
@@ -436,10 +445,9 @@ class TestCornerCases:
         mock_fetcher.fetch_klines.return_value = mock_klines
         mock_db_adapter.write_batch.return_value = 1
 
-        with patch(
-            "jobs.extract_klines_mongodb.get_current_utc_time"
-        ) as mock_get_time, patch(
-            "jobs.extract_klines_mongodb.create_timeseries_collection"
+        with (
+            patch("jobs.extract_klines_mongodb.get_current_utc_time") as mock_get_time,
+            patch("jobs.extract_klines_mongodb.create_timeseries_collection"),
         ):
             mock_get_time.return_value = datetime.now(UTC)
 
@@ -478,10 +486,11 @@ class TestCornerCases:
             ]
             mock_fetcher.fetch_klines.return_value = []
 
-            with patch(
-                "jobs.extract_klines_mongodb.get_current_utc_time"
-            ) as mock_get_time, patch(
-                "jobs.extract_klines_mongodb.create_timeseries_collection"
+            with (
+                patch(
+                    "jobs.extract_klines_mongodb.get_current_utc_time"
+                ) as mock_get_time,
+                patch("jobs.extract_klines_mongodb.create_timeseries_collection"),
             ):
                 mock_get_time.return_value = datetime.now(UTC)
 
@@ -647,21 +656,17 @@ class TestMainFunction:
 
     def test_main_success(self):
         """Test main function success path."""
-        with patch("sys.argv", ["script.py", "--symbol", "BTCUSDT"]), patch(
-            "jobs.extract_klines_mongodb.parse_datetime_string"
-        ) as mock_parse, patch(
-            "jobs.extract_klines_mongodb.get_current_utc_time"
-        ) as mock_get_time, patch(
-            "jobs.extract_klines_mongodb.MongoDBAdapter"
-        ) as mock_adapter_class, patch(
-            "jobs.extract_klines_mongodb.BinanceClient"
-        ) as mock_client_class, patch(
-            "jobs.extract_klines_mongodb.KlinesFetcher"
-        ) as mock_fetcher_class, patch(
-            "jobs.extract_klines_mongodb.setup_logging"
-        ) as mock_logging, patch(
-            "jobs.extract_klines_mongodb.constants"
-        ) as mock_constants, pytest.raises(SystemExit) as exc_info:
+        with (
+            patch("sys.argv", ["script.py", "--symbol", "BTCUSDT"]),
+            patch("jobs.extract_klines_mongodb.parse_datetime_string") as mock_parse,
+            patch("jobs.extract_klines_mongodb.get_current_utc_time") as mock_get_time,
+            patch("jobs.extract_klines_mongodb.MongoDBAdapter") as mock_adapter_class,
+            patch("jobs.extract_klines_mongodb.BinanceClient") as mock_client_class,
+            patch("jobs.extract_klines_mongodb.KlinesFetcher") as mock_fetcher_class,
+            patch("jobs.extract_klines_mongodb.setup_logging") as mock_logging,
+            patch("jobs.extract_klines_mongodb.constants") as mock_constants,
+            pytest.raises(SystemExit) as exc_info,
+        ):
             mock_constants.DEFAULT_PERIOD = "15m"
             mock_constants.DEFAULT_START_DATE = "2020-01-01T00:00:00Z"
             mock_constants.LOG_LEVEL = "INFO"
@@ -701,15 +706,15 @@ class TestMainFunction:
 
     def test_main_with_error(self):
         """Test main function with extraction error."""
-        with patch("sys.argv", ["script.py"]), patch(
-            "jobs.extract_klines_mongodb.parse_datetime_string"
-        ), patch("jobs.extract_klines_mongodb.get_current_utc_time"), patch(
-            "jobs.extract_klines_mongodb.MongoDBAdapter"
-        ) as mock_adapter_class, patch(
-            "jobs.extract_klines_mongodb.setup_logging"
-        ) as mock_logging, patch(
-            "jobs.extract_klines_mongodb.constants"
-        ) as mock_constants, pytest.raises(SystemExit) as exc_info:
+        with (
+            patch("sys.argv", ["script.py"]),
+            patch("jobs.extract_klines_mongodb.parse_datetime_string"),
+            patch("jobs.extract_klines_mongodb.get_current_utc_time"),
+            patch("jobs.extract_klines_mongodb.MongoDBAdapter") as mock_adapter_class,
+            patch("jobs.extract_klines_mongodb.setup_logging") as mock_logging,
+            patch("jobs.extract_klines_mongodb.constants") as mock_constants,
+            pytest.raises(SystemExit) as exc_info,
+        ):
             mock_constants.DEFAULT_PERIOD = "15m"
             mock_constants.DEFAULT_START_DATE = "2020-01-01T00:00:00Z"
             mock_constants.LOG_LEVEL = "INFO"

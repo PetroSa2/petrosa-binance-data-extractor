@@ -272,9 +272,9 @@ class TestReportGenerator:
 
                     # Count good patterns
                     if "def test_" in content:
-                        quality_metrics["test_patterns"][
-                            "proper_naming"
-                        ] += content.count("def test_")
+                        quality_metrics["test_patterns"]["proper_naming"] += (
+                            content.count("def test_")
+                        )
 
                     if '"""' in content or "'''" in content:
                         quality_metrics["test_patterns"]["docstrings"] += 1
@@ -291,9 +291,9 @@ class TestReportGenerator:
                         quality_metrics["test_patterns"]["parametrized"] += 1
 
                     if "async def test_" in content:
-                        quality_metrics["test_patterns"][
-                            "async_tests"
-                        ] += content.count("async def test_")
+                        quality_metrics["test_patterns"]["async_tests"] += (
+                            content.count("async def test_")
+                        )
 
                     # Detect test smells
                     lines = content.split("\n")

@@ -8,7 +8,14 @@ operations are completed.
 import asyncio
 import json
 import os
-from datetime import UTC, datetime, timezone
+from datetime import datetime, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 
 import nats
 from nats.aio.client import Client as NATSClient

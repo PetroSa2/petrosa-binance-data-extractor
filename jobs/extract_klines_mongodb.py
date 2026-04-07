@@ -11,7 +11,14 @@ import argparse
 import os
 import sys
 import time
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 
 # Add project root to path (works for both local and container environments)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

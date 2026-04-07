@@ -12,7 +12,14 @@ Tests cover:
 - Chaos (extreme timestamps)
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 
 import pytest
 

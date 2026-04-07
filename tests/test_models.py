@@ -5,7 +5,14 @@ Tests for data models.
 
 import os
 import sys
-from datetime import UTC, datetime, timezone
+from datetime import datetime, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 from decimal import Decimal
 
 # Add project root to path
@@ -153,15 +160,15 @@ class TestKlineModel:
         result = kline.to_dict()
 
         # Verify datetime fields are serialized to strings, not datetime objects
-        assert isinstance(
-            result["timestamp"], str
-        ), "timestamp must be a JSON-serializable string"
-        assert isinstance(
-            result["open_time"], str
-        ), "open_time must be a JSON-serializable string"
-        assert isinstance(
-            result["close_time"], str
-        ), "close_time must be a JSON-serializable string"
+        assert isinstance(result["timestamp"], str), (
+            "timestamp must be a JSON-serializable string"
+        )
+        assert isinstance(result["open_time"], str), (
+            "open_time must be a JSON-serializable string"
+        )
+        assert isinstance(result["close_time"], str), (
+            "close_time must be a JSON-serializable string"
+        )
         # Verify 'id' is excluded
         assert "id" not in result
 
@@ -239,12 +246,12 @@ class TestTradeModel:
 
         result = trade.to_dict()
 
-        assert isinstance(
-            result["timestamp"], str
-        ), "timestamp must be a JSON-serializable string"
-        assert isinstance(
-            result["trade_time"], str
-        ), "trade_time must be a JSON-serializable string"
+        assert isinstance(result["timestamp"], str), (
+            "timestamp must be a JSON-serializable string"
+        )
+        assert isinstance(result["trade_time"], str), (
+            "trade_time must be a JSON-serializable string"
+        )
         assert "id" not in result
 
 
@@ -314,12 +321,12 @@ class TestFundingRateModel:
 
         result = funding_rate.to_dict()
 
-        assert isinstance(
-            result["timestamp"], str
-        ), "timestamp must be a JSON-serializable string"
-        assert isinstance(
-            result["funding_time"], str
-        ), "funding_time must be a JSON-serializable string"
+        assert isinstance(result["timestamp"], str), (
+            "timestamp must be a JSON-serializable string"
+        )
+        assert isinstance(result["funding_time"], str), (
+            "funding_time must be a JSON-serializable string"
+        )
         assert "id" not in result
 
 

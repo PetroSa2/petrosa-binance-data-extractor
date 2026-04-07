@@ -310,9 +310,9 @@ class TestMetricsNaming:
 
         # All metrics should start with "extractor."
         for metric_name in all_metrics:
-            assert metric_name.startswith(
-                "extractor."
-            ), f"Metric {metric_name} doesn't start with 'extractor.'"
+            assert metric_name.startswith("extractor."), (
+                f"Metric {metric_name} doesn't start with 'extractor.'"
+            )
 
         # Check specific expected metrics
         assert "extractor.extractions.total" in counter_calls

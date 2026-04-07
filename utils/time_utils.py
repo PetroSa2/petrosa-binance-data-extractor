@@ -3,7 +3,14 @@ Time utility functions for date parsing, timezone conversion, and gap detection.
 """
 
 import re
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 
 import constants
 

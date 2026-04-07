@@ -50,9 +50,9 @@ def test_k8s_manifest_resources():
         for manifest_path in manifests
         if not os.path.exists(os.path.join(subproject_root, manifest_path))
     ]
-    assert (
-        not missing_manifests
-    ), f"Expected Kubernetes manifest files are missing: {missing_manifests}"
+    assert not missing_manifests, (
+        f"Expected Kubernetes manifest files are missing: {missing_manifests}"
+    )
 
     for manifest_path in manifests:
         full_path = os.path.join(subproject_root, manifest_path)
@@ -69,18 +69,18 @@ def test_k8s_manifest_resources():
                     "containers"
                 ][0]
                 resources = container["resources"]
-                assert (
-                    resources["requests"]["memory"] == "512Mi"
-                ), f"Wrong memory request in {manifest_path}"
-                assert (
-                    resources["requests"]["cpu"] == "300m"
-                ), f"Wrong cpu request in {manifest_path}"
-                assert (
-                    resources["limits"]["memory"] == "1Gi"
-                ), f"Wrong memory limit in {manifest_path}"
-                assert (
-                    resources["limits"]["cpu"] == "800m"
-                ), f"Wrong cpu limit in {manifest_path}"
+                assert resources["requests"]["memory"] == "512Mi", (
+                    f"Wrong memory request in {manifest_path}"
+                )
+                assert resources["requests"]["cpu"] == "300m", (
+                    f"Wrong cpu request in {manifest_path}"
+                )
+                assert resources["limits"]["memory"] == "1Gi", (
+                    f"Wrong memory limit in {manifest_path}"
+                )
+                assert resources["limits"]["cpu"] == "800m", (
+                    f"Wrong cpu limit in {manifest_path}"
+                )
         assert m15_found, f"m15 CronJob not found in {manifest_path}"
 
 
@@ -111,7 +111,9 @@ def test_k8s_manifest_no_duplicate_env():
                         duplicates = [
                             name for name in env_names if env_names.count(name) > 1
                         ]
-                        assert not duplicates, f"Duplicate env vars {set(duplicates)} in {source_file}, container {container['name']}"
+                        assert not duplicates, (
+                            f"Duplicate env vars {set(duplicates)} in {source_file}, container {container['name']}"
+                        )
 
             # Check PodSpec
             if doc["kind"] == "CronJob":

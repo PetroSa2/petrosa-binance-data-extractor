@@ -2,6 +2,7 @@
 """
 Unit tests for jobs/extract_trades.py
 """
+
 import os
 import sys
 from unittest.mock import Mock, patch
