@@ -227,3 +227,282 @@ class TestNATSMessagingIntegration:
 
         # Note: The actual NATS messaging is called in the main function,
         # not in extract_klines_for_symbol, so we don't test it here
+
+
+class TestSyncWrappers:
+    """Drive the async wrappers' real event-loop logic, not just the mock."""
+
+    def test_publish_extraction_completion_sync_uses_default_prefix(self):
+        from utils.messaging import publish_extraction_completion_sync
+
+        with patch("utils.messaging.get_messenger") as mock_get:
+            mock_messenger = Mock()
+            mock_messenger.publish_extraction_completion = AsyncMock()
+            mock_messenger.disconnect = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            publish_extraction_completion_sync(
+                symbol="BTCUSDT",
+                period="15m",
+                records_fetched=10,
+                records_written=10,
+                success=True,
+                duration_seconds=1.0,
+            )
+
+            # The async publish was called with our kwargs.
+            mock_messenger.publish_extraction_completion.assert_called_once()
+            kwargs = mock_messenger.publish_extraction_completion.call_args.kwargs
+            assert kwargs["symbol"] == "BTCUSDT"
+            assert kwargs["period"] == "15m"
+            # And the finally-block called disconnect.
+            mock_messenger.disconnect.assert_called_once()
+
+    def test_publish_extraction_completion_sync_with_production_prefix(self):
+        from utils.messaging import publish_extraction_completion_sync
+
+        with (
+            patch("utils.messaging.get_messenger") as mock_get,
+            patch.dict(
+                os.environ,
+                {"NATS_SUBJECT_PREFIX": "originalprefix"},
+                clear=False,
+            ),
+        ):
+            mock_messenger = Mock()
+            mock_messenger.publish_extraction_completion = AsyncMock()
+            mock_messenger.disconnect = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            publish_extraction_completion_sync(
+                symbol="ETHUSDT",
+                period="1h",
+                records_fetched=1,
+                records_written=1,
+                success=True,
+                duration_seconds=0.1,
+                use_production_prefix=True,
+            )
+
+            # finally-block must have restored the original prefix.
+            assert os.environ.get("NATS_SUBJECT_PREFIX") == "originalprefix"
+            mock_messenger.publish_extraction_completion.assert_called_once()
+
+    def test_publish_extraction_completion_sync_with_gap_filler_prefix(self):
+        from utils.messaging import publish_extraction_completion_sync
+
+        with (
+            patch("utils.messaging.get_messenger") as mock_get,
+            patch.dict(
+                os.environ,
+                {"NATS_SUBJECT_PREFIX": "wasoriginal"},
+                clear=False,
+            ),
+        ):
+            mock_messenger = Mock()
+            mock_messenger.publish_extraction_completion = AsyncMock()
+            mock_messenger.disconnect = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            publish_extraction_completion_sync(
+                symbol="ETHUSDT",
+                period="1m",
+                records_fetched=1,
+                records_written=1,
+                success=True,
+                duration_seconds=0.05,
+                use_gap_filler_prefix=True,
+            )
+
+            assert os.environ.get("NATS_SUBJECT_PREFIX") == "wasoriginal"
+
+    def test_publish_extraction_completion_sync_swallows_async_error(self):
+        from utils.messaging import publish_extraction_completion_sync
+
+        with patch("utils.messaging.get_messenger") as mock_get:
+            mock_messenger = Mock()
+            mock_messenger.publish_extraction_completion = AsyncMock(
+                side_effect=RuntimeError("nats unavailable")
+            )
+            mock_messenger.disconnect = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            # The sync wrapper's outer try/except logs and does NOT re-raise.
+            publish_extraction_completion_sync(
+                symbol="ETHUSDT",
+                period="15m",
+                records_fetched=0,
+                records_written=0,
+                success=False,
+                duration_seconds=0.0,
+            )
+            # Even though the inner async raised, the wrapper invoked it before failing.
+            mock_messenger.publish_extraction_completion.assert_called_once()
+
+    def test_publish_batch_extraction_completion_sync_happy_path(self):
+        from utils.messaging import publish_batch_extraction_completion_sync
+
+        with patch("utils.messaging.get_messenger") as mock_get:
+            mock_messenger = Mock()
+            mock_messenger.publish_batch_extraction_completion = AsyncMock()
+            mock_messenger.disconnect = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            publish_batch_extraction_completion_sync(
+                symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT"],
+                period="5m",
+                total_records_fetched=300,
+                total_records_written=300,
+                success=True,
+                duration_seconds=2.0,
+            )
+
+            mock_messenger.publish_batch_extraction_completion.assert_called_once()
+            mock_messenger.disconnect.assert_called_once()
+
+    def test_publish_batch_extraction_completion_sync_swallows_error(self):
+        from utils.messaging import publish_batch_extraction_completion_sync
+
+        with patch("utils.messaging.get_messenger") as mock_get:
+            mock_messenger = Mock()
+            mock_messenger.publish_batch_extraction_completion = AsyncMock(
+                side_effect=ConnectionError("down")
+            )
+            mock_messenger.disconnect = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            publish_batch_extraction_completion_sync(
+                symbols=["BTCUSDT"],
+                period="1h",
+                total_records_fetched=0,
+                total_records_written=0,
+                success=False,
+                duration_seconds=0.0,
+            )
+            mock_messenger.publish_batch_extraction_completion.assert_called_once()
+
+
+class TestAsyncWrappers:
+    """Hit the async wrappers' production / gap-filler / default prefix paths."""
+
+    @pytest.mark.asyncio
+    async def test_async_with_production_prefix_restores_env(self):
+        from utils.messaging import publish_extraction_completion_async
+
+        with (
+            patch("utils.messaging.get_messenger") as mock_get,
+            patch.dict(os.environ, {"NATS_SUBJECT_PREFIX": "before-call"}, clear=False),
+        ):
+            mock_messenger = Mock()
+            mock_messenger.publish_extraction_completion = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            await publish_extraction_completion_async(
+                symbol="BTCUSDT",
+                period="15m",
+                records_fetched=1,
+                records_written=1,
+                success=True,
+                duration_seconds=0.1,
+                use_production_prefix=True,
+            )
+
+            assert os.environ.get("NATS_SUBJECT_PREFIX") == "before-call"
+
+    @pytest.mark.asyncio
+    async def test_async_with_gap_filler_prefix_restores_env(self):
+        from utils.messaging import publish_extraction_completion_async
+
+        with (
+            patch("utils.messaging.get_messenger") as mock_get,
+            patch.dict(
+                os.environ, {"NATS_SUBJECT_PREFIX": "default-prefix"}, clear=False
+            ),
+        ):
+            mock_messenger = Mock()
+            mock_messenger.publish_extraction_completion = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            await publish_extraction_completion_async(
+                symbol="ETHUSDT",
+                period="1m",
+                records_fetched=1,
+                records_written=1,
+                success=True,
+                duration_seconds=0.05,
+                use_gap_filler_prefix=True,
+            )
+
+            assert os.environ.get("NATS_SUBJECT_PREFIX") == "default-prefix"
+
+    @pytest.mark.asyncio
+    async def test_batch_async_passes_through_to_messenger(self):
+        from utils.messaging import publish_batch_extraction_completion_async
+
+        with patch("utils.messaging.get_messenger") as mock_get:
+            mock_messenger = Mock()
+            mock_messenger.publish_batch_extraction_completion = AsyncMock()
+            mock_get.return_value = mock_messenger
+
+            await publish_batch_extraction_completion_async(
+                symbols=["BTCUSDT", "ETHUSDT"],
+                period="15m",
+                total_records_fetched=200,
+                total_records_written=200,
+                success=True,
+                duration_seconds=1.0,
+            )
+            mock_messenger.publish_batch_extraction_completion.assert_called_once()
+
+
+class TestNATSMessengerEdgeCases:
+    @pytest.mark.asyncio
+    async def test_connect_raises_when_nats_url_is_none(self):
+        messenger = NATSMessenger("nats://x")
+        messenger.nats_url = None  # force the explicit None guard
+        with pytest.raises(ValueError, match="NATS URL is not configured"):
+            await messenger.connect()
+
+    @pytest.mark.asyncio
+    async def test_disconnect_is_noop_when_no_client(self):
+        # Brand-new messenger has client=None — disconnect must not raise.
+        messenger = NATSMessenger()
+        await messenger.disconnect()
+        assert messenger.client is None
+
+    @pytest.mark.asyncio
+    async def test_publish_logs_when_client_publish_fails(self):
+        messenger = NATSMessenger()
+        mock_client = Mock()
+        mock_client.is_closed = False
+        mock_client.publish = AsyncMock(side_effect=RuntimeError("NATS rejected"))
+        messenger.client = mock_client
+
+        # The except-block logs but does NOT re-raise. Test for graceful handling.
+        await messenger.publish_extraction_completion(
+            symbol="BTCUSDT",
+            period="15m",
+            records_fetched=1,
+            records_written=1,
+            success=True,
+            duration_seconds=0.1,
+        )
+        mock_client.publish.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_batch_publish_logs_when_client_publish_fails(self):
+        messenger = NATSMessenger()
+        mock_client = Mock()
+        mock_client.is_closed = False
+        mock_client.publish = AsyncMock(side_effect=RuntimeError("nats rejected"))
+        messenger.client = mock_client
+
+        await messenger.publish_batch_extraction_completion(
+            symbols=["BTCUSDT"],
+            period="1h",
+            total_records_fetched=1,
+            total_records_written=1,
+            success=False,
+            duration_seconds=0.1,
+        )
+        mock_client.publish.assert_called_once()
