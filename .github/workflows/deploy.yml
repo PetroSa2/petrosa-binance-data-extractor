@@ -121,9 +121,8 @@ jobs:
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
           # Update the image tag in manifests robustly (preserves registry/repo, only updates tag)
-          # Handles both qualified (e.g., repo/petrosa-binance-extractor:tag) and unqualified (petrosa-binance-extractor:tag) image names
-          # We search for both petrosa-binance-data-extractor and petrosa-binance-extractor
-          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -E -i "s|(image:[[:space:]]*)([^[:space:]]*/)?(petrosa-binance-(data-)?extractor):[^[:space:]]*|\1\2\3:$VERSION|g"
+          # Handles both qualified (e.g., repo/petrosa-binance-data-extractor:tag) and unqualified (petrosa-binance-data-extractor:tag) image names
+          find petrosa_k8s/k8s/data-extractor -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -r sed -E -i "s|(image:[[:space:]]*)([^[:space:]]*/)?(petrosa-binance-data-extractor):[^[:space:]]*|\1\2\3:$VERSION|g"
 
           # Update version labels specifically (targets common label patterns)
           # Anchored to start of line to prevent over-matching apiVersion
