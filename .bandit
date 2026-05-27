@@ -1,3 +1,7 @@
-[bandit]
-exclude_dirs = .venv,venv,build,dist
-skips = B608
+skips:
+  - B608
+exclude_dirs:
+  - .venv
+  - venv
+  - build
+  - dist
