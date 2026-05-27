@@ -22,6 +22,14 @@ from nats.aio.client import Client as NATSClient
 
 from utils.logger import get_logger
 
+try:
+    from petrosa_otel import inject_trace_context as _inject_trace_context
+
+    _NATS_TRACE_INJECT = True
+except ImportError:
+    _NATS_TRACE_INJECT = False
+    _inject_trace_context = None
+
 logger = get_logger(__name__)
 
 
@@ -116,6 +124,9 @@ class NATSMessenger:
         subject_prefix = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
         subject = f"{subject_prefix}.{extraction_type}.{symbol}.{period}"
 
+        if _NATS_TRACE_INJECT and _inject_trace_context is not None:
+            message = _inject_trace_context(message)
+
         try:
             await self.client.publish(subject, json.dumps(message).encode())
             logger.info(
@@ -181,6 +192,9 @@ class NATSMessenger:
         # Get subject prefix from environment variable
         subject_prefix = os.getenv("NATS_SUBJECT_PREFIX", "binance.extraction")
         subject = f"{subject_prefix}.{extraction_type}.batch.{period}"
+
+        if _NATS_TRACE_INJECT and _inject_trace_context is not None:
+            message = _inject_trace_context(message)
 
         try:
             await self.client.publish(subject, json.dumps(message).encode())

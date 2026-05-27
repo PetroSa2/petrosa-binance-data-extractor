@@ -31,8 +31,9 @@ repos:
     hooks:
       - id: bandit
         name: 🔐 Bandit (Python Security)
-        args: [-ll, -r, .]
+        args: [-ll, -r, ., -c, .bandit]
         exclude: ^tests/
+        pass_filenames: false
 
   # ==================================================================
   # LINTING - YAML & TOML
