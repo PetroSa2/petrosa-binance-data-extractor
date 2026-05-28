@@ -58,6 +58,24 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting Data Extractor Configuration API")
 
+    # Start health evaluator (publishes evaluator.data-extractor.verdict).
+    # Read-only — subscribes to binance.extraction.> completion events.
+    # Optional: skipped if petrosa-otel lacks the evaluators framework or
+    # if NATS is disabled. Stored on app.state for shutdown.
+    app.state.health_evaluator = None
+    try:
+        from evaluators import build_data_extractor_health_evaluator
+
+        _evaluator = build_data_extractor_health_evaluator(
+            nats_servers=os.getenv("NATS_URL") or os.getenv("NATS_SERVERS")
+        )
+        if _evaluator is not None:
+            await _evaluator.start()
+            app.state.health_evaluator = _evaluator
+            logger.info("✅ Data-extractor health evaluator started")
+    except ImportError:
+        logger.warning("petrosa_otel.evaluators unavailable; health evaluator disabled")
+
     # 3. Attach OTel logging handler LAST (after logging is configured)
     if (
         os.getenv("ENABLE_OTEL", "true").lower() in ("true", "1", "yes")
@@ -76,6 +94,12 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     logger.info("Shutting down Data Extractor Configuration API")
+    if getattr(app.state, "health_evaluator", None) is not None:
+        try:
+            await app.state.health_evaluator.stop()
+            logger.info("✅ Data-extractor health evaluator stopped")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Health evaluator stop error: {exc}")
 
 
 def create_app() -> FastAPI:
