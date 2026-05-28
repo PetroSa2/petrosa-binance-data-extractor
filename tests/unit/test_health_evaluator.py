@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from petrosa_otel.evaluators import ConsecutiveSamplesHysteresis
@@ -222,3 +223,107 @@ async def test_hysteresis_suppresses_single_flap(clock):
 def test_build_returns_none_when_nats_disabled():
     assert build_data_extractor_health_evaluator(nats_servers=None) is None
     assert build_data_extractor_health_evaluator(nats_servers="") is None
+
+
+@pytest.mark.asyncio
+async def test_start_stop_emit_loop_publishes(clock):
+    """The emit loop runs, publishes at least once, and stop() cancels it."""
+    nats = FakeNats()
+    ev = _make(
+        clock,
+        publisher=NatsVerdictPublisher(nats_client=nats),
+        n=1,
+    )
+    # Tighter cadence so the test runs quickly.
+    ev._emit_interval_s = 0.01
+    await ev.start_emit_loop()
+    await ev.start_emit_loop()  # idempotent
+
+    import asyncio
+
+    await asyncio.sleep(0.05)
+    await ev.stop_emit_loop()
+    await ev.stop_emit_loop()  # idempotent
+
+    assert nats.messages, "emit loop did not publish"
+    subject, _ = nats.messages[-1]
+    assert subject == "evaluator.data-extractor.verdict"
+
+
+@pytest.mark.asyncio
+async def test_build_factory_handles_nats_connect_failure(monkeypatch):
+    """A failing `nats.connect` must degrade the evaluator gracefully."""
+    import evaluators.health_evaluator as he
+
+    class _FailingNats:
+        async def connect(self, *args, **kwargs):
+            raise RuntimeError("connection refused")
+
+    monkeypatch.setattr(he, "nats", _FailingNats())
+
+    ev = build_data_extractor_health_evaluator(nats_servers="nats://nowhere:4222")
+    assert ev is not None
+    # start() must NOT raise even though connect failed.
+    await ev.start()
+    # The publisher should remain unset and no emit task should be running
+    # since the wrapper only starts the loop on successful connect — but if
+    # the wrapper started a loop, stop() still cleans up.
+    await ev.stop()
+
+
+@pytest.mark.asyncio
+async def test_build_factory_subscribes_and_publishes_through_owned_client(monkeypatch):
+    """The full happy path: build → start → ingest → stop, all via the factory."""
+    import evaluators.health_evaluator as he
+
+    published: list[tuple[str, bytes]] = []
+    captured: dict[str, Any] = {}
+
+    class _FakeSub:
+        async def unsubscribe(self):
+            captured["unsubscribed"] = True
+
+    class _FakeClient:
+        is_connected = True
+
+        async def publish(self, subject: str, payload: bytes) -> None:
+            published.append((subject, payload))
+
+        async def subscribe(self, subject: str, cb):
+            captured["subject"] = subject
+            captured["cb"] = cb
+            return _FakeSub()
+
+        async def close(self) -> None:
+            captured["closed"] = True
+
+    class _FakeNatsModule:
+        async def connect(self, *args, **kwargs):
+            return _FakeClient()
+
+    monkeypatch.setattr(he, "nats", _FakeNatsModule())
+
+    ev = build_data_extractor_health_evaluator(nats_servers="nats://stub:4222")
+    assert ev is not None
+    ev._emit_interval_s = 0.01
+
+    await ev.start()
+    # Subscription was registered on the right subject and a publisher attached.
+    assert captured["subject"] == he.COMPLETION_SUBJECT_DEFAULT
+    assert ev._publisher is not None
+
+    # Deliver one completion message through the actual subscription callback.
+    class _Msg:
+        data = json.dumps(_completion(success=True)).encode()
+
+    await captured["cb"](_Msg())
+
+    import asyncio
+
+    await asyncio.sleep(0.05)
+    await ev.stop()
+
+    assert published, "evaluator did not publish through the owned NATS client"
+    assert published[-1][0] == "evaluator.data-extractor.verdict"
+    assert captured.get("unsubscribed") is True
+    assert captured.get("closed") is True
