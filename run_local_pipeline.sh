@@ -1,20 +1,21 @@
 #!/bin/bash
 set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "🚀 Starting Local CI/CD Pipeline Simulation"
 echo "============================================="
 echo "Date: $(date)"
 echo "Working Directory: $(pwd)"
-echo "Python Version: $(/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python --version)"
+echo "Python Version: $("$SCRIPT_DIR/.venv/bin/python" --version)"
 echo "============================================="
 
 # Step 1: Install dependencies
 echo ""
 echo "📦 Step 1: Installing Dependencies"
 echo "-----------------------------------"
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m pip install --upgrade pip
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/pip install -r requirements.txt
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/pip install -r requirements-dev.txt
+"$SCRIPT_DIR/.venv/bin/python" -m pip install --upgrade pip
+"$SCRIPT_DIR/.venv/bin/pip" install -r requirements.txt
+"$SCRIPT_DIR/.venv/bin/pip" install -r requirements-dev.txt
 echo "✅ Dependencies installed successfully"
 
 # Step 2: Run linting
@@ -22,25 +23,25 @@ echo ""
 echo "🔍 Step 2: Running Code Linting"
 echo "--------------------------------"
 echo "Running critical errors check..."
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,venv,htmlcov,__pycache__,.git,.mypy_cache,.pytest_cache
+"$SCRIPT_DIR/.venv/bin/python" -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,venv,htmlcov,__pycache__,.git,.mypy_cache,.pytest_cache
 echo "✅ Critical errors check passed"
 
 echo "Running style check..."
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,venv,htmlcov,__pycache__,.git,.mypy_cache,.pytest_cache
+"$SCRIPT_DIR/.venv/bin/python" -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,venv,htmlcov,__pycache__,.git,.mypy_cache,.pytest_cache
 echo "✅ Style check completed"
 
 # Step 3: Run type checking
 echo ""
 echo "🔍 Step 3: Running Type Checking"
 echo "---------------------------------"
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m mypy . --ignore-missing-imports
+"$SCRIPT_DIR/.venv/bin/python" -m mypy . --ignore-missing-imports
 echo "✅ Type checking passed"
 
 # Step 4: Run tests
 echo ""
 echo "🧪 Step 4: Running Unit Tests"
 echo "------------------------------"
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+"$SCRIPT_DIR/.venv/bin/python" -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
 echo "✅ Unit tests completed"
 
 # Step 5: Check coverage
@@ -51,10 +52,10 @@ echo "📊 Coverage Report Summary:"
 echo "=========================="
 
 # Generate and display coverage report
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m coverage report --show-missing --skip-covered
+"$SCRIPT_DIR/.venv/bin/python" -m coverage report --show-missing --skip-covered
 
 # Get coverage percentage
-COVERAGE_PERCENT=$(/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python -m coverage report --format=total)
+COVERAGE_PERCENT=$("$SCRIPT_DIR/.venv/bin/python" -m coverage report --format=total)
 echo ""
 echo "📈 Total Coverage: ${COVERAGE_PERCENT}%"
 
@@ -74,7 +75,7 @@ fi
 echo ""
 echo "🔧 Step 6: OpenTelemetry Integration Tests"
 echo "------------------------------------------"
-/Users/yurisa2/petrosa/petrosa-binance-data-extractor/.venv/bin/python docs/test_integration.py
+"$SCRIPT_DIR/.venv/bin/python" docs/test_integration.py
 echo "✅ OpenTelemetry integration tests passed"
 
 # Final Summary
