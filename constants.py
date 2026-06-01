@@ -75,6 +75,15 @@ API_RATE_LIMIT = int(os.getenv("API_RATE_LIMIT", "1200"))  # requests per minute
 API_RATE_LIMIT_PER_MINUTE = int(
     os.getenv("API_RATE_LIMIT_PER_MINUTE", "1200")
 )  # requests per minute
+
+# Binance weight-budget ceiling (#696 / NFR-I5): operational target vs hard limit
+BINANCE_WEIGHT_HARD_LIMIT = int(
+    os.getenv("BINANCE_WEIGHT_HARD_LIMIT", "1200")
+)  # wu/min
+BINANCE_WEIGHT_CEILING_PCT = float(
+    os.getenv("BINANCE_WEIGHT_CEILING_PCT", "0.60")
+)  # 60% target
+
 API_TIMEOUT = int(os.getenv("API_TIMEOUT", "30"))
 REQUEST_DELAY_SECONDS = float(os.getenv("REQUEST_DELAY_SECONDS", "0.1"))
 

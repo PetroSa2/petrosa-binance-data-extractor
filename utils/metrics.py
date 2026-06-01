@@ -92,6 +92,13 @@ class ExtractionMetrics:
             unit="1",
         )
 
+        # Binance rolling 1-minute weight consumed (X-MBX-USED-WEIGHT-1M response header)
+        self.binance_weight_1m = self.meter.create_histogram(
+            name="extractor.binance.weight.used_1m",
+            description="Binance API weight consumed in the rolling 1-minute window",
+            unit="1",
+        )
+
         logger.info("Extraction metrics initialized successfully")
 
     def record_extraction(
@@ -192,6 +199,21 @@ class ExtractionMetrics:
             self.rate_limit_remaining.record(remaining, {"limit": str(limit)})
         except Exception as e:
             logger.warning(f"Failed to record rate limit metrics: {e}")
+
+    def record_binance_weight(self, weight_used: int) -> None:
+        """
+        Record Binance rolling 1-minute weight from the X-MBX-USED-WEIGHT-1M header.
+
+        Args:
+            weight_used: Weight consumed in the current 1-minute window
+        """
+        if not self._metrics_enabled:
+            return
+
+        try:
+            self.binance_weight_1m.record(weight_used, {"exchange": "binance"})
+        except Exception as e:
+            logger.warning(f"Failed to record Binance weight metric: {e}")
 
 
 # Global metrics instance
