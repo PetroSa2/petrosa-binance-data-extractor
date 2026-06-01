@@ -171,6 +171,14 @@ class BinanceClient:
             latency_ms = duration * 1000
             self.metrics.record_api_latency(endpoint, latency_ms, response.status_code)
 
+            # Emit weight-budget metric from Binance rolling 1-minute header
+            weight_header = response.headers.get("X-MBX-USED-WEIGHT-1M")
+            if weight_header is not None:
+                try:
+                    self.metrics.record_binance_weight(int(weight_header))
+                except (ValueError, TypeError):
+                    pass
+
             # Handle different response codes
             if response.status_code == 200:
                 return response.json()

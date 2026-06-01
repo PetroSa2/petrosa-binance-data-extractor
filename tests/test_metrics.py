@@ -78,8 +78,8 @@ class TestExtractionMetrics:
             mock_meter.create_counter.call_count == 4
         )  # extraction, gaps, records_written, records_fetched
         assert (
-            mock_meter.create_histogram.call_count == 4
-        )  # api_latency, rate_limit_used, rate_limit_remaining, throughput
+            mock_meter.create_histogram.call_count == 5
+        )  # api_latency, rate_limit_used, rate_limit_remaining, throughput, binance_weight_1m
         assert (
             mock_meter.create_up_down_counter.call_count == 0
         )  # No up-down counters used
