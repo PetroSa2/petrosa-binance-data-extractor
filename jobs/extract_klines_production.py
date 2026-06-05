@@ -27,6 +27,7 @@ import constants  # noqa: E402
 from db import get_adapter  # noqa: E402
 from fetchers import BinanceClient, KlinesFetcher  # noqa: E402
 from models.base import BaseModel  # noqa: E402
+from utils.error_classifier import should_retry_operation  # noqa: E402
 from utils.logger import (  # noqa: E402
     get_logger,
     log_extraction_completion,
@@ -87,33 +88,9 @@ def retry_with_backoff(
         except Exception as e:
             last_exception = e
 
-            # Check if it's a MySQL connection error
-            error_msg = str(e).lower()
-            # Also check for pymysql specific errors and SQLAlchemy errors
-            is_connection_error = (
-                any(
-                    keyword in error_msg
-                    for keyword in [
-                        "lost connection to mysql server",
-                        "mysql server has gone away",
-                        "connection was killed",
-                        "connection refused",
-                        "timeout",
-                        "broken pipe",
-                        "can't connect to mysql server",
-                        "operationalerror",
-                        "2013",  # MySQL error code for lost connection
-                        "2006",  # MySQL error code for server gone away
-                        "2003",  # MySQL error code for can't connect
-                    ]
-                )
-                or
-                # Check for SQLAlchemy connection errors
-                "operationalerror" in str(type(e)).lower()
-                or "databaseerror" in str(type(e)).lower()
-            )
+            should_retry, _retry_strategy = should_retry_operation(e)
 
-            if is_connection_error:
+            if should_retry:
                 if attempt < max_retries:
                     # Calculate delay with exponential backoff and jitter
                     delay = min(base_delay * (2**attempt), max_delay)

@@ -85,13 +85,15 @@ class TestRetryWithBackoff:
     @patch("jobs.extract_klines_production.time.sleep")
     def test_retry_non_connection_error(self, mock_sleep):
         """Test non-connection errors are not retried."""
-        mock_func = Mock(side_effect=ValueError("Invalid input"))
+        mock_func = Mock(
+            side_effect=ValueError("duplicate entry violates unique constraint")
+        )
         mock_logger = Mock()
 
         with pytest.raises(ValueError) as exc_info:
             retry_with_backoff(mock_func, logger=mock_logger)
 
-        assert "Invalid input" in str(exc_info.value)
+        assert "duplicate entry" in str(exc_info.value)
         mock_func.assert_called_once()
         mock_sleep.assert_not_called()
 
