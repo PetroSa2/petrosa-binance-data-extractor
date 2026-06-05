@@ -99,6 +99,13 @@ class ExtractionMetrics:
             unit="1",
         )
 
+        # Abandoned batch counter: incremented when urllib3 retries are exhausted writing to data-manager
+        self.batches_abandoned = self.meter.create_counter(
+            name="extractor.batches_abandoned.total",
+            description="Total number of batches abandoned after write retries exhausted",
+            unit="1",
+        )
+
         logger.info("Extraction metrics initialized successfully")
 
     def record_extraction(
@@ -214,6 +221,30 @@ class ExtractionMetrics:
             self.binance_weight_1m.record(weight_used, {"exchange": "binance"})
         except Exception as e:
             logger.warning(f"Failed to record Binance weight metric: {e}")
+
+    def record_batch_abandoned(
+        self,
+        symbol: str,
+        interval: str,
+        reason: str,
+    ) -> None:
+        """
+        Record a batch abandoned after write retries exhausted.
+
+        Args:
+            symbol: Trading symbol (e.g., BTCUSDT)
+            interval: Kline interval (e.g., 1h) or "n/a" for non-klines
+            reason: Exception class name classifying the failure
+        """
+        if not self._metrics_enabled:
+            return
+
+        try:
+            self.batches_abandoned.add(
+                1, {"symbol": symbol, "interval": interval, "reason": reason}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to record batch abandoned metric: {e}")
 
 
 # Global metrics instance

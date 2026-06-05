@@ -120,6 +120,10 @@ class DataManagerAdapter:
             logger.warning("No data to write")
             return 0
 
+        # Observability labels — updated inside branches before the HTTP call
+        _obs_symbol = "UNKNOWN"
+        _obs_interval = "n/a"
+
         try:
             # Convert BaseModel instances to dictionaries
             data_dicts = []
@@ -139,30 +143,30 @@ class DataManagerAdapter:
             # Determine the appropriate insert method based on collection name
             if collection_name.startswith("klines_"):
                 # Extract symbol and interval from data
-                symbol = data_dicts[0].get("symbol", "UNKNOWN")
-                interval = collection_name.replace("klines_", "")
+                _obs_symbol = data_dicts[0].get("symbol", "UNKNOWN")
+                _obs_interval = collection_name.replace("klines_", "")
 
                 result = await self._client.insert_klines(
-                    symbol=symbol,
-                    interval=interval,
+                    symbol=_obs_symbol,
+                    interval=_obs_interval,
                     klines_data=data_dicts,
                     database=self.database,
                 )
 
             elif collection_name.startswith("trades_"):
-                symbol = collection_name.replace("trades_", "")
+                _obs_symbol = collection_name.replace("trades_", "")
 
                 result = await self._client.insert_trades(
-                    symbol=symbol,
+                    symbol=_obs_symbol,
                     trades_data=data_dicts,
                     database=self.database,
                 )
 
             elif collection_name.startswith("funding_"):
-                symbol = collection_name.replace("funding_", "")
+                _obs_symbol = collection_name.replace("funding_", "")
 
                 result = await self._client.insert_funding_rates(
-                    symbol=symbol,
+                    symbol=_obs_symbol,
                     funding_data=data_dicts,
                     database=self.database,
                 )
@@ -183,6 +187,26 @@ class DataManagerAdapter:
 
         except Exception as e:
             logger.error(f"Error writing data to {collection_name}: {e}")
+            # Emit metric + NATS alert before re-raising so the drop is visible immediately
+            try:
+                from utils.messaging import publish_persist_failed_alert_async
+                from utils.metrics import get_metrics
+
+                get_metrics().record_batch_abandoned(
+                    symbol=_obs_symbol,
+                    interval=_obs_interval,
+                    reason=type(e).__name__,
+                )
+                await publish_persist_failed_alert_async(
+                    symbol=_obs_symbol,
+                    interval=_obs_interval,
+                    collection=collection_name,
+                    error=str(e),
+                )
+            except Exception as obs_err:
+                logger.warning(
+                    f"Failed to emit abandoned-batch observability: {obs_err}"
+                )
             raise
 
     async def query_latest(

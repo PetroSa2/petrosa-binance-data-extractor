@@ -75,7 +75,7 @@ class TestExtractionMetrics:
 
         # Verify all metrics were created
         assert (
-            mock_meter.create_counter.call_count == 4
+            mock_meter.create_counter.call_count == 5
         )  # extraction, gaps, records_written, records_fetched
         assert (
             mock_meter.create_histogram.call_count == 5

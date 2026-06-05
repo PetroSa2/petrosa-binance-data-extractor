@@ -204,6 +204,48 @@ class NATSMessenger:
         except Exception as e:
             logger.error(f"Failed to publish batch extraction completion message: {e}")
 
+    async def publish_persist_failed_alert(
+        self,
+        symbol: str,
+        interval: str,
+        collection: str,
+        error: str,
+    ) -> None:
+        """
+        Publish a NATS alert when a batch write is abandoned after retries exhausted.
+
+        Subject: alerts.extractor.persist_failed
+        """
+        if self.client is None or self.client.is_closed:
+            await self.connect()
+
+        if self.client is None:
+            logger.error("Failed to connect to NATS server for persist_failed alert")
+            return
+
+        message = {
+            "event_type": "persist_failed",
+            "service": "extractor",
+            "symbol": symbol,
+            "interval": interval,
+            "collection": collection,
+            "error": error,
+            "timestamp": datetime.now(UTC).isoformat() + "Z",
+        }
+
+        subject = "alerts.extractor.persist_failed"
+
+        if _NATS_TRACE_INJECT and _inject_trace_context is not None:
+            message = _inject_trace_context(message)
+
+        try:
+            await self.client.publish(subject, json.dumps(message).encode())
+            logger.info(
+                f"Published persist_failed alert for {symbol}/{interval} to {subject}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to publish persist_failed alert: {e}")
+
 
 # Global messenger instance
 _messenger: NATSMessenger | None = None
@@ -369,6 +411,22 @@ def publish_extraction_completion_sync(
         logger.error(f"Failed to publish extraction completion message: {e}")
     finally:
         loop.close()
+
+
+async def publish_persist_failed_alert_async(
+    symbol: str,
+    interval: str,
+    collection: str,
+    error: str,
+) -> None:
+    """Publish a persist_failed NATS alert for an abandoned batch write."""
+    messenger = get_messenger()
+    await messenger.publish_persist_failed_alert(
+        symbol=symbol,
+        interval=interval,
+        collection=collection,
+        error=error,
+    )
 
 
 def publish_batch_extraction_completion_sync(
