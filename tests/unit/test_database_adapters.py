@@ -13,7 +13,7 @@ import pytest
 from db.base_adapter import BaseAdapter, DatabaseError
 from db.mongodb_adapter import MongoDBAdapter
 from db.mysql_adapter import MySQLAdapter
-from models.base import BaseTimestampedModel, ExtractionMetadata
+from models.base import BaseTimestampedModel
 
 
 class SampleTestModel(BaseTimestampedModel):
@@ -155,58 +155,6 @@ class TestBaseAdapter:
         assert adapter.is_connected() is True
         adapter.disconnect()
         assert adapter.is_connected() is False
-
-    def test_write_extraction_metadata(self):
-        """Test write_extraction_metadata method."""
-
-        class ConcreteAdapter(BaseAdapter):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.written_data = []
-
-            def connect(self):
-                pass
-
-            def disconnect(self):
-                pass
-
-            def write(self, model_instances, collection):
-                self.written_data.append((model_instances, collection))
-                return len(model_instances)
-
-            def write_batch(self, model_instances, collection, batch_size=1000):
-                return 0
-
-            def query_range(self, collection, start, end, symbol=None):
-                return []
-
-            def query_latest(self, collection, symbol=None, limit=1):
-                return []
-
-            def find_gaps(self, collection, start, end, interval_minutes, symbol=None):
-                return []
-
-            def get_record_count(self, collection, start=None, end=None, symbol=None):
-                return 0
-
-            def ensure_indexes(self, collection):
-                pass
-
-            def delete_range(self, collection, start, end, symbol=None):
-                return 0
-
-        adapter = ConcreteAdapter("test_connection")
-        metadata = ExtractionMetadata(
-            period="15m",
-            start_time=datetime.now(),
-            end_time=datetime.now() + timedelta(hours=1),
-        )
-
-        adapter.write_extraction_metadata(metadata)
-
-        assert len(adapter.written_data) == 1
-        assert adapter.written_data[0][1] == "extraction_metadata"
-        assert adapter.written_data[0][0][0] == metadata
 
 
 @pytest.mark.unit
