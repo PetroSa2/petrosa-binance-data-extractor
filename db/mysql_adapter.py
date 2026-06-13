@@ -173,24 +173,6 @@ class MySQLAdapter(BaseAdapter):
             Index("idx_funding_rates_funding_time", "funding_time"),
         )
 
-        # Extraction metadata table
-        self.tables["extraction_metadata"] = Table(
-            "extraction_metadata",
-            self.metadata,
-            Column("extraction_id", String(64), primary_key=True),
-            Column("period", String(10), nullable=False),
-            Column("start_time", DateTime, nullable=False),
-            Column("end_time", DateTime, nullable=False),
-            Column("total_records", Integer, nullable=False, default=0),
-            Column("gaps_detected", Integer, nullable=False, default=0),
-            Column("backfill_performed", Boolean, nullable=False, default=False),
-            Column(
-                "extraction_duration_seconds", Numeric(10, 3), nullable=False, default=0
-            ),
-            Column("extracted_at", DateTime, nullable=False),
-            Index("idx_extraction_metadata_period_start", "period", "start_time"),
-        )
-
         # Create all tables
         if self.engine is not None:
             self.metadata.create_all(self.engine)

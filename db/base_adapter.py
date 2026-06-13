@@ -189,15 +189,6 @@ class BaseAdapter(ABC):
             Number of records deleted
         """
 
-    def write_extraction_metadata(self, metadata: ExtractionMetadata) -> None:
-        """
-        Write extraction metadata to track extraction runs.
-
-        Args:
-            metadata: ExtractionMetadata instance
-        """
-        self.write([metadata], "extraction_metadata")
-
     def is_connected(self) -> bool:
         """Check if adapter is connected to database."""
         return self._connected
