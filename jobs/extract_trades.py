@@ -98,7 +98,7 @@ def main():
 
     # Log extraction start
     log_extraction_start(
-        logger=logger,
+        log=logger,
         extractor_type="trades",
         symbols=symbols,
         period="trades",

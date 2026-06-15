@@ -98,7 +98,7 @@ def main():
     else:
         symbols = constants.DEFAULT_SYMBOLS
     log_extraction_start(
-        logger=logger,
+        log=logger,
         extractor_type="funding_rates",
         symbols=symbols,
         period="funding_rates",

@@ -287,3 +287,47 @@ class TestMain:
         with patch("sys.exit") as mock_exit:
             extract_trades.main()
             mock_exit.assert_called()
+
+
+class TestLogExtractionStartCallSites:
+    """Regression: AC4 — every job's `log_extraction_start(...)` call must use
+    the kwarg name from the function signature (`log=`), not the historical
+    `logger=`. The bug in #269 slipped past CI because `test_main_*` patched
+    `log_extraction_start` away, so the call-site mismatch never raised.
+
+    This test parses each `jobs/extract_*.py` AST and asserts no caller passes
+    a `logger=` keyword to `log_extraction_start`.
+    """
+
+    def test_no_caller_uses_logger_kwarg(self):
+        import ast
+        import glob
+        import inspect
+
+        from utils.logger import log_extraction_start
+
+        # Sanity: the canonical kwarg in the signature is `log`.
+        sig = inspect.signature(log_extraction_start)
+        assert "log" in sig.parameters
+        assert "logger" not in sig.parameters
+
+        jobs_dir = os.path.join(project_root, "jobs")
+        offenders = []
+        for path in sorted(glob.glob(os.path.join(jobs_dir, "extract_*.py"))):
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                name = getattr(func, "id", None) or getattr(func, "attr", None)
+                if name != "log_extraction_start":
+                    continue
+                for kw in node.keywords:
+                    if kw.arg == "logger":
+                        offenders.append(f"{path}:{node.lineno}")
+
+        assert not offenders, (
+            "log_extraction_start() must be called with `log=`, not `logger=`. "
+            f"Offenders: {offenders}"
+        )
