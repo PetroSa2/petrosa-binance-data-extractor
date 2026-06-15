@@ -59,7 +59,7 @@ def parse_arguments():
         "--db-adapter",
         type=str,
         default=constants.DB_ADAPTER,
-        choices=["mongodb", "mysql"],
+        choices=["mongodb", "mysql", "data_manager"],
     )
     parser.add_argument("--db-uri", type=str, help="Database connection URI")
     parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE)
@@ -111,11 +111,14 @@ def main():
 
     try:
         # Initialize components
-        db_uri = args.db_uri or (
-            constants.MONGODB_URI
-            if args.db_adapter == "mongodb"
-            else constants.MYSQL_URI
-        )
+        if args.db_uri:
+            db_uri = args.db_uri
+        elif args.db_adapter == "mongodb":
+            db_uri = constants.MONGODB_URI
+        elif args.db_adapter == "data_manager":
+            db_uri = constants.DATA_MANAGER_URL
+        else:
+            db_uri = constants.MYSQL_URI
         db_adapter = get_adapter(args.db_adapter, db_uri)
         client = BinanceClient()
         fetcher = TradesFetcher(client)
