@@ -178,7 +178,7 @@ def main():
         sys.exit(1)
     extraction_duration = time.time() - extraction_start_time
     log_extraction_completion(
-        logger=logger,
+        log=logger,
         extractor_type="funding_rates",
         total_records=total_records,
         duration_seconds=extraction_duration,
