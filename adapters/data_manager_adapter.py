@@ -315,6 +315,33 @@ class DataManagerAdapter:
 
         return await self._client.health_check()
 
+    def ensure_indexes(self, collection: str) -> None:
+        """No-op: data-manager handles its own indexing server-side."""
+
+    def write_batch(
+        self,
+        model_instances: list,
+        collection: str,
+        batch_size: int = 1000,
+    ) -> int:
+        """Synchronous write_batch: delegates to async write in batches."""
+        total_written = 0
+        for i in range(0, len(model_instances), batch_size):
+            batch = model_instances[i : i + batch_size]
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    import concurrent.futures
+
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        future = pool.submit(asyncio.run, self.write(batch, collection))
+                        total_written += future.result()
+                else:
+                    total_written += asyncio.run(self.write(batch, collection))
+            except RuntimeError:
+                total_written += asyncio.run(self.write(batch, collection))
+        return total_written
+
     def __enter__(self):
         """Synchronous context manager entry."""
         # Start event loop if not already running
