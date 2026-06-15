@@ -20,10 +20,15 @@ class TestParseArguments:
             args = extract_trades.parse_arguments()
             assert args.limit == 1000
             assert args.historical is False
-            assert args.db_adapter in ["mongodb", "mysql"]
+            assert args.db_adapter in ["mongodb", "mysql", "data_manager"]
             assert args.batch_size == extract_trades.constants.DB_BATCH_SIZE
             assert args.log_level == extract_trades.constants.LOG_LEVEL
             assert args.dry_run is False
+
+    def test_data_manager_adapter_choice(self):
+        with patch("sys.argv", ["extract_trades.py", "--db-adapter", "data_manager"]):
+            args = extract_trades.parse_arguments()
+            assert args.db_adapter == "data_manager"
 
     def test_custom_arguments(self):
         with patch(
@@ -331,3 +336,115 @@ class TestLogExtractionStartCallSites:
             "log_extraction_start() must be called with `log=`, not `logger=`. "
             f"Offenders: {offenders}"
         )
+
+
+class TestDbUriResolution:
+    """Regression: k8s#861 — when DB_ADAPTER=data_manager the job was passing
+    constants.MYSQL_URI (a mysql:// DSN) to the data_manager adapter's HTTP
+    client, causing an instant crash on health-check.  The fix adds an explicit
+    branch: data_manager → DATA_MANAGER_URL."""
+
+    @patch("jobs.extract_trades.parse_arguments")
+    @patch("jobs.extract_trades.setup_logging")
+    @patch("jobs.extract_trades.log_extraction_start")
+    @patch("jobs.extract_trades.log_extraction_completion")
+    @patch("jobs.extract_trades.get_adapter")
+    @patch("jobs.extract_trades.BinanceClient")
+    @patch("jobs.extract_trades.TradesFetcher")
+    def test_data_manager_adapter_receives_http_url(
+        self,
+        mock_fetcher_cls,
+        mock_client_cls,
+        mock_get_adapter,
+        mock_log_completion,
+        mock_log_start,
+        mock_setup_logging,
+        mock_parse_args,
+    ):
+        mock_setup_logging.return_value = Mock()
+        mock_args = Mock()
+        mock_args.symbol = None
+        mock_args.symbols = "BTCUSDT"
+        mock_args.limit = 100
+        mock_args.historical = False
+        mock_args.from_id = None
+        mock_args.db_adapter = "data_manager"
+        mock_args.db_uri = None
+        mock_args.batch_size = 100
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = True
+        mock_parse_args.return_value = mock_args
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
+        mock_get_adapter.return_value.ensure_indexes.return_value = None
+        mock_fetcher_cls.return_value.fetch_recent_trades.return_value = []
+
+        try:
+            extract_trades.main()
+        except SystemExit:
+            pass
+
+        call_args = mock_get_adapter.call_args
+        assert call_args is not None
+        actual_uri = (
+            call_args[0][1]
+            if len(call_args[0]) > 1
+            else call_args[1].get("connection_string")
+        )
+        assert actual_uri is not None
+        assert actual_uri.startswith("http"), (
+            f"data_manager adapter must receive an HTTP URL, got: {actual_uri!r}"
+        )
+        assert "mysql://" not in actual_uri, (
+            f"data_manager adapter must not receive a MySQL DSN, got: {actual_uri!r}"
+        )
+
+    @patch("jobs.extract_trades.parse_arguments")
+    @patch("jobs.extract_trades.setup_logging")
+    @patch("jobs.extract_trades.log_extraction_start")
+    @patch("jobs.extract_trades.log_extraction_completion")
+    @patch("jobs.extract_trades.get_adapter")
+    @patch("jobs.extract_trades.BinanceClient")
+    @patch("jobs.extract_trades.TradesFetcher")
+    def test_mysql_adapter_receives_mysql_uri(
+        self,
+        mock_fetcher_cls,
+        mock_client_cls,
+        mock_get_adapter,
+        mock_log_completion,
+        mock_log_start,
+        mock_setup_logging,
+        mock_parse_args,
+    ):
+        mock_setup_logging.return_value = Mock()
+        mock_args = Mock()
+        mock_args.symbol = None
+        mock_args.symbols = "BTCUSDT"
+        mock_args.limit = 100
+        mock_args.historical = False
+        mock_args.from_id = None
+        mock_args.db_adapter = "mysql"
+        mock_args.db_uri = None
+        mock_args.batch_size = 100
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = True
+        mock_parse_args.return_value = mock_args
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
+        mock_get_adapter.return_value.ensure_indexes.return_value = None
+        mock_fetcher_cls.return_value.fetch_recent_trades.return_value = []
+
+        try:
+            extract_trades.main()
+        except SystemExit:
+            pass
+
+        call_args = mock_get_adapter.call_args
+        actual_uri = (
+            call_args[0][1]
+            if len(call_args[0]) > 1
+            else call_args[1].get("connection_string")
+        )
+        assert actual_uri == extract_trades.constants.MYSQL_URI
