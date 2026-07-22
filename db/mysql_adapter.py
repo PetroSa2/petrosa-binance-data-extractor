@@ -128,30 +128,6 @@ class MySQLAdapter(BaseAdapter):
         # Klines table (dynamic based on interval)
         # We'll create tables dynamically based on collection names
 
-        # Trades table
-        self.tables["trades"] = Table(
-            "trades",
-            self.metadata,
-            Column("id", String(64), primary_key=True),
-            Column("symbol", String(20), nullable=False),
-            Column("timestamp", DateTime, nullable=False),
-            Column("trade_id", Integer, nullable=False),
-            Column("order_id", Integer, nullable=True),
-            Column("price", Numeric(20, 8), nullable=False),
-            Column("quantity", Numeric(20, 8), nullable=False),
-            Column("quote_quantity", Numeric(20, 8), nullable=False),
-            Column("is_buyer_maker", Boolean, nullable=False),
-            Column("commission", Numeric(20, 8), nullable=True),
-            Column("commission_asset", String(10), nullable=True),
-            Column("trade_time", DateTime, nullable=False),
-            Column("extracted_at", DateTime, nullable=False),
-            Column("extractor_version", String(20), nullable=False),
-            Column("source", String(50), nullable=False),
-            Index("idx_trades_symbol_timestamp", "symbol", "timestamp"),
-            Index("idx_trades_timestamp", "timestamp"),
-            Index("idx_trades_trade_id", "trade_id", unique=True),
-        )
-
         # Funding rates table
         self.tables["funding_rates"] = Table(
             "funding_rates",

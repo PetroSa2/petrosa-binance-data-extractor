@@ -66,22 +66,18 @@ class PipelineSimulator:
 
             default_klines = constants.OTEL_SERVICE_NAME_KLINES
             default_funding = constants.OTEL_SERVICE_NAME_FUNDING
-            default_trades = constants.OTEL_SERVICE_NAME_TRADES
-
             self.test_results["service_configs"]["default"] = {
                 "klines": default_klines,
                 "funding": default_funding,
-                "trades": default_trades,
             }
 
             duration = time.time() - start_time
             assert default_klines is not None
             assert default_funding is not None
-            assert default_trades is not None
             self.log_test(
                 "Default Service Names",
                 True,
-                f"klines={default_klines}, funding={default_funding}, trades={default_trades}",
+                f"klines={default_klines}, funding={default_funding}",
                 duration,
             )
         except Exception as e:
@@ -96,7 +92,6 @@ class PipelineSimulator:
             test_env = {
                 "OTEL_SERVICE_NAME_KLINES": "test-klines-service",
                 "OTEL_SERVICE_NAME_FUNDING": "test-funding-service",
-                "OTEL_SERVICE_NAME_TRADES": "test-trades-service",
                 "ENABLE_OTEL": "true",
                 "OTEL_SERVICE_VERSION": "3.0.0-test",
             }
@@ -115,12 +110,9 @@ class PipelineSimulator:
             # Verify the changes
             custom_klines = constants.OTEL_SERVICE_NAME_KLINES
             custom_funding = constants.OTEL_SERVICE_NAME_FUNDING
-            custom_trades = constants.OTEL_SERVICE_NAME_TRADES
-
             self.test_results["service_configs"]["custom"] = {
                 "klines": custom_klines,
                 "funding": custom_funding,
-                "trades": custom_trades,
             }
 
             # Restore original env vars
@@ -138,7 +130,6 @@ class PipelineSimulator:
                 [
                     custom_klines == "test-klines-service",
                     custom_funding == "test-funding-service",
-                    custom_trades == "test-trades-service",
                 ]
             )
 
@@ -235,7 +226,8 @@ class PipelineSimulator:
             ("Klines Production", "jobs.extract_klines_production"),
             ("Klines Manual", "jobs.extract_klines"),
             ("Funding Rates", "jobs.extract_funding"),
-            ("Trades", "jobs.extract_trades"),
+
+
         ]
 
         for job_name, job_module in jobs:

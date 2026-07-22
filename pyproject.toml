@@ -106,7 +106,6 @@ docs = [
 [project.scripts]
 extract-klines = "jobs.extract_klines_production:main"
 extract-funding = "jobs.extract_funding:main"
-extract-trades = "jobs.extract_trades:main"
 
 [project.urls]
 Homepage = "https://github.com/petrosa/petrosa-binance-data-extractor"

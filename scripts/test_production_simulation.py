@@ -43,7 +43,7 @@ class ProductionEnvironmentSimulator:
             "OTEL_SERVICE_VERSION",
             "OTEL_SERVICE_NAME_KLINES",
             "OTEL_SERVICE_NAME_FUNDING",
-            "OTEL_SERVICE_NAME_TRADES",
+
             "OTEL_EXPORTER_OTLP_ENDPOINT",
             "OTEL_EXPORTER_OTLP_HEADERS",
             "ENVIRONMENT",
@@ -74,7 +74,7 @@ class ProductionEnvironmentSimulator:
             "OTEL_SERVICE_VERSION": "2.0.0",
             "OTEL_SERVICE_NAME_KLINES": "petrosa-klines-extractor",
             "OTEL_SERVICE_NAME_FUNDING": "petrosa-funding-extractor",
-            "OTEL_SERVICE_NAME_TRADES": "petrosa-trades-extractor",
+
             "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otlp.nr-data.net:4317",
             "OTEL_EXPORTER_OTLP_HEADERS": "api-key=test-license-key-12345",
             "ENVIRONMENT": "production",
@@ -116,8 +116,6 @@ class ProductionEnvironmentSimulator:
             print("✅ Service names configured:")
             print(f"   - Klines: {constants.OTEL_SERVICE_NAME_KLINES}")
             print(f"   - Funding: {constants.OTEL_SERVICE_NAME_FUNDING}")
-            print(f"   - Trades: {constants.OTEL_SERVICE_NAME_TRADES}")
-
             # Test OpenTelemetry setup
             from otel_init import setup_telemetry
 
@@ -125,7 +123,6 @@ class ProductionEnvironmentSimulator:
             services = [
                 ("klines", constants.OTEL_SERVICE_NAME_KLINES),
                 ("funding", constants.OTEL_SERVICE_NAME_FUNDING),
-                ("trades", constants.OTEL_SERVICE_NAME_TRADES),
             ]
 
             assert len(services) > 0  # Should have services to test
@@ -157,7 +154,8 @@ class ProductionEnvironmentSimulator:
             ("Klines Production", "jobs.extract_klines_production"),
             ("Klines Manual", "jobs.extract_klines"),
             ("Funding Rates", "jobs.extract_funding"),
-            ("Trades", "jobs.extract_trades"),
+
+
         ]
 
         all_ready = True
@@ -199,7 +197,7 @@ class ProductionEnvironmentSimulator:
                     "OTEL_SERVICE_NAME",
                     "OTEL_SERVICE_NAME_KLINES",
                     "OTEL_SERVICE_NAME_FUNDING",
-                    "OTEL_SERVICE_NAME_TRADES",
+
                     "new-relic-license-key",
                     "otel-headers",
                 ]

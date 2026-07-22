@@ -20,7 +20,8 @@ def test_job_telemetry_setup():
         "jobs.extract_klines_production",
         "jobs.extract_klines",
         "jobs.extract_funding",
-        "jobs.extract_trades",
+
+
     ]
 
     for job_module in jobs:
@@ -89,7 +90,7 @@ def test_environment_variables():
         defaults = {
             "OTEL_SERVICE_NAME_KLINES": constants.OTEL_SERVICE_NAME_KLINES,
             "OTEL_SERVICE_NAME_FUNDING": constants.OTEL_SERVICE_NAME_FUNDING,
-            "OTEL_SERVICE_NAME_TRADES": constants.OTEL_SERVICE_NAME_TRADES,
+
             "ENABLE_OTEL": constants.ENABLE_OTEL,
             "OTEL_SERVICE_VERSION": constants.OTEL_SERVICE_VERSION,
         }

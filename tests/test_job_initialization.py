@@ -26,7 +26,6 @@ def clean_env():
     "job_module_name",
     [
         "jobs.extract_funding",
-        "jobs.extract_trades",
         "jobs.extract_klines",
         "jobs.extract_klines_production",
         "jobs.extract_klines_data_manager",

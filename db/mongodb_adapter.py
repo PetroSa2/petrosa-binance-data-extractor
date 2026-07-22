@@ -339,10 +339,6 @@ class MongoDBAdapter(BaseAdapter):
                     ]
                 )
 
-            # For trades, add index on trade_id
-            if collection == "trades":
-                coll.create_index([("trade_id", ASCENDING)], unique=True, sparse=True)
-
             # Create indexes for better query performance
             coll.create_index([("symbol", 1), ("timestamp", -1)])
             coll.create_index([("timestamp", -1)])

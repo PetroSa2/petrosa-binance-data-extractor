@@ -180,9 +180,6 @@ python jobs/extract_klines.py --help
 
 # Funding rates extractor
 python jobs/extract_funding.py --help
-
-# Trades extractor
-python jobs/extract_trades.py --help
 ```
 
 ## 🐛 **Troubleshooting**

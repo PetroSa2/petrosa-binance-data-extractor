@@ -26,7 +26,6 @@ from pydantic import ValidationError
 from models.base import ExtractionMetadata
 from models.funding_rate import FundingRate
 from models.kline import Kline
-from models.trade import Trade
 
 
 class TestingConstants:
@@ -152,33 +151,6 @@ def realistic_funding_data() -> list[dict[str, Any]]:
 
 
 @pytest.fixture
-def realistic_trades_data() -> list[dict[str, Any]]:
-    """Generate realistic trade data."""
-    base_price = 50000.0
-    base_time = TestingConstants.BASE_TIMESTAMP
-
-    data = []
-    for i in range(50):
-        price_variation = np.random.uniform(0.95, 1.05)
-        price = base_price * price_variation
-        quantity = np.random.lognormal(0, 1)  # Log-normal quantity
-
-        data.append(
-            {
-                "id": 1000000 + i,
-                "price": f"{price:.8f}",
-                "qty": f"{quantity:.8f}",
-                "quoteQty": f"{price * quantity:.8f}",
-                "time": base_time + (i * 1000),  # 1 second apart
-                "isBuyerMaker": np.random.choice([True, False]),
-                "isBestMatch": np.random.choice([True, False], p=[0.8, 0.2]),
-            }
-        )
-
-    return data
-
-
-@pytest.fixture
 def sample_kline_models(realistic_klines_data) -> list[Kline]:
     """Create sample Kline model instances."""
     models = []
@@ -224,27 +196,6 @@ def sample_funding_models(realistic_funding_data) -> list[FundingRate]:
 
 
 @pytest.fixture
-def sample_trade_models(realistic_trades_data) -> list[Trade]:
-    """Create sample Trade model instances."""
-    models = []
-    for data in realistic_trades_data:
-        models.append(
-            Trade(
-                symbol="BTCUSDT",
-                trade_id=data["id"],
-                price=Decimal(data["price"]),
-                quantity=Decimal(data["qty"]),
-                quote_quantity=Decimal(data["quoteQty"]),
-                trade_time=datetime.fromtimestamp(data["time"] / 1000, UTC),
-                is_buyer_maker=data["isBuyerMaker"],
-                is_best_match=data["isBestMatch"],
-                timestamp=datetime.fromtimestamp(data["time"] / 1000, UTC),
-            )
-        )
-    return models
-
-
-@pytest.fixture
 def sample_extraction_metadata() -> ExtractionMetadata:
     """Create sample extraction metadata."""
     return ExtractionMetadata(
@@ -268,7 +219,6 @@ def mock_binance_client():
     # Mock successful responses
     client.get_klines = Mock()
     client.get_funding_rate = Mock()
-    client.get_trades = Mock()
     client.get_exchange_info = Mock(
         return_value={
             "symbols": [

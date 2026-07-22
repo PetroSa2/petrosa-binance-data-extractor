@@ -457,7 +457,6 @@ spec:
 │  │  • extract_klines_production.py                          │     │
 │  │  • extract_klines_gap_filler.py                          │     │
 │  │  • extract_funding.py                                    │     │
-│  │  • extract_trades.py                                     │     │
 │  └──────┬───────────────────────────────────────────────────┘     │
 │         │                                                            │
 │         ▼                                                            │
