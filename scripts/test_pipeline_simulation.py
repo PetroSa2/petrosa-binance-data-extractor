@@ -226,8 +226,6 @@ class PipelineSimulator:
             ("Klines Production", "jobs.extract_klines_production"),
             ("Klines Manual", "jobs.extract_klines"),
             ("Funding Rates", "jobs.extract_funding"),
-
-
         ]
 
         for job_name, job_module in jobs:

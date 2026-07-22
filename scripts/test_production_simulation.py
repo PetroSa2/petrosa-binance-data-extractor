@@ -43,7 +43,6 @@ class ProductionEnvironmentSimulator:
             "OTEL_SERVICE_VERSION",
             "OTEL_SERVICE_NAME_KLINES",
             "OTEL_SERVICE_NAME_FUNDING",
-
             "OTEL_EXPORTER_OTLP_ENDPOINT",
             "OTEL_EXPORTER_OTLP_HEADERS",
             "ENVIRONMENT",
@@ -74,7 +73,6 @@ class ProductionEnvironmentSimulator:
             "OTEL_SERVICE_VERSION": "2.0.0",
             "OTEL_SERVICE_NAME_KLINES": "petrosa-klines-extractor",
             "OTEL_SERVICE_NAME_FUNDING": "petrosa-funding-extractor",
-
             "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otlp.nr-data.net:4317",
             "OTEL_EXPORTER_OTLP_HEADERS": "api-key=test-license-key-12345",
             "ENVIRONMENT": "production",
@@ -154,8 +152,6 @@ class ProductionEnvironmentSimulator:
             ("Klines Production", "jobs.extract_klines_production"),
             ("Klines Manual", "jobs.extract_klines"),
             ("Funding Rates", "jobs.extract_funding"),
-
-
         ]
 
         all_ready = True
@@ -197,7 +193,6 @@ class ProductionEnvironmentSimulator:
                     "OTEL_SERVICE_NAME",
                     "OTEL_SERVICE_NAME_KLINES",
                     "OTEL_SERVICE_NAME_FUNDING",
-
                     "new-relic-license-key",
                     "otel-headers",
                 ]

@@ -145,7 +145,9 @@ class TestAdapterWriteObservabilityOnAbandon:
             ),
         ):
             with pytest.raises(ConnectionError):
-                await adapter.write([_make_model("BNBUSDT")], "custom_collection_BNBUSDT")
+                await adapter.write(
+                    [_make_model("BNBUSDT")], "custom_collection_BNBUSDT"
+                )
 
         # Generic collections don't extract symbol from collection name
         assert captured["symbol"] == "UNKNOWN"
