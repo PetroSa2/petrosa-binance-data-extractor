@@ -22,7 +22,7 @@ def test_imports():
         print("✅ Constants imported successfully")
         print(f"   - OTEL_SERVICE_NAME_KLINES: {constants.OTEL_SERVICE_NAME_KLINES}")
         print(f"   - OTEL_SERVICE_NAME_FUNDING: {constants.OTEL_SERVICE_NAME_FUNDING}")
-        print(f"   - OTEL_SERVICE_NAME_TRADES: {constants.OTEL_SERVICE_NAME_TRADES}")
+
     except ImportError as e:
         assert e is not None  # Exception should be captured
         print(f"❌ Failed to import constants: {e}")

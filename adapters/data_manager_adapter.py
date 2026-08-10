@@ -153,15 +153,6 @@ class DataManagerAdapter:
                     database=self.database,
                 )
 
-            elif collection_name.startswith("trades_"):
-                _obs_symbol = collection_name.replace("trades_", "")
-
-                result = await self._client.insert_trades(
-                    symbol=_obs_symbol,
-                    trades_data=data_dicts,
-                    database=self.database,
-                )
-
             elif collection_name.startswith("funding_"):
                 _obs_symbol = collection_name.replace("funding_", "")
 

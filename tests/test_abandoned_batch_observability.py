@@ -39,7 +39,8 @@ class TestAdapterWriteObservabilityOnAbandon:
         inner.insert_klines = AsyncMock(side_effect=ConnectionError("timeout"))
         a._client = MagicMock()
         a._client.insert_klines = AsyncMock(side_effect=ConnectionError("timeout"))
-        a._client.insert_trades = AsyncMock(side_effect=ConnectionError("timeout"))
+        a._client._client = MagicMock()
+        a._client._client.insert = AsyncMock(side_effect=ConnectionError("timeout"))
         return a
 
     @pytest.mark.asyncio
@@ -126,7 +127,7 @@ class TestAdapterWriteObservabilityOnAbandon:
                 await adapter.write([_make_model()], "klines_1h")
 
     @pytest.mark.asyncio
-    async def test_trades_collection_symbol_label(self, adapter):
+    async def test_generic_collection_symbol_label(self, adapter):
         captured = {}
 
         def fake_record(symbol, interval, reason):
@@ -144,9 +145,12 @@ class TestAdapterWriteObservabilityOnAbandon:
             ),
         ):
             with pytest.raises(ConnectionError):
-                await adapter.write([_make_model("BNBUSDT")], "trades_BNBUSDT")
+                await adapter.write(
+                    [_make_model("BNBUSDT")], "custom_collection_BNBUSDT"
+                )
 
-        assert captured["symbol"] == "BNBUSDT"
+        # Generic collections don't extract symbol from collection name
+        assert captured["symbol"] == "UNKNOWN"
         assert captured["interval"] == "n/a"
 
 

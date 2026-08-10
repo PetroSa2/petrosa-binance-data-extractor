@@ -261,8 +261,8 @@ class MetricsAggregator:
             Success rate metrics
         """
         try:
-            # TODO: Implement actual MongoDB query of trade logs
-            # Query the signals collection and trades collection to calculate:
+            # TODO: Implement actual MongoDB query of execution_events
+            # Query the signals collection and execution_events to calculate:
             # - signals_generated
             # - signals_executed
             # - winning_trades

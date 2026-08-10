@@ -265,45 +265,6 @@ class BinanceClient:
 
         return self.get("/fapi/v1/klines", params)
 
-    def get_recent_trades(self, symbol: str, limit: int = 1000) -> list[dict[str, Any]]:
-        """
-        Get recent trades.
-
-        Args:
-            symbol: Trading symbol
-            limit: Number of trades to return (max 1000)
-
-        Returns:
-            List of trade data
-        """
-        params = {"symbol": symbol.upper(), "limit": min(limit, 1000)}
-
-        return self.get("/fapi/v1/trades", params)
-
-    def get_historical_trades(
-        self, symbol: str, from_id: int | None = None, limit: int = 1000
-    ) -> list[dict[str, Any]]:
-        """
-        Get historical trades (requires API key).
-
-        Args:
-            symbol: Trading symbol
-            from_id: Trade ID to start from
-            limit: Number of trades to return
-
-        Returns:
-            List of trade data
-        """
-        if not self.api_key:
-            raise BinanceAPIError("API key required for historical trades")
-
-        params = {"symbol": symbol.upper(), "limit": min(limit, 1000)}
-
-        if from_id:
-            params["fromId"] = from_id
-
-        return self.get("/fapi/v1/historicalTrades", params)
-
     def get_funding_rate(
         self, symbol: str | None = None, limit: int = 100
     ) -> list[dict[str, Any]]:

@@ -6,7 +6,6 @@ This package contains various data extraction jobs:
 - extract_klines_gap_filler.py: Gap detection and filling job
 - extract_klines.py: Manual klines extraction with explicit date ranges
 - extract_funding.py: Funding rates extraction
-- extract_trades.py: Trades data extraction
 """
 
 __version__ = "1.1.32"

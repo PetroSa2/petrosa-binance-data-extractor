@@ -168,7 +168,7 @@ class DataManagerClient:
     """
     Simplified Data Manager client for the data extractor.
 
-    Provides methods specifically tailored for klines, trades, and funding data.
+    Provides methods specifically tailored for klines and funding data.
     """
 
     def __init__(
@@ -260,49 +260,6 @@ class DataManagerClient:
             raise
         except Exception as e:
             logger.error(f"Unexpected error inserting klines for {symbol}: {e}")
-            raise
-
-    async def insert_trades(
-        self,
-        symbol: str,
-        trades_data: list[dict[str, Any]],
-        database: str = "mongodb",
-    ) -> dict[str, Any]:
-        """
-        Insert trades data into the data manager.
-
-        Args:
-            symbol: Trading symbol (e.g., 'BTCUSDT')
-            trades_data: List of trade records to insert
-            database: Target database ('mongodb' or 'mysql')
-
-        Returns:
-            Insert result with count of inserted records
-        """
-        if not trades_data:
-            logger.warning(f"No trades data to insert for {symbol}")
-            return {"inserted_count": 0, "success": True}
-
-        collection_name = f"trades_{symbol}"
-
-        try:
-            logger.info(f"Inserting {len(trades_data)} trades for {symbol}")
-
-            result = self._client.insert(
-                database=database,
-                collection=collection_name,
-                records=trades_data,
-            )
-            if isawaitable(result):
-                result = await result
-
-            logger.info(
-                f"Successfully inserted {result.get('inserted_count', 0)} trades for {symbol}"
-            )
-            return result
-
-        except Exception as e:
-            logger.error(f"Error inserting trades for {symbol}: {e}")
             raise
 
     async def insert_funding_rates(

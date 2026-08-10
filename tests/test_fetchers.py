@@ -25,7 +25,6 @@ sys.path.insert(0, project_root)
 from fetchers.client import BinanceAPIError, BinanceClient  # noqa: E402
 from fetchers.funding import FundingRatesFetcher  # noqa: E402
 from fetchers.klines import KlinesFetcher  # noqa: E402
-from fetchers.trades import TradesFetcher  # noqa: E402
 
 UTC = UTC
 
@@ -332,84 +331,6 @@ class TestKlinesFetcher:
         ) as exc_info:
             self.fetcher.fetch_klines("BTCUSDT", "15m", start_time, end_time)
         assert exc_info.type is ValueError
-
-
-class TestTradesFetcher:
-    """Test TradesFetcher functionality."""
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.mock_client = Mock(spec=BinanceClient)
-        self.fetcher = TradesFetcher(self.mock_client)
-
-    def test_trades_fetcher_initialization(self):
-        """Test TradesFetcher initialization."""
-        fetcher = TradesFetcher()
-        assert fetcher.client is not None
-        assert fetcher.max_trades_per_request == 1000
-
-    def test_fetch_recent_trades(self):
-        """Test fetching recent trades."""
-        mock_trades_data = [
-            {
-                "id": 28457,
-                "price": "50000.00",
-                "qty": "0.01000000",
-                "quoteQty": "500.00000000",
-                "time": 1640995200000,
-                "isBuyerMaker": True,
-            },
-            {
-                "id": 28458,
-                "price": "50050.00",
-                "qty": "0.02000000",
-                "quoteQty": "1001.00000000",
-                "time": 1640995210000,
-                "isBuyerMaker": False,
-            },
-        ]
-
-        self.mock_client.get_recent_trades.return_value = mock_trades_data
-
-        trades = self.fetcher.fetch_recent_trades("BTCUSDT", 1000)
-
-        assert len(trades) == 2
-        assert trades[0].symbol == "BTCUSDT"
-        assert trades[0].trade_id == 28457
-        assert trades[0].price == Decimal("50000.00")
-        assert trades[0].is_buyer_maker is True
-        assert trades[1].trade_id == 28458
-        assert trades[1].is_buyer_maker is False
-
-        self.mock_client.get_recent_trades.assert_called_with(
-            symbol="BTCUSDT", limit=1000
-        )
-
-    def test_fetch_historical_trades(self):
-        """Test fetching historical trades."""
-        mock_trades_data = [
-            {
-                "id": 28457,
-                "price": "50000.00",
-                "qty": "0.01000000",
-                "quoteQty": "500.00000000",
-                "time": 1640995200000,
-                "isBuyerMaker": True,
-            }
-        ]
-
-        self.mock_client.get_historical_trades.return_value = mock_trades_data
-
-        trades = self.fetcher.fetch_historical_trades(
-            "BTCUSDT", from_id=28457, limit=1000
-        )
-
-        assert len(trades) == 1
-        assert trades[0].trade_id == 28457
-
-        self.mock_client.get_historical_trades.assert_called_with(
-            symbol="BTCUSDT", from_id=28457, limit=1000
-        )
 
 
 class TestFundingRatesFetcher:

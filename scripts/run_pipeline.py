@@ -63,12 +63,6 @@ class PipelineRunner:
                 "default_period": None,
                 "default_symbols": constants.DEFAULT_SYMBOLS,
             },
-            "trades": {
-                "script": "jobs/extract_trades.py",
-                "description": "Extract recent trades from Binance",
-                "default_period": None,
-                "default_symbols": constants.DEFAULT_SYMBOLS,
-            },
             "gap-filler": {
                 "script": "jobs/extract_klines_gap_filler.py",
                 "description": "Detect and fill gaps in klines data",
@@ -117,10 +111,6 @@ class PipelineRunner:
                 from jobs.extract_funding import main as funding_main
 
                 return self._run_funding_job(funding_main, **kwargs)
-            elif job_name == "trades":
-                from jobs.extract_trades import main as trades_main
-
-                return self._run_trades_job(trades_main, **kwargs)
             elif job_name == "gap-filler":
                 from jobs.extract_klines_gap_filler import main as gap_filler_main
 
@@ -222,46 +212,6 @@ class PipelineRunner:
                 return {"success": True, "job": "funding"}
             else:
                 return {"success": False, "job": "funding", "exit_code": e.code}
-        finally:
-            sys.argv = original_argv
-
-    def _run_trades_job(self, main_func, **kwargs) -> dict[str, Any]:
-        """Run the trades extraction job."""
-        original_argv = sys.argv.copy()
-
-        args = ["extract_trades.py"]
-
-        if kwargs.get("symbols"):
-            if isinstance(kwargs["symbols"], list):
-                args.extend(["--symbols"] + kwargs["symbols"])
-            else:
-                args.extend(["--symbols", kwargs["symbols"]])
-
-        if kwargs.get("limit"):
-            args.extend(["--limit", str(kwargs["limit"])])
-
-        if kwargs.get("db_adapter"):
-            args.extend(["--db-adapter", kwargs["db_adapter"]])
-
-        if kwargs.get("db_uri"):
-            args.extend(["--db-uri", kwargs["db_uri"]])
-
-        if kwargs.get("log_level"):
-            args.extend(["--log-level", kwargs["log_level"]])
-
-        if kwargs.get("dry_run"):
-            args.append("--dry-run")
-
-        sys.argv = args
-
-        try:
-            main_func()
-            return {"success": True, "job": "trades"}
-        except SystemExit as e:
-            if e.code == 0:
-                return {"success": True, "job": "trades"}
-            else:
-                return {"success": False, "job": "trades", "exit_code": e.code}
         finally:
             sys.argv = original_argv
 

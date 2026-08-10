@@ -203,32 +203,6 @@ class TestDataManagerAdapterWrite:
         mock_client.insert_klines.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_write_trades_success(self):
-        """Test successful trades write."""
-        adapter = DataManagerAdapter(base_url="http://localhost:8000")
-        adapter._connected = True
-
-        mock_client = AsyncMock()
-        mock_client.insert_trades = AsyncMock(return_value={"inserted_count": 50})
-        adapter._client = mock_client
-
-        mock_data = [
-            Mock(
-                to_dict=lambda: {
-                    "symbol": "BTCUSDT",
-                    "timestamp": datetime.now(),
-                    "price": 45000,
-                }
-            )
-            for _ in range(50)
-        ]
-
-        written = await adapter.write(mock_data, "trades_BTCUSDT", batch_size=500)
-
-        assert written == 50
-        mock_client.insert_trades.assert_called_once()
-
-    @pytest.mark.asyncio
     async def test_write_funding_success(self):
         """Test successful funding rates write."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")

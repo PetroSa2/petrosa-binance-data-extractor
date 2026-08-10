@@ -123,7 +123,6 @@ LOG_FORMAT = os.getenv("LOG_FORMAT", "json")  # json or text
 OTEL_SERVICE_NAME = "binance-data-extractor"
 OTEL_SERVICE_NAME_KLINES = "binance-data-extractor-klines"
 OTEL_SERVICE_NAME_FUNDING = "binance-data-extractor-funding"
-OTEL_SERVICE_NAME_TRADES = "binance-data-extractor-trades"
 OTEL_SERVICE_VERSION = os.getenv("OTEL_SERVICE_VERSION", "1.1.32")
 OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 OTEL_EXPORTER_OTLP_PROTOCOL = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")

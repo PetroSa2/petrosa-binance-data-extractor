@@ -27,7 +27,6 @@ from models.base import (  # noqa: E402
 )
 from models.funding_rate import FundingRateModel  # noqa: E402
 from models.kline import KlineModel  # noqa: E402
-from models.trade import TradeModel  # noqa: E402
 
 
 class TestBaseModels:
@@ -170,88 +169,6 @@ class TestKlineModel:
             "close_time must be a JSON-serializable string"
         )
         # Verify 'id' is excluded
-        assert "id" not in result
-
-
-class TestTradeModel:
-    """Test TradeModel functionality."""
-
-    def test_trade_model_creation(self):
-        """Test basic TradeModel creation."""
-        now = datetime.now(UTC)
-
-        trade = TradeModel(
-            symbol="BTCUSDT",
-            timestamp=now,
-            trade_id=123456,
-            price=Decimal("50000.00"),
-            quantity=Decimal("0.01"),
-            quote_quantity=Decimal("500.00"),
-            is_buyer_maker=True,
-            trade_time=now,
-        )
-
-        assert trade.symbol == "BTCUSDT"
-        assert trade.trade_id == 123456
-        assert trade.price == Decimal("50000.00")
-        assert trade.is_buyer_maker is True
-
-    def test_trade_from_binance_data(self):
-        """Test creating TradeModel from Binance API data."""
-        binance_data = {
-            "id": 28457,
-            "price": "50000.00",
-            "qty": "0.01000000",
-            "quoteQty": "500.00000000",
-            "time": 1640995200000,
-            "isBuyerMaker": True,
-        }
-
-        trade = TradeModel.from_binance_trade(binance_data, "BTCUSDT")
-
-        assert trade.symbol == "BTCUSDT"
-        assert trade.trade_id == 28457
-        assert trade.price == Decimal("50000.00")
-        assert trade.quantity == Decimal("0.01000000")
-        assert trade.is_buyer_maker is True
-
-    def test_trade_collection_name(self):
-        """Test collection name."""
-        trade = TradeModel(
-            symbol="BTCUSDT",
-            timestamp=datetime.now(UTC),
-            trade_id=123456,
-            price=Decimal("50000"),
-            quantity=Decimal("0.01"),
-            quote_quantity=Decimal("500"),
-            is_buyer_maker=True,
-            trade_time=datetime.now(UTC),
-        )
-
-        assert trade.collection_name == "trades"
-
-    def test_trade_to_dict_datetime_serialization(self):
-        """Test that to_dict() serializes datetime fields to ISO strings."""
-        now = datetime.now(UTC)
-        trade = TradeModel(
-            symbol="BTCUSDT",
-            timestamp=now,
-            trade_id=123456,
-            price=Decimal("50000"),
-            quantity=Decimal("0.01"),
-            quote_quantity=Decimal("500"),
-            is_buyer_maker=True,
-            trade_time=now,
-        )
-
-        result = trade.to_dict()
-
-        assert isinstance(result["timestamp"], str), (
-            "timestamp must be a JSON-serializable string"
-        )
-        assert isinstance(result["trade_time"], str), (
-            "trade_time must be a JSON-serializable string"
-        )
         assert "id" not in result
 
 
