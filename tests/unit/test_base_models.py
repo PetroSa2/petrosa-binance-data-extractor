@@ -117,6 +117,26 @@ class TestBaseTimestampedModel:
         assert "timestamp" in data
         assert isinstance(data["timestamp"], str)
 
+    def test_json_serialization_no_double_timezone_suffix(self):
+        """Regression test for double-Z suffix bug (#278).
+
+        A tz-aware datetime's isoformat() already carries a numeric UTC
+        offset (+00:00); the encoder must not append a second literal "Z"
+        on top of it. The resulting string must round-trip cleanly through
+        datetime.fromisoformat().
+        """
+        timestamp = datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
+        model = BaseTimestampedModel(timestamp=timestamp)
+
+        data = json.loads(model.model_dump_json())
+
+        assert data["timestamp"].count("Z") <= 1
+        assert "+00:00Z" not in data["timestamp"]
+        # Must be parseable without a ValueError (this is what broke
+        # petrosa-data-manager's insert_klines() prior to this fix).
+        parsed = datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
+        assert parsed == timestamp
+
     def test_model_validation_assignment(self):
         """Test that validation occurs on assignment."""
         model = BaseTimestampedModel(timestamp=datetime.now())
@@ -330,6 +350,13 @@ class TestExtractionMetadata:
         assert "end_time" in data
         assert data["start_time"].endswith("Z")
         assert data["end_time"].endswith("Z")
+        # Regression: no double timezone suffix (#278) and round-trips cleanly.
+        assert "+00:00Z" not in data["start_time"]
+        assert "+00:00Z" not in data["end_time"]
+        assert data["start_time"].count("Z") == 1
+        assert data["end_time"].count("Z") == 1
+        datetime.fromisoformat(data["start_time"].replace("Z", "+00:00"))
+        datetime.fromisoformat(data["end_time"].replace("Z", "+00:00"))
 
     @pytest.mark.parametrize(
         "field_name,invalid_value",

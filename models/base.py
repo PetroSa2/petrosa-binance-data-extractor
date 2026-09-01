@@ -16,6 +16,23 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+def _encode_datetime_iso(v: datetime | None) -> str | None:
+    """Serialize a datetime to a single-suffix, UTC ISO-8601 string.
+
+    Naive datetimes are treated as UTC and get a literal "Z" suffix
+    appended (matching the pre-existing behavior for naive inputs).
+    Timezone-aware datetimes already carry a numeric UTC offset from
+    isoformat() (e.g. "+00:00"); that offset is normalized to "Z"
+    instead of appending a second suffix on top of it (#278).
+    """
+    if not v:
+        return None
+    iso = v.isoformat()
+    if v.tzinfo is None:
+        return iso + "Z"
+    return iso.replace("+00:00", "Z")
+
+
 class BaseTimestampedModel(BaseModel):
     """Base model with common timestamp and metadata fields."""
 
@@ -43,7 +60,7 @@ class BaseTimestampedModel(BaseModel):
         extra="allow",
         use_enum_values=True,
         validate_assignment=True,
-        json_encoders={datetime: lambda v: v.isoformat() + "Z" if v else None},
+        json_encoders={datetime: _encode_datetime_iso},
     )
 
     @field_validator("timestamp", mode="before")
@@ -108,6 +125,4 @@ class ExtractionMetadata(BaseModel):
         default_factory=list, description="List of errors encountered during extraction"
     )
 
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat() + "Z" if v else None}
-    )
+    model_config = ConfigDict(json_encoders={datetime: _encode_datetime_iso})
