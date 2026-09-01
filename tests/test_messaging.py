@@ -4,6 +4,7 @@ Tests for NATS messaging functionality.
 
 import json
 import os
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -95,6 +96,11 @@ class TestNATSMessenger:
             assert message_data["metrics"]["records_written"] == 100
             assert message_data["metrics"]["duration_seconds"] == 5.5
 
+            # Regression test for #278: no double timezone suffix
+            timestamp = message_data["timestamp"]
+            assert "+00:00Z" not in timestamp
+            datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
     @pytest.mark.asyncio
     async def test_publish_batch_extraction_completion(self):
         """Test publishing batch extraction completion message."""
@@ -136,6 +142,11 @@ class TestNATSMessenger:
             assert message_data["metrics"]["total_records_written"] == 200
             assert message_data["metrics"]["duration_seconds"] == 10.5
             assert message_data["metrics"]["symbols_processed"] == 2
+
+            # Regression test for #278: no double timezone suffix
+            timestamp = message_data["timestamp"]
+            assert "+00:00Z" not in timestamp
+            datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
 
 class TestMessagingFunctions:

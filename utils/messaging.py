@@ -108,7 +108,7 @@ class NATSMessenger:
             "extraction_type": extraction_type,
             "symbol": symbol,
             "period": period,
-            "timestamp": datetime.now(UTC).isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "success": success,
             "metrics": {
                 "records_fetched": records_fetched,
@@ -176,7 +176,7 @@ class NATSMessenger:
             "extraction_type": extraction_type,
             "symbols": symbols,
             "period": period,
-            "timestamp": datetime.now(UTC).isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "success": success,
             "metrics": {
                 "total_records_fetched": total_records_fetched,
@@ -230,7 +230,7 @@ class NATSMessenger:
             "interval": interval,
             "collection": collection,
             "error": error,
-            "timestamp": datetime.now(UTC).isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         }
 
         subject = "alerts.extractor.persist_failed"

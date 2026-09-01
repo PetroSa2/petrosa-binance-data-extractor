@@ -171,6 +171,16 @@ class TestKlineModel:
         # Verify 'id' is excluded
         assert "id" not in result
 
+        # Regression test for #278: no double timezone suffix
+        # (e.g. "2026-08-24T00:00:00+00:00Z") on already tz-aware datetimes,
+        # and the result round-trips through datetime.fromisoformat().
+        for field in ("timestamp", "open_time", "close_time"):
+            value = result[field]
+            assert "+00:00Z" not in value, (
+                f"{field} has a double timezone suffix: {value!r}"
+            )
+            datetime.fromisoformat(value.replace("Z", "+00:00"))
+
 
 class TestFundingRateModel:
     """Test FundingRateModel functionality."""
