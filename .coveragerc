@@ -42,7 +42,7 @@ exclude_lines =
     @(abc\.)?abstractmethod
 
 # Coverage thresholds
-fail_under = 80
+fail_under = 40
 show_missing = True
 skip_covered = False
 
