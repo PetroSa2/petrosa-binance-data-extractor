@@ -61,6 +61,21 @@ DATA_MANAGER_TIMEOUT = int(os.getenv("DATA_MANAGER_TIMEOUT", "30"))
 DATA_MANAGER_MAX_RETRIES = int(os.getenv("DATA_MANAGER_MAX_RETRIES", "3"))
 DATA_MANAGER_DATABASE = os.getenv("DATA_MANAGER_DATABASE", "mongodb")
 
+# Per-symbol extraction retry (k8s#280): a single symbol hitting a transient
+# error (Binance rate-limit/5xx already-retried-and-exhausted, or a
+# dependency-not-ready race) previously failed the whole CronJob attempt
+# (job exit 1 => Job "failed" count incremented) even though every other
+# symbol succeeded. These control an extra retry layer *above* the
+# per-request HTTP retries so a single flaky symbol doesn't cost a whole
+# first-attempt CronJob failure.
+SYMBOL_EXTRACTION_MAX_RETRIES = int(os.getenv("SYMBOL_EXTRACTION_MAX_RETRIES", "2"))
+SYMBOL_EXTRACTION_RETRY_BACKOFF_SECONDS = float(
+    os.getenv("SYMBOL_EXTRACTION_RETRY_BACKOFF_SECONDS", "2.0")
+)
+SYMBOL_EXTRACTION_RETRY_BACKOFF_MULTIPLIER = float(
+    os.getenv("SYMBOL_EXTRACTION_RETRY_BACKOFF_MULTIPLIER", "2.0")
+)
+
 # Legacy database configuration (deprecated - use DATA_MANAGER_URL instead)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 MYSQL_URI = os.getenv("MYSQL_URI", "mysql://user:pass@localhost:3306")

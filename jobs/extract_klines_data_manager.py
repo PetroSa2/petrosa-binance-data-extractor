@@ -82,6 +82,15 @@ class DataManagerKlinesExtractor:
         self.max_workers = max_workers
         self.lookback_hours = lookback_hours
 
+        # Per-symbol retry configuration (k8s#280): see constants.py for rationale.
+        self.symbol_max_retries = constants.SYMBOL_EXTRACTION_MAX_RETRIES
+        self.symbol_retry_backoff_seconds = (
+            constants.SYMBOL_EXTRACTION_RETRY_BACKOFF_SECONDS
+        )
+        self.symbol_retry_backoff_multiplier = (
+            constants.SYMBOL_EXTRACTION_RETRY_BACKOFF_MULTIPLIER
+        )
+
         # Thread-safe logger
         self.logger = get_logger(__name__)
 
@@ -119,87 +128,115 @@ class DataManagerKlinesExtractor:
             "duration": 0,
         }
 
-        try:
-            # Create Data Manager fetcher
-            fetcher = KlinesFetcherDataManager(binance_client)
-
-            # Get latest timestamp from Data Manager
-            last_timestamp = await fetcher.get_latest_timestamp(symbol, self.period)
-
-            if last_timestamp is None:
-                # No data found, start from default start date
-                last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE)
-
-            # Calculate extraction window
-            start_time, end_time = self._calculate_extraction_window(last_timestamp)
-
-            self.logger.info(
-                f"Extracting {symbol} ({self.period}): "
-                f"from {start_time.isoformat()} to {end_time.isoformat()}"
-            )
-
-            # Fetch and store klines via Data Manager
-            klines_data = await fetcher.fetch_and_store_klines(
-                symbol=symbol,
-                interval=self.period,
-                start_time=start_time,
-                end_time=end_time,
-            )
-
-            result["records_fetched"] = len(klines_data)
-            result["records_written"] = len(
-                klines_data
-            )  # Same as fetched since we store immediately
-
-            # Check for gaps
-            gaps = await fetcher.find_gaps(
-                symbol=symbol,
-                interval=self.period,
-                start_time=start_time,
-                end_time=end_time,
-            )
-            result["gaps_filled"] = len(gaps)
-
-            if gaps:
-                self.logger.warning(f"Found {len(gaps)} gaps for {symbol}")
-
-            result["success"] = True
-            result["duration"] = time.time() - symbol_start_time
-
-            self.logger.info(
-                f"✅ {symbol}: fetched={result['records_fetched']}, "
-                f"written={result['records_written']}, "
-                f"duration={result['duration']:.2f}s"
-            )
-
-            # Send NATS message for symbol completion
-            if constants.NATS_ENABLED:
-                try:
-                    await publish_extraction_completion_async(
-                        symbol=symbol,
-                        period=self.period,
-                        records_fetched=result["records_fetched"],
-                        records_written=result["records_written"],
-                        success=result["success"],
-                        duration_seconds=result["duration"],
-                        errors=[result["error"]] if result["error"] else None,
-                        gaps_found=0,
-                        gaps_filled=result["gaps_filled"],
-                        extraction_type="klines",
-                        use_production_prefix=True,
+        max_attempts = self.symbol_max_retries + 1
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return await self._extract_symbol_data_once(
+                    symbol, binance_client, result, symbol_start_time
+                )
+            except Exception as e:
+                if attempt >= max_attempts:
+                    result["error"] = str(e)
+                    result["duration"] = time.time() - symbol_start_time
+                    self.logger.error(
+                        f"❌ {symbol} failed after {attempt} attempt(s): {e}",
+                        exc_info=True,
                     )
-                except Exception as e:
-                    self.logger.warning(
-                        f"Failed to send NATS message for {symbol}: {e}"
-                    )
+                    return result
 
-            return result
+                delay = self.symbol_retry_backoff_seconds * (
+                    self.symbol_retry_backoff_multiplier ** (attempt - 1)
+                )
+                self.logger.warning(
+                    f"⚠️ {symbol} attempt {attempt}/{max_attempts} failed "
+                    f"({e}); retrying in {delay:.1f}s"
+                )
+                await asyncio.sleep(delay)
 
-        except Exception as e:
-            result["error"] = str(e)
-            result["duration"] = time.time() - symbol_start_time
-            self.logger.error(f"❌ {symbol} failed: {e}")
-            return result
+        # Unreachable — loop always returns or raises above.
+        return result
+
+    async def _extract_symbol_data_once(
+        self,
+        symbol: str,
+        binance_client: BinanceClient,
+        result: dict[str, Any],
+        symbol_start_time: float,
+    ) -> dict[str, Any]:
+        """Single extraction attempt for a symbol. Raises on failure so the
+        caller (extract_symbol_data) can apply retry/backoff."""
+        # Create Data Manager fetcher
+        fetcher = KlinesFetcherDataManager(binance_client)
+
+        # Get latest timestamp from Data Manager
+        last_timestamp = await fetcher.get_latest_timestamp(symbol, self.period)
+
+        if last_timestamp is None:
+            # No data found, start from default start date
+            last_timestamp = datetime.fromisoformat(constants.DEFAULT_START_DATE)
+
+        # Calculate extraction window
+        start_time, end_time = self._calculate_extraction_window(last_timestamp)
+
+        self.logger.info(
+            f"Extracting {symbol} ({self.period}): "
+            f"from {start_time.isoformat()} to {end_time.isoformat()}"
+        )
+
+        # Fetch and store klines via Data Manager
+        klines_data = await fetcher.fetch_and_store_klines(
+            symbol=symbol,
+            interval=self.period,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        result["records_fetched"] = len(klines_data)
+        result["records_written"] = len(
+            klines_data
+        )  # Same as fetched since we store immediately
+
+        # Check for gaps
+        gaps = await fetcher.find_gaps(
+            symbol=symbol,
+            interval=self.period,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        result["gaps_filled"] = len(gaps)
+
+        if gaps:
+            self.logger.warning(f"Found {len(gaps)} gaps for {symbol}")
+
+        result["success"] = True
+        result["duration"] = time.time() - symbol_start_time
+
+        self.logger.info(
+            f"✅ {symbol}: fetched={result['records_fetched']}, "
+            f"written={result['records_written']}, "
+            f"duration={result['duration']:.2f}s"
+        )
+
+        # Send NATS message for symbol completion
+        if constants.NATS_ENABLED:
+            try:
+                await publish_extraction_completion_async(
+                    symbol=symbol,
+                    period=self.period,
+                    records_fetched=result["records_fetched"],
+                    records_written=result["records_written"],
+                    success=result["success"],
+                    duration_seconds=result["duration"],
+                    errors=[result["error"]] if result["error"] else None,
+                    gaps_found=0,
+                    gaps_filled=result["gaps_filled"],
+                    extraction_type="klines",
+                    use_production_prefix=True,
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to send NATS message for {symbol}: {e}")
+
+        return result
 
     def _calculate_extraction_window(
         self, last_timestamp: datetime
