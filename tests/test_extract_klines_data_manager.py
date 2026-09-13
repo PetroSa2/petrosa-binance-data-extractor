@@ -155,20 +155,23 @@ class TestDataManagerKlinesExtractor:
 
     @pytest.mark.asyncio
     async def test_extract_symbol_data_failure(self):
-        """Test extraction failure handling."""
+        """Test extraction failure handling (all attempts exhausted)."""
         extractor = DataManagerKlinesExtractor(
             symbols=["INVALID"], period="15m", max_workers=1, lookback_hours=24
         )
 
         mock_client = MagicMock()
 
-        with patch(
-            "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
-        ) as mock_fetcher_class:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch("jobs.extract_klines_data_manager.asyncio.sleep", AsyncMock()),
+        ):
             mock_fetcher = AsyncMock()
             mock_fetcher_class.return_value = mock_fetcher
 
-            # Simulate API error
+            # Simulate a persistent (non-transient) API error across all attempts
             mock_fetcher.get_latest_timestamp = AsyncMock(
                 side_effect=Exception("API rate limit exceeded")
             )
@@ -179,6 +182,76 @@ class TestDataManagerKlinesExtractor:
             assert result["error"] is not None
             assert "API rate limit" in result["error"]
             assert result["records_fetched"] == 0
+
+    @pytest.mark.asyncio
+    async def test_extract_symbol_data_retries_then_succeeds(self):
+        """k8s#280: a symbol that fails transiently on the first attempt(s)
+        should succeed on a later attempt without failing the whole job."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["BTCUSDT"], period="5m", max_workers=1, lookback_hours=24
+        )
+
+        mock_client = MagicMock()
+
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch(
+                "jobs.extract_klines_data_manager.asyncio.sleep", AsyncMock()
+            ) as mock_sleep,
+        ):
+            mock_fetcher = AsyncMock()
+            mock_fetcher_class.return_value = mock_fetcher
+
+            last_timestamp = datetime.now(UTC) - timedelta(hours=1)
+            # Fail once (dependency-not-ready race / transient 5xx), then succeed.
+            mock_fetcher.get_latest_timestamp = AsyncMock(
+                side_effect=[
+                    Exception("temporary data-manager timeout"),
+                    last_timestamp,
+                ]
+            )
+            mock_fetcher.fetch_and_store_klines = AsyncMock(
+                return_value=[{"timestamp": datetime.now(UTC), "close": 45000}]
+            )
+            mock_fetcher.find_gaps = AsyncMock(return_value=[])
+
+            result = await extractor.extract_symbol_data("BTCUSDT", mock_client)
+
+            assert result["success"] is True
+            assert result["records_fetched"] == 1
+            mock_sleep.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_extract_symbol_data_retry_exhausted_logs_and_returns_failed(self):
+        """After all retries are exhausted, the symbol is reported as failed
+        (not raised) so a single bad symbol doesn't crash the whole run."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["ETHUSDT"], period="5m", max_workers=1, lookback_hours=24
+        )
+        assert extractor.symbol_max_retries >= 1
+        expected_attempts = extractor.symbol_max_retries + 1
+
+        mock_client = MagicMock()
+
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch("jobs.extract_klines_data_manager.asyncio.sleep", AsyncMock()),
+        ):
+            mock_fetcher = AsyncMock()
+            mock_fetcher_class.return_value = mock_fetcher
+            mock_fetcher.get_latest_timestamp = AsyncMock(
+                side_effect=Exception("dependency not ready")
+            )
+
+            result = await extractor.extract_symbol_data("ETHUSDT", mock_client)
+
+            assert result["success"] is False
+            assert "dependency not ready" in result["error"]
+            assert mock_fetcher_class.call_count == expected_attempts
 
     def test_calculate_extraction_window_normal(self):
         """Test extraction window calculation for normal case."""
@@ -561,9 +634,12 @@ class TestSecurity:
 
         mock_client = MagicMock()
 
-        with patch(
-            "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
-        ) as mock_fetcher_class:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch("jobs.extract_klines_data_manager.asyncio.sleep", AsyncMock()),
+        ):
             mock_fetcher = AsyncMock()
             mock_fetcher_class.return_value = mock_fetcher
 
@@ -592,9 +668,12 @@ class TestChaos:
 
         mock_client = MagicMock()
 
-        with patch(
-            "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
-        ) as mock_fetcher_class:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch("jobs.extract_klines_data_manager.asyncio.sleep", AsyncMock()),
+        ):
             mock_fetcher = AsyncMock()
             mock_fetcher_class.return_value = mock_fetcher
 
@@ -621,9 +700,12 @@ class TestChaos:
 
         mock_client = MagicMock()
 
-        with patch(
-            "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
-        ) as mock_fetcher_class:
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch("jobs.extract_klines_data_manager.asyncio.sleep", AsyncMock()),
+        ):
             mock_fetcher = AsyncMock()
             mock_fetcher_class.return_value = mock_fetcher
 
