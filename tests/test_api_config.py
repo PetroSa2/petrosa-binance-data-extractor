@@ -107,6 +107,30 @@ class TestHealthEndpoints:
         assert response.json() == {"status": "ready"}
 
 
+class TestMetricsEndpoint:
+    """Test Prometheus /metrics endpoint (#281)."""
+
+    def test_metrics_endpoint_returns_200(self, client):
+        """The scrape target must return 200, not 404 (root cause of up=0)."""
+        response = client.get("/metrics")
+        assert response.status_code == 200
+
+    def test_metrics_endpoint_returns_prometheus_content_type(self, client):
+        """Response must be real Prometheus exposition format, not JSON."""
+        response = client.get("/metrics")
+        assert "text/plain" in response.headers["content-type"]
+
+    def test_metrics_endpoint_exposes_default_collectors(self, client):
+        """Default process/gc collectors confirm a live prometheus_client registry."""
+        response = client.get("/metrics")
+        assert b"python_gc_objects_collected_total" in response.content
+
+    def test_root_endpoint_advertises_metrics(self, client):
+        """Root endpoint's endpoint listing should mention /metrics."""
+        response = client.get("/")
+        assert "/metrics" in response.json()["endpoints"]
+
+
 class TestCronJobEndpoints:
     """Test CronJob management endpoints."""
 

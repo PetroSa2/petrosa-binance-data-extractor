@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import make_asgi_app
 
 # Optional OpenTelemetry imports
 try:
@@ -124,6 +125,20 @@ def create_app() -> FastAPI:
     app.include_router(config.router, prefix="/api/v1", tags=["Configuration"])
     app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
 
+    # Prometheus scrape endpoint.
+    #
+    # Per #281: the k8s manifests carry `prometheus.io/scrape: "true"` +
+    # `prometheus.io/port: "8080"` + `prometheus.io/path: "/metrics"` for
+    # this API, but nothing was ever served there, so Alloy's scrape target
+    # was permanently `up==0` on both replicas. Mounting the standard
+    # prometheus_client ASGI app (same pattern as petrosa-data-manager)
+    # gives Alloy a real target to scrape — the default process/gc
+    # collectors are enough to flip the target to `up==1`; this endpoint
+    # is intentionally separate from the OTLP-push path used by the
+    # extraction CronJobs (see utils/telemetry.py), which is unaffected.
+    metrics_app = make_asgi_app()
+    app.mount("/metrics", metrics_app)
+
     @app.get("/")
     async def root():
         """Root endpoint with API information."""
@@ -136,6 +151,7 @@ def create_app() -> FastAPI:
                 "/api/v1/config/rate-limits",
                 "/api/v1/config/validate",
                 "/api/v1/jobs/trigger",
+                "/metrics",
                 "/docs",
             ],
         }
