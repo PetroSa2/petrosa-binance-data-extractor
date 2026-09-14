@@ -126,6 +126,55 @@ class TestMain:
     @patch("jobs.extract_funding.get_adapter")
     @patch("jobs.extract_funding.BinanceClient")
     @patch("jobs.extract_funding.FundingRatesFetcher")
+    def test_main_mysql_adapter_logs_deprecation_warning(
+        self,
+        mock_fetcher_cls,
+        mock_client_cls,
+        mock_get_adapter,
+        mock_log_completion,
+        mock_log_start,
+        mock_setup_logging,
+        mock_parse_args,
+    ):
+        """Per #294: selecting the direct MySQL adapter must log a
+        deprecation warning pointing at --db-adapter=data_manager."""
+        mock_logger = Mock()
+        mock_setup_logging.return_value = mock_logger
+        mock_args = Mock()
+        mock_args.symbol = None
+        mock_args.symbols = "BTCUSDT"
+        mock_args.start_date = None
+        mock_args.end_date = None
+        mock_args.limit = 1000
+        mock_args.current_only = True
+        mock_args.db_adapter = "mysql"
+        mock_args.db_uri = None
+        mock_args.batch_size = 100
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
+        mock_parse_args.return_value = mock_args
+        mock_get_adapter.return_value.__enter__.return_value = (
+            mock_get_adapter.return_value
+        )
+        mock_get_adapter.return_value.ensure_indexes.return_value = None
+        mock_fetcher = Mock()
+        mock_fetcher.fetch_current_funding_rates.return_value = [Mock()]
+        mock_fetcher_cls.return_value = mock_fetcher
+        mock_client_cls.return_value = Mock()
+
+        exit_code = self._run_main_and_catch_exit()
+        assert exit_code == 0
+        assert any(
+            "DEPRECATED" in call.args[0] for call in mock_logger.warning.call_args_list
+        )
+
+    @patch("jobs.extract_funding.parse_arguments")
+    @patch("jobs.extract_funding.setup_logging")
+    @patch("jobs.extract_funding.log_extraction_start")
+    @patch("jobs.extract_funding.log_extraction_completion")
+    @patch("jobs.extract_funding.get_adapter")
+    @patch("jobs.extract_funding.BinanceClient")
+    @patch("jobs.extract_funding.FundingRatesFetcher")
     def test_main_historical(
         self,
         mock_fetcher_cls,

@@ -498,6 +498,40 @@ class TestDataManagerAdapterSyncBridge:
         assert adapter._connected is False
         mock_client.close.assert_called_once()
 
+    def test_run_sync_uses_thread_pool_when_loop_already_running(self):
+        """When the current thread's event loop is already running (calling
+        asyncio.run() there would raise 'cannot be called from a running
+        event loop'), _run_sync must dispatch the coroutine to a worker
+        thread pool instead."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+
+        async def _coro():
+            return "ran-in-thread-pool"
+
+        mock_loop = Mock()
+        mock_loop.is_running.return_value = True
+
+        with patch("asyncio.get_event_loop", return_value=mock_loop):
+            result = adapter._run_sync(_coro())
+
+        assert result == "ran-in-thread-pool"
+
+    def test_run_sync_falls_back_on_runtime_error(self):
+        """If asyncio.get_event_loop() raises RuntimeError (e.g. no current
+        event loop in this thread), _run_sync must still complete the
+        coroutine via asyncio.run()."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+
+        async def _coro():
+            return "bridged"
+
+        with patch(
+            "asyncio.get_event_loop", side_effect=RuntimeError("no current loop")
+        ):
+            result = adapter._run_sync(_coro())
+
+        assert result == "bridged"
+
     def test_find_gaps_sync_bridges_to_find_gaps(self):
         """find_gaps_sync() returns the same shape as awaiting find_gaps()."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
