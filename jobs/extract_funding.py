@@ -84,6 +84,14 @@ def main():
     except ImportError:
         pass
 
+    if args.db_adapter in ("mysql", "mariadb"):
+        logger.warning(
+            "DEPRECATED: extract_funding is using the direct MySQL adapter "
+            "(--db-adapter=%s). This path is being retired per #294 in favor "
+            "of --db-adapter=data_manager; update the deployed cronjob args.",
+            args.db_adapter,
+        )
+
     logger.info("Starting Binance funding rates extraction job")
     start_date = None
     end_date = None

@@ -230,6 +230,103 @@ class TestGapFillerExtractor:
         assert result["symbols_processed"] == 1
 
 
+class TestGapFillerDataManagerAdapter:
+    """Gateway-adapter dispatch tests (#294).
+
+    DataManagerAdapter is async; GapFillerExtractor is a synchronous class,
+    so the job must route connect/find_gaps/write/disconnect through the
+    *_sync bridge methods when (and only when) the resolved adapter is a
+    DataManagerAdapter instance. Mysql/mongo/postgresql paths (exercised
+    above with plain Mock()) must be completely unaffected.
+    """
+
+    def test_detect_gaps_for_symbol_normalizes_gateway_dict_shape(self):
+        """DataManagerAdapter.find_gaps_sync() returns list[dict]; the job
+        must normalize it to list[tuple[datetime, datetime]]."""
+        extractor = gap_filler.GapFillerExtractor(["BTCUSDT"], "15m", "data_manager")
+        gap_start = datetime(2024, 1, 1, tzinfo=UTC)
+        gap_end = datetime(2024, 1, 2, tzinfo=UTC)
+
+        mock_adapter = Mock(spec=gap_filler.DataManagerAdapter)
+        mock_adapter.find_gaps_sync.return_value = [
+            {
+                "start_time": gap_start,
+                "end_time": gap_end,
+                "symbol": "BTCUSDT",
+                "interval": "15m",
+            }
+        ]
+
+        with patch.object(extractor, "get_start_date", return_value=gap_start):
+            with patch.object(extractor, "get_end_date", return_value=gap_end):
+                gaps = extractor.detect_gaps_for_symbol("BTCUSDT", mock_adapter)
+
+        assert gaps == [(gap_start, gap_end)]
+        mock_adapter.find_gaps_sync.assert_called_once()
+
+    @patch("jobs.extract_klines_gap_filler.KlinesFetcher")
+    @patch("time.sleep")
+    @patch("random.uniform")
+    @patch("jobs.extract_klines_gap_filler.retry_with_backoff")
+    def test_process_symbol_gaps_uses_sync_bridge_for_gateway_adapter(
+        self, mock_retry, mock_random, mock_sleep, mock_klines_fetcher_cls
+    ):
+        """connect/find_gaps/write/disconnect all route through the *_sync
+        bridge methods (never the raw async methods) for a real
+        DataManagerAdapter instance."""
+        mock_random.return_value = 0.1
+
+        def mock_retry_wrapper(func, *args, **kwargs):
+            return func()
+
+        mock_retry.side_effect = mock_retry_wrapper
+
+        extractor = gap_filler.GapFillerExtractor(
+            ["BTCUSDT"], "15m", "data_manager", db_uri="http://data-manager:80"
+        )
+        mock_binance_client = Mock()
+        gap_start = datetime(2024, 1, 1, tzinfo=UTC)
+        gap_end = datetime(2024, 1, 2, tzinfo=UTC)
+
+        mock_adapter = Mock(spec=gap_filler.DataManagerAdapter)
+        mock_adapter.find_gaps_sync.return_value = [
+            {"start_time": gap_start, "end_time": gap_end}
+        ]
+        mock_adapter.write_batch.return_value = 2
+
+        mock_fetcher = Mock()
+
+        class FakeKline:
+            def model_dump(self):
+                return {"open": 1}
+
+        mock_fetcher.fetch_klines.return_value = [FakeKline(), FakeKline()]
+        mock_klines_fetcher_cls.return_value = mock_fetcher
+
+        with (
+            patch.object(extractor, "get_start_date", return_value=gap_start),
+            patch.object(extractor, "get_end_date", return_value=gap_end),
+            patch(
+                "jobs.extract_klines_gap_filler.get_adapter",
+                return_value=mock_adapter,
+            ),
+        ):
+            result = extractor.process_symbol_gaps("BTCUSDT", mock_binance_client)
+
+        assert result["success"] is True
+        assert result["gaps_found"] == 1
+        assert result["gaps_filled"] == 1
+
+        mock_adapter.connect_sync.assert_called_once()
+        mock_adapter.connect.assert_not_called()
+        mock_adapter.find_gaps_sync.assert_called_once()
+        mock_adapter.find_gaps.assert_not_called()
+        mock_adapter.write_batch.assert_called_once()
+        mock_adapter.write.assert_not_called()
+        mock_adapter.disconnect_sync.assert_called_once()
+        mock_adapter.disconnect.assert_not_called()
+
+
 class TestParseArguments:
     def test_default_arguments(self):
         with patch("sys.argv", ["extract_klines_gap_filler.py"]):
@@ -242,6 +339,32 @@ class TestParseArguments:
             assert args.db_adapter == gap_filler.constants.DB_ADAPTER
             assert args.log_level == gap_filler.constants.LOG_LEVEL
             assert args.dry_run is False
+
+    def test_data_manager_is_valid_db_adapter_choice(self):
+        """Per #294: data_manager must be an accepted --db-adapter choice."""
+        with patch(
+            "sys.argv",
+            ["extract_klines_gap_filler.py", "--db-adapter", "data_manager"],
+        ):
+            args = gap_filler.parse_arguments()
+            assert args.db_adapter == "data_manager"
+
+    def test_process_symbol_gaps_resolves_data_manager_uri_when_unset(self):
+        """Per #294: when GapFillerExtractor.db_uri is falsy, the
+        data_manager branch of the db_uri resolution must fire."""
+        extractor = gap_filler.GapFillerExtractor(
+            ["BTCUSDT"], "15m", "data_manager", db_uri=None
+        )
+        mock_adapter = Mock(spec=gap_filler.DataManagerAdapter)
+        mock_adapter.find_gaps_sync.return_value = []
+
+        with patch("jobs.extract_klines_gap_filler.get_adapter") as mock_get_adapter:
+            mock_get_adapter.return_value = mock_adapter
+            extractor.process_symbol_gaps("BTCUSDT", Mock())
+
+        mock_get_adapter.assert_called_once_with(
+            "data_manager", gap_filler.constants.DATA_MANAGER_URL
+        )
 
     def test_custom_arguments(self):
         with patch(
@@ -340,6 +463,113 @@ class TestMainFunction:
         assert exit_code == 0
         mock_gap_filler.run_gap_filling.assert_called()
         mock_log_completion.assert_called()
+
+    @patch("jobs.extract_klines_gap_filler.parse_arguments")
+    @patch("jobs.extract_klines_gap_filler.setup_logging")
+    @patch("jobs.extract_klines_gap_filler.get_logger")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_start")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_completion")
+    @patch("jobs.extract_klines_gap_filler.GapFillerExtractor")
+    def test_main_mysql_adapter_logs_deprecation_warning(
+        self,
+        mock_gap_filler_cls,
+        mock_log_completion,
+        mock_log_start,
+        mock_get_logger,
+        mock_setup_logging,
+        mock_parse_args,
+    ):
+        """Per #294: selecting the direct MySQL adapter must log a
+        deprecation warning pointing at --db-adapter=data_manager."""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_args = Mock()
+        mock_args.symbols = None
+        mock_args.period = "15m"
+        mock_args.max_workers = 3
+        mock_args.batch_size = 1000
+        mock_args.weekly_chunk_days = 7
+        mock_args.max_gap_size_days = 30
+        mock_args.db_adapter = "mysql"
+        mock_args.db_uri = None
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
+        mock_parse_args.return_value = mock_args
+
+        mock_gap_filler = Mock()
+        mock_gap_filler.run_gap_filling.return_value = {
+            "success": True,
+            "total_symbols": 1,
+            "symbols_processed": 1,
+            "symbols_failed": 0,
+            "total_gaps_found": 0,
+            "total_gaps_filled": 0,
+            "total_records_fetched": 0,
+            "total_records_written": 0,
+            "total_weekly_chunks_processed": 0,
+            "duration_seconds": 1.0,
+            "errors": [],
+        }
+        mock_gap_filler_cls.return_value = mock_gap_filler
+
+        exit_code = self._run_main_and_catch_exit()
+        assert exit_code == 0
+        assert any(
+            "DEPRECATED" in call.args[0] for call in mock_logger.warning.call_args_list
+        )
+
+    @patch("jobs.extract_klines_gap_filler.parse_arguments")
+    @patch("jobs.extract_klines_gap_filler.setup_logging")
+    @patch("jobs.extract_klines_gap_filler.get_logger")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_start")
+    @patch("jobs.extract_klines_gap_filler.log_extraction_completion")
+    @patch("jobs.extract_klines_gap_filler.GapFillerExtractor")
+    def test_main_data_manager_adapter_resolves_uri(
+        self,
+        mock_gap_filler_cls,
+        mock_log_completion,
+        mock_log_start,
+        mock_get_logger,
+        mock_setup_logging,
+        mock_parse_args,
+    ):
+        """Per #294: --db-adapter=data_manager resolves DATA_MANAGER_URL
+        when --db-uri is not explicitly passed."""
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_args = Mock()
+        mock_args.symbols = None
+        mock_args.period = "15m"
+        mock_args.max_workers = 3
+        mock_args.batch_size = 1000
+        mock_args.weekly_chunk_days = 7
+        mock_args.max_gap_size_days = 30
+        mock_args.db_adapter = "data_manager"
+        mock_args.db_uri = None
+        mock_args.log_level = "INFO"
+        mock_args.dry_run = False
+        mock_parse_args.return_value = mock_args
+
+        mock_gap_filler = Mock()
+        mock_gap_filler.run_gap_filling.return_value = {
+            "success": True,
+            "total_symbols": 1,
+            "symbols_processed": 1,
+            "symbols_failed": 0,
+            "total_gaps_found": 0,
+            "total_gaps_filled": 0,
+            "total_records_fetched": 0,
+            "total_records_written": 0,
+            "total_weekly_chunks_processed": 0,
+            "duration_seconds": 1.0,
+            "errors": [],
+        }
+        mock_gap_filler_cls.return_value = mock_gap_filler
+
+        exit_code = self._run_main_and_catch_exit()
+        assert exit_code == 0
+        _, kwargs = mock_gap_filler_cls.call_args
+        assert kwargs["db_uri"] == gap_filler.constants.DATA_MANAGER_URL
 
     @patch("jobs.extract_klines_gap_filler.parse_arguments")
     @patch("jobs.extract_klines_gap_filler.setup_logging")

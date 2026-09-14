@@ -77,6 +77,12 @@ SYMBOL_EXTRACTION_RETRY_BACKOFF_MULTIPLIER = float(
 )
 
 # Legacy database configuration (deprecated - use DATA_MANAGER_URL instead)
+# Per #294: MYSQL_URI / the direct MySQL adapter (db/mysql_adapter.py) is being
+# retired from jobs.extract_funding and jobs.extract_klines_gap_filler in favor
+# of the data_manager gateway adapter. It remains in use by
+# jobs.klines_retention.py (see that module's docstring) until
+# adapters/data_manager_adapter.py grows query_range/get_record_count/
+# delete_range — tracked as a follow-up, not full scope of #294.
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 MYSQL_URI = os.getenv("MYSQL_URI", "mysql://user:pass@localhost:3306")
 POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432")
