@@ -21,6 +21,15 @@ import constants  # noqa: E402
 from db import get_adapter  # noqa: E402
 from fetchers import BinanceClient, KlinesFetcher  # noqa: E402
 from models.base import BaseModel  # noqa: E402
+
+# Per #294: the Data Manager gateway adapter exposes async methods (it also
+# serves the already-migrated fetchers/klines_data_manager.py async path), so
+# this synchronous job needs the *_sync bridge methods instead of calling
+# connect()/disconnect()/find_gaps() directly.
+try:
+    from adapters.data_manager_adapter import DataManagerAdapter  # noqa: E402
+except ImportError:  # pragma: no cover - optional dependency, mirrors db/__init__.py
+    DataManagerAdapter = None  # noqa: E402
 from utils.logger import (  # noqa: E402
     get_logger,
     log_extraction_completion,
@@ -302,9 +311,30 @@ class GapFillerExtractor:
                 f"Detecting gaps for {symbol} from {start_date} to {end_date}"
             )
 
-            gaps = db_adapter.find_gaps(
-                collection_name, start_date, end_date, interval_minutes, symbol=symbol
-            )
+            if DataManagerAdapter is not None and isinstance(
+                db_adapter, DataManagerAdapter
+            ):
+                # Per #294: DataManagerAdapter.find_gaps() is async; use the
+                # sync bridge since GapFillerExtractor is a synchronous class.
+                raw_gaps = db_adapter.find_gaps_sync(
+                    collection_name,
+                    start_date,
+                    end_date,
+                    interval_minutes,
+                    symbol=symbol,
+                )
+                # Normalize the gateway's list[dict] shape to the
+                # list[tuple[datetime, datetime]] contract the rest of this
+                # method (and BaseAdapter.find_gaps implementations) expect.
+                gaps = [(g["start_time"], g["end_time"]) for g in raw_gaps]
+            else:
+                gaps = db_adapter.find_gaps(
+                    collection_name,
+                    start_date,
+                    end_date,
+                    interval_minutes,
+                    symbol=symbol,
+                )
 
             # Filter out gaps that are too large
             filtered_gaps = []
@@ -384,6 +414,17 @@ class GapFillerExtractor:
                 collection_name = self.get_collection_name()
 
                 def _write_data():
+                    if DataManagerAdapter is not None and isinstance(
+                        db_adapter, DataManagerAdapter
+                    ):
+                        # Per #294: DataManagerAdapter.write() is async;
+                        # write_batch() is the existing sync-safe bridge
+                        # (already used by jobs.extract_funding).
+                        return db_adapter.write_batch(
+                            cast(list[BaseModel], klines_data),
+                            collection_name,
+                            self.batch_size,
+                        )
                     return db_adapter.write(
                         cast(list[BaseModel], klines_data), collection_name
                     )
@@ -449,6 +490,8 @@ class GapFillerExtractor:
                     db_uri = constants.MONGODB_URI
                 elif self.db_adapter_name == "postgresql":
                     db_uri = constants.POSTGRESQL_URI
+                elif self.db_adapter_name == "data_manager":
+                    db_uri = constants.DATA_MANAGER_URL
 
                 if not db_uri:
                     raise ValueError(
@@ -458,7 +501,12 @@ class GapFillerExtractor:
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
 
             def _connect_db():
-                db_adapter.connect()
+                if DataManagerAdapter is not None and isinstance(
+                    db_adapter, DataManagerAdapter
+                ):
+                    db_adapter.connect_sync()
+                else:
+                    db_adapter.connect()
 
             retry_with_backoff(
                 _connect_db,
@@ -564,7 +612,12 @@ class GapFillerExtractor:
 
             finally:
                 try:
-                    db_adapter.disconnect()
+                    if DataManagerAdapter is not None and isinstance(
+                        db_adapter, DataManagerAdapter
+                    ):
+                        db_adapter.disconnect_sync()
+                    else:
+                        db_adapter.disconnect()
                 except Exception as disconnect_error:
                     self.logger.warning(
                         f"Error disconnecting from database: {disconnect_error}"
@@ -822,7 +875,7 @@ Examples:
     parser.add_argument(
         "--db-adapter",
         type=str,
-        choices=["mongodb", "mysql", "postgresql"],
+        choices=["mongodb", "mysql", "postgresql", "data_manager"],
         default=constants.DB_ADAPTER,
         help="Database adapter to use",
     )
@@ -899,6 +952,14 @@ def _main_impl():
             backfill=True,
         )
 
+        if args.db_adapter in ("mysql", "mariadb"):
+            logger.warning(
+                "DEPRECATED: klines_gap_filler is using the direct MySQL adapter "
+                "(--db-adapter=%s). This path is being retired per #294 in favor "
+                "of --db-adapter=data_manager; update the deployed cronjob args.",
+                args.db_adapter,
+            )
+
         db_uri = args.db_uri
         if db_uri is None:
             if args.db_adapter == "mysql":
@@ -907,6 +968,8 @@ def _main_impl():
                 db_uri = constants.MONGODB_URI
             elif args.db_adapter == "postgresql":
                 db_uri = constants.POSTGRESQL_URI
+            elif args.db_adapter == "data_manager":
+                db_uri = constants.DATA_MANAGER_URL
             else:
                 logger.error(f"No database URI found for adapter: {args.db_adapter}")
                 sys.exit(1)

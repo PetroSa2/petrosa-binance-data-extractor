@@ -460,6 +460,71 @@ class TestDataManagerAdapterGaps:
         assert gaps == []
 
 
+class TestDataManagerAdapterSyncBridge:
+    """Test suite for the sync bridge methods (#294).
+
+    jobs.extract_klines_gap_filler is a synchronous class that cannot
+    `await` the adapter's async connect()/disconnect()/find_gaps(); these
+    *_sync wrappers bridge that gap without touching the async API used by
+    fetchers/klines_data_manager.py.
+    """
+
+    def test_connect_sync_bridges_to_connect(self):
+        """connect_sync() runs connect() to completion synchronously."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+
+        with patch(
+            "adapters.data_manager_adapter.DataManagerClient"
+        ) as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.health_check = AsyncMock(return_value={"status": "healthy"})
+            mock_client_class.return_value = mock_client
+
+            adapter.connect_sync()
+
+            assert adapter._connected is True
+            mock_client.health_check.assert_called_once()
+
+    def test_disconnect_sync_bridges_to_disconnect(self):
+        """disconnect_sync() runs disconnect() to completion synchronously."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+        mock_client = AsyncMock()
+        mock_client.close = AsyncMock()
+        adapter._client = mock_client
+        adapter._connected = True
+
+        adapter.disconnect_sync()
+
+        assert adapter._connected is False
+        mock_client.close.assert_called_once()
+
+    def test_find_gaps_sync_bridges_to_find_gaps(self):
+        """find_gaps_sync() returns the same shape as awaiting find_gaps()."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+        adapter._connected = True
+
+        expected_gap = {
+            "start_time": datetime.now() - timedelta(hours=2),
+            "end_time": datetime.now() - timedelta(hours=1),
+            "symbol": "BTCUSDT",
+            "interval": "15m",
+        }
+        mock_client = AsyncMock()
+        mock_client.find_gaps = AsyncMock(return_value=[expected_gap])
+        adapter._client = mock_client
+
+        gaps = adapter.find_gaps_sync(
+            collection_name="klines_15m",
+            start_time=datetime.now() - timedelta(days=1),
+            end_time=datetime.now(),
+            interval_minutes=15,
+            symbol="BTCUSDT",
+        )
+
+        assert gaps == [expected_gap]
+        mock_client.find_gaps.assert_called_once()
+
+
 class TestDataManagerAdapterHealthCheck:
     """Test suite for health check."""
 

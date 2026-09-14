@@ -16,6 +16,12 @@ implements it (currently MySQL/MariaDB; `DataManagerAdapter` does not
 implement `delete_range` yet — that gap is tracked separately, not by this
 ticket).
 
+Note (#294): this is the reason `db/mysql_adapter.py` cannot yet be fully
+retired even after `jobs.extract_funding` and `jobs.extract_klines_gap_filler`
+move to the data_manager gateway adapter — this job still requires the direct
+MySQL adapter's `query_range`/`get_record_count`/`delete_range` until those are
+implemented on `DataManagerAdapter` (follow-up, out of #294's scope).
+
 Wiring this into a scheduled k8s CronJob is a follow-up change in
 `petrosa_k8s` (this repo does not own cluster manifests or cluster-admin
 operations). Until that lands, run manually or via any external scheduler:

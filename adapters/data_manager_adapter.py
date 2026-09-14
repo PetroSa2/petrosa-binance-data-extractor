@@ -294,6 +294,57 @@ class DataManagerAdapter:
             logger.error(f"Error finding gaps in {collection_name}: {e}")
             return []
 
+    def _run_sync(self, coro):
+        """
+        Bridge an async coroutine to a synchronous call site.
+
+        Per #294: jobs.extract_klines_gap_filler (and other legacy CLI jobs) are
+        synchronous classes that call adapter methods directly without an event
+        loop. This mirrors the exact bridging pattern already used by
+        write_batch()/__enter__()/__exit__() below.
+        """
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, coro)
+                    return future.result()
+            return asyncio.run(coro)
+        except RuntimeError:
+            return asyncio.run(coro)
+
+    def connect_sync(self) -> None:
+        """
+        Synchronous bridge for connect().
+
+        Per #294: added so jobs.extract_klines_gap_filler can drive this adapter
+        without restructuring its synchronous retry/connect/disconnect flow.
+        Async consumers (fetchers/klines_data_manager.py) continue to use
+        `await adapter.connect()` directly and are unaffected.
+        """
+        self._run_sync(self.connect())
+
+    def disconnect_sync(self) -> None:
+        """Synchronous bridge for disconnect(). See connect_sync() (#294)."""
+        self._run_sync(self.disconnect())
+
+    def find_gaps_sync(
+        self,
+        collection_name: str,
+        start_time: datetime,
+        end_time: datetime,
+        interval_minutes: int,
+        symbol: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Synchronous bridge for find_gaps(). See connect_sync() (#294)."""
+        return self._run_sync(
+            self.find_gaps(
+                collection_name, start_time, end_time, interval_minutes, symbol
+            )
+        )
+
     async def health_check(self) -> dict[str, Any]:
         """
         Check the health of the Data Manager service.
