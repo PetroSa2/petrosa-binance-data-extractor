@@ -76,6 +76,30 @@ SYMBOL_EXTRACTION_RETRY_BACKOFF_MULTIPLIER = float(
     os.getenv("SYMBOL_EXTRACTION_RETRY_BACKOFF_MULTIPLIER", "2.0")
 )
 
+# Data Manager liveness pre-flight retry (k8s-extractor#298): a single
+# "Connection refused" on the health-check gate used to abort the whole
+# symbol batch immediately. Data Manager readiness flaps for seconds at a
+# time during rollouts/HPA scale events, so the liveness check itself now
+# retries with bounded exponential backoff before DataManagerAdapter.connect()
+# gives up and raises ConnectionError (which the symbol-level retry above
+# also catches, but only after paying the full inner backoff budget first).
+DATA_MANAGER_HEALTH_MAX_RETRIES = int(os.getenv("DATA_MANAGER_HEALTH_MAX_RETRIES", "4"))
+DATA_MANAGER_HEALTH_RETRY_BACKOFF_SECONDS = float(
+    os.getenv("DATA_MANAGER_HEALTH_RETRY_BACKOFF_SECONDS", "1.0")
+)
+DATA_MANAGER_HEALTH_RETRY_BACKOFF_MULTIPLIER = float(
+    os.getenv("DATA_MANAGER_HEALTH_RETRY_BACKOFF_MULTIPLIER", "2.0")
+)
+
+# Klines job partial-failure threshold (k8s-extractor#298): a strict subset
+# of symbols failing (e.g. 2 of 8 due to a transient Data Manager flap)
+# previously marked the entire CronJob run Error. The job now only exits
+# non-zero when the failure ratio exceeds this threshold, so a mixed
+# Completed/Error job pattern becomes a real (rare) alert instead of noise.
+# Default 0.3 preserves prior strict behavior for majority-failure cases
+# while tolerating isolated transient symbol failures.
+KLINES_JOB_MAX_FAILURE_RATIO = float(os.getenv("KLINES_JOB_MAX_FAILURE_RATIO", "0.3"))
+
 # Legacy database configuration (deprecated - use DATA_MANAGER_URL instead)
 # Per #294: MYSQL_URI / the direct MySQL adapter (db/mysql_adapter.py) is being
 # retired from jobs.extract_funding and jobs.extract_klines_gap_filler in favor

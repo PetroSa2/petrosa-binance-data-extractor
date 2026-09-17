@@ -12,8 +12,15 @@ Tests cover:
 - Chaos testing (network failures)
 """
 
-from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from datetime import datetime, timedelta
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import requests
@@ -353,3 +360,130 @@ class TestChaos:
 
             # Should return the response even if unexpected
             assert result["status"] == "error"
+
+
+class TestDataManagerClientFindGaps:
+    """Tests for DataManagerClient.find_gaps (k8s-extractor#298).
+
+    Data Manager's generic GET endpoint rejects operator-valued filters
+    (e.g. ``{"close_time": {"$gte": ..., "$lte": ...}}``) with
+    400 Bad Request — the filter must be a flat equality match. These
+    tests assert find_gaps() never sends an operator-shaped filter, and
+    that a seeded gap is still correctly detected from the windowed,
+    client-side-filtered response.
+    """
+
+    @pytest.mark.asyncio
+    async def test_find_gaps_sends_flat_equality_filter_only(self):
+        """The request filter must be exactly {'symbol': symbol} — no
+        $gte/$lte operators, which Data Manager rejects with 400."""
+        client = DataManagerClient(base_url="http://localhost:8000")
+
+        start_time = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
+        end_time = datetime(2026, 1, 1, 1, 0, tzinfo=UTC)
+
+        with patch.object(client._client, "query") as mock_query:
+            mock_query.return_value = {"data": []}
+
+            await client.find_gaps(
+                symbol="BTCUSDT",
+                interval="5m",
+                start_time=start_time,
+                end_time=end_time,
+            )
+
+            mock_query.assert_called_once()
+            call_kwargs = mock_query.call_args.kwargs
+            filter_sent = call_kwargs["params"]["filter"]
+
+            # Flat equality only — no dict-valued (operator) entries.
+            assert filter_sent == {"symbol": "BTCUSDT"}
+            for value in filter_sent.values():
+                assert not isinstance(value, dict)
+            assert call_kwargs["params"]["sort"] == {"close_time": -1}
+            assert "limit" in call_kwargs["params"]
+
+    @pytest.mark.asyncio
+    async def test_find_gaps_detects_seeded_gap_from_windowed_response(self):
+        """A gap seeded in the mocked (unfiltered-by-server) response is
+        still detected after client-side windowing to [start, end]."""
+        client = DataManagerClient(base_url="http://localhost:8000")
+
+        start_time = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
+        end_time = datetime(2026, 1, 1, 0, 45, tzinfo=UTC)
+
+        # Data Manager returns the most recent N records for the symbol
+        # (descending), including one record outside the requested window
+        # (which must be excluded) and a seeded 25-minute gap between
+        # 00:15 and 00:45 for a 5m interval.
+        server_records = [
+            {"close_time": "2026-01-01T00:45:00+00:00"},
+            # gap: 00:20 - 00:40 missing for 5m interval
+            {"close_time": "2026-01-01T00:15:00+00:00"},
+            {"close_time": "2026-01-01T00:10:00+00:00"},
+            {"close_time": "2026-01-01T00:05:00+00:00"},
+            {"close_time": "2026-01-01T00:00:00+00:00"},
+            {"close_time": "2025-12-31T23:55:00+00:00"},  # outside window
+        ]
+
+        with patch.object(client._client, "query") as mock_query:
+            mock_query.return_value = {"data": server_records}
+
+            gaps = await client.find_gaps(
+                symbol="BTCUSDT",
+                interval="5m",
+                start_time=start_time,
+                end_time=end_time,
+            )
+
+        assert len(gaps) == 1
+        assert gaps[0]["symbol"] == "BTCUSDT"
+        assert gaps[0]["interval"] == "5m"
+        assert gaps[0]["start_time"] == datetime(2026, 1, 1, 0, 20, tzinfo=UTC)
+        assert gaps[0]["end_time"] == datetime(2026, 1, 1, 0, 45, tzinfo=UTC)
+
+    @pytest.mark.asyncio
+    async def test_find_gaps_query_limit_scales_with_window(self):
+        """A wider window requests a larger (but still bounded) limit."""
+        client = DataManagerClient(base_url="http://localhost:8000")
+
+        with patch.object(client._client, "query") as mock_query:
+            mock_query.return_value = {"data": []}
+
+            await client.find_gaps(
+                symbol="BTCUSDT",
+                interval="5m",
+                start_time=datetime(2026, 1, 1, tzinfo=UTC),
+                end_time=datetime(2026, 1, 8, tzinfo=UTC),  # 1 week
+            )
+
+        limit_sent = mock_query.call_args.kwargs["params"]["limit"]
+        assert 50 <= limit_sent <= 5000
+
+    @pytest.mark.asyncio
+    async def test_find_gaps_no_gap_when_contiguous(self):
+        """No gap reported when all expected candles are present."""
+        client = DataManagerClient(base_url="http://localhost:8000")
+
+        start_time = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
+        end_time = datetime(2026, 1, 1, 0, 20, tzinfo=UTC)
+
+        server_records = [
+            {"close_time": "2026-01-01T00:20:00+00:00"},
+            {"close_time": "2026-01-01T00:15:00+00:00"},
+            {"close_time": "2026-01-01T00:10:00+00:00"},
+            {"close_time": "2026-01-01T00:05:00+00:00"},
+            {"close_time": "2026-01-01T00:00:00+00:00"},
+        ]
+
+        with patch.object(client._client, "query") as mock_query:
+            mock_query.return_value = {"data": server_records}
+
+            gaps = await client.find_gaps(
+                symbol="BTCUSDT",
+                interval="5m",
+                start_time=start_time,
+                end_time=end_time,
+            )
+
+        assert gaps == []

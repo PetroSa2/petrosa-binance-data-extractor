@@ -58,31 +58,71 @@ class DataManagerAdapter:
         self._client: DataManagerClient | None = None
         self._connected = False
 
+        # Liveness pre-flight retry budget (k8s-extractor#298): bounded
+        # exponential backoff around the health-check gate so a transient
+        # "Connection refused" (Data Manager readiness flap) doesn't abort
+        # the whole symbol batch on the first probe.
+        self.health_max_retries = constants.DATA_MANAGER_HEALTH_MAX_RETRIES
+        self.health_retry_backoff_seconds = (
+            constants.DATA_MANAGER_HEALTH_RETRY_BACKOFF_SECONDS
+        )
+        self.health_retry_backoff_multiplier = (
+            constants.DATA_MANAGER_HEALTH_RETRY_BACKOFF_MULTIPLIER
+        )
+
         logger.info(f"Initialized Data Manager adapter: {self.base_url}")
 
     async def connect(self):
-        """Connect to the Data Manager service."""
+        """Connect to the Data Manager service.
+
+        Retries the liveness pre-flight with bounded exponential backoff
+        (k8s-extractor#298) before raising, so a transient Data Manager
+        readiness flap does not immediately fail the caller.
+        """
         if self._connected:
             return
 
-        try:
-            self._client = DataManagerClient(
-                base_url=self.base_url,
-                timeout=self.timeout,
-                max_retries=self.max_retries,
+        self._client = DataManagerClient(
+            base_url=self.base_url,
+            timeout=self.timeout,
+            max_retries=self.max_retries,
+        )
+
+        max_attempts = self.health_max_retries + 1
+        last_error: str | None = None
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                health = await self._client.health_check()
+                if self.is_healthy_status(health.get("status")):
+                    self._connected = True
+                    logger.info("Connected to Data Manager service")
+                    return
+                last_error = f"Data Manager health check failed: {health}"
+            except Exception as e:
+                last_error = str(e)
+
+            if attempt >= max_attempts:
+                break
+
+            delay = self.health_retry_backoff_seconds * (
+                self.health_retry_backoff_multiplier ** (attempt - 1)
             )
+            logger.warning(
+                f"⚠️ Data Manager liveness pre-flight attempt "
+                f"{attempt}/{max_attempts} failed ({last_error}); "
+                f"retrying in {delay:.1f}s"
+            )
+            await asyncio.sleep(delay)
 
-            # Test connection with health check
-            health = await self._client.health_check()
-            if not self.is_healthy_status(health.get("status")):
-                raise ConnectionError(f"Data Manager health check failed: {health}")
-
-            self._connected = True
-            logger.info("Connected to Data Manager service")
-
-        except Exception as e:
-            logger.error(f"Failed to connect to Data Manager: {e}")
-            raise
+        logger.error(
+            f"Failed to connect to Data Manager after {max_attempts} "
+            f"attempt(s): {last_error}"
+        )
+        raise ConnectionError(
+            f"Data Manager health check failed after {max_attempts} "
+            f"attempt(s): {last_error}"
+        )
 
     async def disconnect(self):
         """Disconnect from the Data Manager service."""
