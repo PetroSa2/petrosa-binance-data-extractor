@@ -33,6 +33,7 @@ from utils.messaging import (  # noqa: E402
     publish_extraction_completion_async,
     publish_extraction_completion_sync,
 )
+from utils.telemetry import get_tracer  # noqa: E402
 from utils.time_utils import format_duration, get_current_utc_time  # noqa: E402
 
 # Initialize OpenTelemetry as early as possible
@@ -272,6 +273,21 @@ class DataManagerKlinesExtractor:
 
         return start_time, end_time
 
+    def _job_succeeded(self) -> bool:
+        """Determine overall job success from a failure-ratio threshold.
+
+        k8s-extractor#298: a strict subset of symbols failing (e.g. a
+        transient Data Manager flap taking out 2 of 8 symbols) previously
+        marked the whole Job ``Error`` even though the majority of symbols
+        wrote data successfully. The job now only exits non-zero when the
+        failure ratio exceeds ``constants.KLINES_JOB_MAX_FAILURE_RATIO``.
+        """
+        total = len(self.symbols)
+        if total == 0:
+            return True
+        failure_ratio = self.stats["symbols_failed"] / total
+        return failure_ratio <= constants.KLINES_JOB_MAX_FAILURE_RATIO
+
     async def run_extraction(self) -> dict[str, Any]:
         """Run the extraction process for all symbols."""
         extraction_start_time = time.time()
@@ -318,6 +334,26 @@ class DataManagerKlinesExtractor:
 
         # Calculate total duration
         total_duration = time.time() - extraction_start_time
+        job_success = self._job_succeeded()
+
+        # OTel span + counter per job completion (k8s-extractor#298 AC4):
+        # symbols_ok/symbols_failed/records_written/gaps_filled so health
+        # reflects reality instead of just the process exit code.
+        try:
+            current_tracer = get_tracer("jobs.extract_klines_data_manager")
+            if current_tracer:
+                with current_tracer.start_as_current_span(
+                    "klines_data_manager_job_completion"
+                ) as span:
+                    span.set_attribute("symbols_ok", self.stats["symbols_processed"])
+                    span.set_attribute("symbols_failed", self.stats["symbols_failed"])
+                    span.set_attribute(
+                        "records_written", self.stats["total_records_written"]
+                    )
+                    span.set_attribute("gaps_filled", self.stats["total_gaps_filled"])
+                    span.set_attribute("job_success", job_success)
+        except Exception as e:
+            self.logger.warning(f"Failed to emit job completion span: {e}")
 
         # Log final statistics
         self.logger.info("=" * 60)
@@ -351,7 +387,7 @@ class DataManagerKlinesExtractor:
                     period=self.period,
                     total_records_fetched=self.stats["total_records_fetched"],
                     total_records_written=self.stats["total_records_written"],
-                    success=self.stats["symbols_failed"] == 0,
+                    success=job_success,
                     duration_seconds=total_duration,
                     errors=self.stats["errors"] if self.stats["errors"] else None,
                     total_gaps_found=0,
@@ -376,7 +412,7 @@ class DataManagerKlinesExtractor:
                 self.logger.warning(f"   - {error}")
 
         return {
-            "success": self.stats["symbols_failed"] == 0,
+            "success": job_success,
             "total_symbols": len(self.symbols),
             "symbols_processed": self.stats["symbols_processed"],
             "symbols_failed": self.stats["symbols_failed"],

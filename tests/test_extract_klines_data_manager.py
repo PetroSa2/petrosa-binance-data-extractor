@@ -143,6 +143,13 @@ class TestDataManagerKlinesExtractor:
             # No existing data
             mock_fetcher.get_latest_timestamp = AsyncMock(return_value=None)
             mock_constants.DEFAULT_START_DATE = "2020-01-01T00:00:00Z"
+            # A full-module `constants` mock makes NATS_ENABLED truthy by
+            # default (any MagicMock attribute is truthy), which previously
+            # triggered a real NATS connection attempt from
+            # extract_symbol_data()'s completion-publish path and could hang
+            # until pytest-timeout aborted the test — leaking this patch
+            # past the `with` block into later tests. Pin it explicitly.
+            mock_constants.NATS_ENABLED = False
 
             mock_klines = [{"timestamp": datetime.now(UTC), "close": 400}]
             mock_fetcher.fetch_and_store_klines = AsyncMock(return_value=mock_klines)
@@ -382,6 +389,207 @@ class TestDataManagerKlinesExtractor:
             assert result["symbols_processed"] == 2
             assert result["symbols_failed"] == 2
             assert len(result["errors"]) == 2
+
+
+class TestPartialFailureThreshold:
+    """k8s-extractor#298: the job should only exit non-zero (success=False)
+    when the failure ratio exceeds constants.KLINES_JOB_MAX_FAILURE_RATIO,
+    instead of failing the whole Job on any single symbol failure."""
+
+    @pytest.mark.asyncio
+    async def test_job_succeeds_when_minority_of_symbols_fail(self):
+        """1 of 8 symbols failing (12.5%) is below the default 30%
+        threshold — the job as a whole should report success."""
+        symbols = [f"SYM{i}USDT" for i in range(8)]
+        extractor = DataManagerKlinesExtractor(
+            symbols=symbols, period="5m", max_workers=8, lookback_hours=24
+        )
+
+        with (
+            patch("jobs.extract_klines_data_manager.BinanceClient") as mock_client_cls,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+        ):
+            mock_client = MagicMock()
+            mock_client.close = MagicMock()
+            mock_client_cls.return_value = mock_client
+
+            async def mock_extraction(symbol, client):
+                failed = symbol == symbols[0]
+                return {
+                    "success": not failed,
+                    "symbol": symbol,
+                    "records_fetched": 0 if failed else 8,
+                    "records_written": 0 if failed else 8,
+                    "gaps_filled": 0,
+                    "error": "Connection refused" if failed else None,
+                    "duration": 0.1,
+                }
+
+            mock_extract.side_effect = mock_extraction
+
+            result = await extractor.run_extraction()
+
+            assert result["symbols_failed"] == 1
+            assert result["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_job_fails_when_majority_of_symbols_fail(self):
+        """2 of 4 symbols failing (50%) exceeds the default 30% threshold —
+        the job as a whole should still report failure (preserves prior
+        strict behavior for majority-failure cases)."""
+        symbols = ["BTCUSDT", "INVALID1", "ETHUSDT", "INVALID2"]
+        extractor = DataManagerKlinesExtractor(
+            symbols=symbols, period="1h", max_workers=2, lookback_hours=48
+        )
+
+        with (
+            patch("jobs.extract_klines_data_manager.BinanceClient") as mock_client_cls,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+        ):
+            mock_client = MagicMock()
+            mock_client.close = MagicMock()
+            mock_client_cls.return_value = mock_client
+
+            async def mock_extraction(symbol, client):
+                if "INVALID" in symbol:
+                    return {
+                        "success": False,
+                        "symbol": symbol,
+                        "records_fetched": 0,
+                        "records_written": 0,
+                        "gaps_filled": 0,
+                        "error": f"Invalid symbol: {symbol}",
+                        "duration": 0.5,
+                    }
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "records_fetched": 200,
+                    "records_written": 200,
+                    "gaps_filled": 1,
+                    "error": None,
+                    "duration": 2.0,
+                }
+
+            mock_extract.side_effect = mock_extraction
+
+            result = await extractor.run_extraction()
+
+            assert result["symbols_failed"] == 2
+            assert result["success"] is False
+
+    def test_job_succeeded_respects_configured_threshold(self):
+        """_job_succeeded() reads constants.KLINES_JOB_MAX_FAILURE_RATIO at
+        call time, so operators can retune the threshold via env var."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["A", "B", "C", "D"], period="5m", max_workers=1
+        )
+        extractor.stats["symbols_failed"] = 2  # 50% failure ratio
+
+        with patch("jobs.extract_klines_data_manager.constants") as mock_constants:
+            mock_constants.KLINES_JOB_MAX_FAILURE_RATIO = 0.6
+            assert extractor._job_succeeded() is True
+
+            mock_constants.KLINES_JOB_MAX_FAILURE_RATIO = 0.1
+            assert extractor._job_succeeded() is False
+
+    def test_job_succeeded_no_symbols_is_success(self):
+        """Empty symbol list is trivially successful (no division by zero)."""
+        extractor = DataManagerKlinesExtractor(symbols=[], period="5m", max_workers=1)
+        assert extractor._job_succeeded() is True
+
+
+class TestJobCompletionTelemetry:
+    """k8s-extractor#298 AC4: OTel span emitted on job completion with
+    symbols_ok, symbols_failed, records_written, gaps_filled attributes."""
+
+    @pytest.mark.asyncio
+    async def test_run_extraction_emits_completion_span_with_required_attributes(self):
+        symbols = ["BTCUSDT", "ETHUSDT"]
+        extractor = DataManagerKlinesExtractor(
+            symbols=symbols, period="5m", max_workers=2, lookback_hours=24
+        )
+
+        mock_span = MagicMock()
+        mock_span.__enter__ = MagicMock(return_value=mock_span)
+        mock_span.__exit__ = MagicMock(return_value=False)
+
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_span
+
+        with (
+            patch("jobs.extract_klines_data_manager.BinanceClient") as mock_client_cls,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+            patch(
+                "jobs.extract_klines_data_manager.get_tracer",
+                return_value=mock_tracer,
+            ),
+        ):
+            mock_client = MagicMock()
+            mock_client.close = MagicMock()
+            mock_client_cls.return_value = mock_client
+
+            async def mock_extraction(symbol, client):
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "records_fetched": 10,
+                    "records_written": 10,
+                    "gaps_filled": 3,
+                    "error": None,
+                    "duration": 0.2,
+                }
+
+            mock_extract.side_effect = mock_extraction
+
+            await extractor.run_extraction()
+
+        mock_tracer.start_as_current_span.assert_called_once_with(
+            "klines_data_manager_job_completion"
+        )
+        attribute_calls = {
+            call.args[0]: call.args[1]
+            for call in mock_span.set_attribute.call_args_list
+        }
+        assert attribute_calls["symbols_ok"] == 2
+        assert attribute_calls["symbols_failed"] == 0
+        assert attribute_calls["records_written"] == 20
+        assert attribute_calls["gaps_filled"] == 6
+        assert attribute_calls["job_success"] is True
+
+    @pytest.mark.asyncio
+    async def test_run_extraction_tolerates_tracer_unavailable(self):
+        """If get_tracer() returns None (OTel not configured), the job
+        completes normally without raising."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["BTCUSDT"], period="5m", max_workers=1, lookback_hours=24
+        )
+
+        with (
+            patch("jobs.extract_klines_data_manager.BinanceClient") as mock_client_cls,
+            patch.object(extractor, "extract_symbol_data") as mock_extract,
+            patch("jobs.extract_klines_data_manager.get_tracer", return_value=None),
+        ):
+            mock_client = MagicMock()
+            mock_client.close = MagicMock()
+            mock_client_cls.return_value = mock_client
+
+            async def mock_extraction(symbol, client):
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "records_fetched": 1,
+                    "records_written": 1,
+                    "gaps_filled": 0,
+                    "error": None,
+                    "duration": 0.1,
+                }
+
+            mock_extract.side_effect = mock_extraction
+
+            result = await extractor.run_extraction()
+
+        assert result["success"] is True
 
 
 class TestParseArguments:

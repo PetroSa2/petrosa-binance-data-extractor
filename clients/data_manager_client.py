@@ -378,36 +378,57 @@ class DataManagerClient:
 
         Returns:
             List of gap records
+
+        Note (k8s-extractor#298): Data Manager's generic
+        ``GET /api/v1/{database}/{collection}`` filter is flat-equality only
+        — it rejects any dict-valued filter entry (e.g. the previous
+        ``{"close_time": {"$gte": ..., "$lte": ...}}``) with
+        ``400 Bad Request`` (see ``_build_equality_query`` in
+        petrosa-data-manager). This method now sends only a flat
+        ``{"symbol": symbol}`` filter, sorted descending with a bounded
+        ``limit`` sized to the requested window (plus headroom), and
+        applies the time-range window client-side before computing gaps.
         """
         collection_name = f"klines_{interval}"
+        interval_minutes = self._interval_to_minutes(interval)
+
+        # Bound the page size to the number of candles expected in the
+        # window (plus headroom for duplicates/late writes), clamped to a
+        # sane [50, 5000] range so a huge window can't request an
+        # unbounded page and a tiny window still gets enough headroom to
+        # catch a real gap at the edges.
+        window_minutes = max(
+            (end_time - start_time).total_seconds() / 60.0, interval_minutes
+        )
+        expected_candles = int(window_minutes // interval_minutes) + 2
+        query_limit = min(max(expected_candles * 2, 50), 5000)
 
         try:
-            # Query for existing timestamps in the range
+            # Query the most recent records for this symbol (flat equality
+            # filter only — see docstring above), then window/sort them
+            # client-side.
             result = self._client.query(
                 database=database,
                 collection=collection_name,
                 params={
-                    "filter": {
-                        "symbol": symbol,
-                        "close_time": {
-                            "$gte": start_time.isoformat(),
-                            "$lte": end_time.isoformat(),
-                        },
-                    },
-                    "sort": {"close_time": 1},
+                    "filter": {"symbol": symbol},
+                    "sort": {"close_time": -1},
+                    "limit": query_limit,
                     "fields": ["close_time"],
                 },
             )
             if isawaitable(result):
                 result = await result
 
-            # Extract timestamps
+            # Extract timestamps within [start_time, end_time]
             existing_timestamps = []
             for record in result.get("data", []):
                 timestamp = record.get("close_time")
-                if timestamp:
-                    if isinstance(timestamp, str):
-                        timestamp = datetime.fromisoformat(timestamp)
+                if not timestamp:
+                    continue
+                if isinstance(timestamp, str):
+                    timestamp = datetime.fromisoformat(timestamp)
+                if start_time <= timestamp <= end_time:
                     existing_timestamps.append(timestamp)
 
             # Find gaps (simplified implementation)

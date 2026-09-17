@@ -107,13 +107,15 @@ class TestDataManagerAdapterConnection:
 
     @pytest.mark.asyncio
     async def test_connect_health_check_failure(self):
-        """Test connection failure when health check fails."""
+        """Test connection failure when health check fails on every attempt
+        (retry budget exhausted, k8s-extractor#298)."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
 
         with (
             patch(
                 "adapters.data_manager_adapter.DataManagerClient"
             ) as mock_client_class,
+            patch("adapters.data_manager_adapter.asyncio.sleep", AsyncMock()),
             pytest.raises(ConnectionError),
         ):
             mock_client = AsyncMock()
@@ -122,15 +124,20 @@ class TestDataManagerAdapterConnection:
 
             await adapter.connect()
 
+        # Retried the full budget before giving up.
+        assert mock_client.health_check.call_count == adapter.health_max_retries + 1
+
     @pytest.mark.asyncio
     async def test_connect_network_error(self):
-        """Test connection failure due to network error."""
+        """Test connection failure due to a persistent network error
+        (retry budget exhausted on every attempt)."""
         adapter = DataManagerAdapter(base_url="http://localhost:8000")
 
         with (
             patch(
                 "adapters.data_manager_adapter.DataManagerClient"
             ) as mock_client_class,
+            patch("adapters.data_manager_adapter.asyncio.sleep", AsyncMock()),
             pytest.raises(Exception),
         ):
             mock_client = AsyncMock()
@@ -138,6 +145,73 @@ class TestDataManagerAdapterConnection:
             mock_client_class.return_value = mock_client
 
             await adapter.connect()
+
+        assert mock_client.health_check.call_count == adapter.health_max_retries + 1
+
+    @pytest.mark.asyncio
+    async def test_connect_retries_then_succeeds(self):
+        """k8s-extractor#298 AC1: a data-manager liveness pre-flight that
+        fails transiently (e.g. 'Connection refused' during a readiness
+        flap) then recovers should NOT raise — connect() retries with
+        bounded exponential backoff and succeeds once healthy."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+
+        with (
+            patch(
+                "adapters.data_manager_adapter.DataManagerClient"
+            ) as mock_client_class,
+            patch(
+                "adapters.data_manager_adapter.asyncio.sleep", AsyncMock()
+            ) as mock_sleep,
+        ):
+            mock_client = AsyncMock()
+            mock_client.health_check = AsyncMock(
+                side_effect=[
+                    ConnectionRefusedError("Connection refused"),
+                    {"status": "unhealthy"},
+                    {"status": "healthy"},
+                ]
+            )
+            mock_client_class.return_value = mock_client
+
+            await adapter.connect()
+
+        assert adapter._connected is True
+        assert mock_client.health_check.call_count == 3
+        assert mock_sleep.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_connect_retry_backoff_is_exponential(self):
+        """Verify the retry delays follow the configured backoff/multiplier
+        (defaults: 1.0s base, 2.0x multiplier -> 1.0s, 2.0s, ...)."""
+        adapter = DataManagerAdapter(base_url="http://localhost:8000")
+        adapter.health_max_retries = 3
+        adapter.health_retry_backoff_seconds = 1.0
+        adapter.health_retry_backoff_multiplier = 2.0
+
+        with (
+            patch(
+                "adapters.data_manager_adapter.DataManagerClient"
+            ) as mock_client_class,
+            patch(
+                "adapters.data_manager_adapter.asyncio.sleep", AsyncMock()
+            ) as mock_sleep,
+        ):
+            mock_client = AsyncMock()
+            mock_client.health_check = AsyncMock(
+                side_effect=[
+                    {"status": "unhealthy"},
+                    {"status": "unhealthy"},
+                    {"status": "unhealthy"},
+                    {"status": "healthy"},
+                ]
+            )
+            mock_client_class.return_value = mock_client
+
+            await adapter.connect()
+
+        delays = [call.args[0] for call in mock_sleep.await_args_list]
+        assert delays == [1.0, 2.0, 4.0]
 
     @pytest.mark.asyncio
     async def test_disconnect_success(self):
