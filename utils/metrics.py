@@ -106,6 +106,31 @@ class ExtractionMetrics:
             unit="1",
         )
 
+        # MongoDB candle gap-fill counter (#300). Named verbatim — this is a
+        # flat Prometheus-style name rather than the dotted OTel convention
+        # used above, because operator dashboards and the issue's acceptance
+        # criteria reference `binance_extractor_gaps_filled_mongodb_total`
+        # directly. Dotted names would be exported with the dots rewritten to
+        # underscores and an extra `extractor_` prefix, which would not match.
+        self.gaps_filled_mongodb = self.meter.create_counter(
+            name="binance_extractor_gaps_filled_mongodb_total",
+            description=(
+                "Total number of gap chunks mirrored into the MongoDB "
+                "candles_* collections by the klines gap filler"
+            ),
+            unit="1",
+        )
+
+        # Candle documents actually written to Mongo by the gap filler (#300).
+        self.candles_written_mongodb = self.meter.create_counter(
+            name="binance_extractor_candles_written_mongodb_total",
+            description=(
+                "Total number of candle documents written to the MongoDB "
+                "candles_* collections by the klines gap filler"
+            ),
+            unit="1",
+        )
+
         logger.info("Extraction metrics initialized successfully")
 
     def record_extraction(
@@ -245,6 +270,32 @@ class ExtractionMetrics:
             )
         except Exception as e:
             logger.warning(f"Failed to record batch abandoned metric: {e}")
+
+    def record_mongodb_gap_filled(
+        self,
+        symbol: str,
+        interval: str,
+        candles_written: int = 0,
+    ) -> None:
+        """
+        Record a gap chunk successfully mirrored into MongoDB candles_* (#300).
+
+        Args:
+            symbol: Trading symbol (e.g., BTCUSDT)
+            interval: Kline interval / candle timeframe (e.g., 5m, 1h)
+            candles_written: Number of candle documents written for this chunk
+        """
+        if not self._metrics_enabled:
+            return
+
+        try:
+            self.gaps_filled_mongodb.add(1, {"symbol": symbol, "interval": interval})
+            if candles_written > 0:
+                self.candles_written_mongodb.add(
+                    candles_written, {"symbol": symbol, "interval": interval}
+                )
+        except Exception as e:
+            logger.warning(f"Failed to record MongoDB gap-fill metric: {e}")
 
 
 # Global metrics instance

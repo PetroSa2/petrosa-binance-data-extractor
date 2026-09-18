@@ -74,9 +74,11 @@ class TestExtractionMetrics:
         assert metrics.meter is not None
 
         # Verify all metrics were created
-        assert (
-            mock_meter.create_counter.call_count == 5
-        )  # extraction, gaps, records_written, records_fetched
+        assert mock_meter.create_counter.call_count == 7, (
+            "extraction, gaps, records_written, records_fetched, "
+            "batches_abandoned, gaps_filled_mongodb (#300), "
+            "candles_written_mongodb (#300)"
+        )
         assert (
             mock_meter.create_histogram.call_count == 5
         )  # api_latency, rate_limit_used, rate_limit_remaining, throughput, binance_weight_1m
@@ -308,11 +310,28 @@ class TestMetricsNaming:
 
         all_metrics = counter_calls + histogram_calls + updown_calls
 
-        # All metrics should start with "extractor."
+        # Documented exceptions to the dotted OTel convention (#300): these
+        # names are contractual — operator dashboards and the acceptance
+        # criteria of PetroSa2/petrosa-binance-data-extractor#300 reference the
+        # flat Prometheus-style name verbatim. Emitting them dotted would
+        # export `extractor_gaps_filled_mongodb_total`, which does not match
+        # what operators are told to alert on.
+        flat_name_exceptions = {
+            "binance_extractor_gaps_filled_mongodb_total",
+            "binance_extractor_candles_written_mongodb_total",
+        }
+
+        # All other metrics should start with "extractor."
         for metric_name in all_metrics:
+            if metric_name in flat_name_exceptions:
+                continue
             assert metric_name.startswith("extractor."), (
                 f"Metric {metric_name} doesn't start with 'extractor.'"
             )
+
+        # The documented exceptions must actually be registered as counters.
+        for exception_name in flat_name_exceptions:
+            assert exception_name in counter_calls
 
         # Check specific expected metrics
         assert "extractor.extractions.total" in counter_calls
