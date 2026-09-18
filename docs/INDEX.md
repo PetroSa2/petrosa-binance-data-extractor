@@ -21,6 +21,8 @@
 
 ## 📊 Guides & Plans
 - [**NATS_MESSAGING.md**](NATS_MESSAGING.md) - Data flow and message formats.
+- [**GAP_FILLER_MONGODB_CANDLES.md**](GAP_FILLER_MONGODB_CANDLES.md) - Gap filler dual-write into the MongoDB `candles_*` collections (#300): config, metrics, rollout runbook.
+- [**KLINES_RETENTION.md**](KLINES_RETENTION.md) - Retention policy for klines tables/collections.
 - [**CIRCUIT_BREAKER_IMPLEMENTATION.md**](archive/2024-2025/CIRCUIT_BREAKER_IMPLEMENTATION.md) - (Reference) Fault tolerance details.
 
 ## 📜 Historical

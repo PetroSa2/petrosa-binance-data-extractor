@@ -21,6 +21,7 @@ import constants  # noqa: E402
 from db import get_adapter  # noqa: E402
 from fetchers import BinanceClient, KlinesFetcher  # noqa: E402
 from models.base import BaseModel  # noqa: E402
+from models.candle import CandleModel, candle_collection_name  # noqa: E402
 
 # Per #294: the Data Manager gateway adapter exposes async methods (it also
 # serves the already-migrated fetchers/klines_data_manager.py async path), so
@@ -222,6 +223,9 @@ class GapFillerExtractor:
         batch_size: int = 1000,
         weekly_chunk_days: int = 7,
         max_gap_size_days: int = 365,
+        candles_dual_write: bool | None = None,
+        candles_max_records: int | None = None,
+        candles_database: str | None = None,
     ):
         self.symbols = symbols
         self.period = period
@@ -232,8 +236,26 @@ class GapFillerExtractor:
         self.weekly_chunk_days = weekly_chunk_days
         self.max_gap_size_days = max_gap_size_days
 
+        # MongoDB candles dual-write (#300). Opt-in and bounded: see the
+        # CANDLES_* block in constants.py for why this is never on by default.
+        self.candles_dual_write = (
+            constants.CANDLES_DUAL_WRITE_ENABLED
+            if candles_dual_write is None
+            else bool(candles_dual_write)
+        )
+        self.candles_max_records = (
+            constants.CANDLES_DUAL_WRITE_MAX_RECORDS_PER_RUN
+            if candles_max_records is None
+            else int(candles_max_records)
+        )
+        self.candles_database = (
+            candles_database or constants.CANDLES_DUAL_WRITE_DATABASE
+        )
+
         self.logger = get_logger(__name__)
         self._lock = threading.Lock()
+        self._candles_budget_remaining = max(0, self.candles_max_records)
+        self._candles_budget_warned = False
 
         self.stats: dict[str, Any] = {
             "symbols_processed": 0,
@@ -243,8 +265,19 @@ class GapFillerExtractor:
             "total_records_fetched": 0,
             "total_records_written": 0,
             "total_weekly_chunks_processed": 0,
+            "total_mongodb_gaps_filled": 0,
+            "total_candles_written": 0,
+            "candles_dropped_over_budget": 0,
             "errors": [],
         }
+
+        if self.candles_dual_write:
+            self.logger.info(
+                "MongoDB candles dual-write ENABLED (#300): database=%s, "
+                "budget=%d candle documents for this run",
+                self.candles_database,
+                self._candles_budget_remaining,
+            )
 
     def period_to_minutes(self) -> int:
         """Convert period string to minutes for gap detection."""
@@ -271,6 +304,150 @@ class GapFillerExtractor:
         """Get the collection name using proper financial market naming."""
         table_suffix = binance_interval_to_table_suffix(self.period)
         return f"klines_{table_suffix}"
+
+    def get_candles_collection_name(self, symbol: str) -> str:
+        """Get the Mongo candles collection name for a symbol (#300)."""
+        return candle_collection_name(symbol, self.period)
+
+    def _reserve_candles_budget(self, requested: int) -> int:
+        """Reserve up to ``requested`` candle writes from the run-wide budget.
+
+        Per #300 / data-manager#274: this job must never write an unbounded
+        number of documents into the Mongo ``candles_*`` namespace. The budget
+        is shared across worker threads and is the hard ceiling for the whole
+        process, not per symbol.
+        """
+        if requested <= 0:
+            return 0
+
+        with self._lock:
+            if self._candles_budget_remaining <= 0:
+                if not self._candles_budget_warned:
+                    self._candles_budget_warned = True
+                    self.logger.warning(
+                        "MongoDB candles dual-write budget exhausted "
+                        "(%d documents); remaining gap chunks will fill the "
+                        "primary store only. Raise "
+                        "CANDLES_DUAL_WRITE_MAX_RECORDS_PER_RUN if this is "
+                        "expected.",
+                        self.candles_max_records,
+                    )
+                return 0
+
+            granted = min(requested, self._candles_budget_remaining)
+            self._candles_budget_remaining -= granted
+            return granted
+
+    def build_candle_documents(self, klines_data: list) -> list[CandleModel]:
+        """Project fetched klines onto the canonical candle shape (#300).
+
+        Malformed records are skipped rather than aborting the mirror: the
+        primary-store write has already succeeded by the time this runs, and
+        losing the MySQL repair because one candle failed validation would be
+        a strictly worse outcome.
+        """
+        candles: list[CandleModel] = []
+        for kline in klines_data:
+            try:
+                candles.append(CandleModel.from_kline(kline))
+            except Exception as e:
+                self.logger.warning(f"Skipping kline that failed candle mapping: {e}")
+        return candles
+
+    def mirror_chunk_to_candles(
+        self,
+        symbol: str,
+        klines_data: list,
+        candles_adapter: Any,
+    ) -> int:
+        """Mirror one filled gap chunk into the Mongo ``candles_*`` collection.
+
+        Returns the number of candle documents written. Never raises: a failed
+        mirror must not roll back or fail the primary gap fill, it only means
+        the Mongo namespace stays stale until the next run.
+        """
+        if not self.candles_dual_write or candles_adapter is None or not klines_data:
+            return 0
+
+        candles = self.build_candle_documents(klines_data)
+        if not candles:
+            return 0
+
+        granted = self._reserve_candles_budget(len(candles))
+        if granted <= 0:
+            with self._lock:
+                self.stats["candles_dropped_over_budget"] += len(candles)
+            return 0
+
+        if granted < len(candles):
+            dropped = len(candles) - granted
+            candles = candles[:granted]
+            with self._lock:
+                self.stats["candles_dropped_over_budget"] += dropped
+            self.logger.warning(
+                "MongoDB candles dual-write budget partially exhausted for "
+                "%s: writing %d of %d candles, dropping %d.",
+                symbol,
+                granted,
+                granted + dropped,
+                dropped,
+            )
+
+        collection_name = self.get_candles_collection_name(symbol)
+
+        try:
+
+            def _write_candles() -> int:
+                return candles_adapter.write_batch(  # type: ignore[no-any-return]
+                    cast(list[BaseModel], candles),
+                    collection_name,
+                    self.batch_size,
+                )
+
+            raw_written = retry_with_backoff(
+                _write_candles,
+                max_retries=3,
+                base_delay=2.0,
+                max_delay=60.0,
+                logger=self.logger,
+                operation_name=f"MongoDB candles write for {symbol}",
+            )
+        except Exception as e:
+            # Return the unused budget: the documents were never written, so
+            # holding the reservation would silently shrink later chunks.
+            with self._lock:
+                self._candles_budget_remaining += len(candles)
+            self.logger.error(
+                f"❌ MongoDB candles dual-write failed for {symbol} "
+                f"({collection_name}): {e}"
+            )
+            return 0
+
+        written: int = int(raw_written or 0)
+        self.logger.info(
+            f"🍃 Mirrored gap chunk for {symbol} into {collection_name}: "
+            f"{written} candle document(s) written "
+            f"({len(candles)} submitted, duplicates are expected no-ops)"
+        )
+
+        try:
+            from utils.metrics import get_metrics
+
+            get_metrics().record_mongodb_gap_filled(
+                symbol=symbol,
+                interval=self.period,
+                candles_written=written,
+            )
+        except Exception as metric_error:
+            self.logger.warning(
+                f"Failed to emit MongoDB gap-fill metric: {metric_error}"
+            )
+
+        with self._lock:
+            self.stats["total_mongodb_gaps_filled"] += 1
+            self.stats["total_candles_written"] += written
+
+        return written
 
     def get_start_date(self) -> datetime:
         """Get the start date from constants."""
@@ -372,6 +549,7 @@ class GapFillerExtractor:
         gap_end: datetime,
         binance_client: BinanceClient,
         db_adapter,
+        candles_adapter=None,
     ) -> dict:
         """Fill a single gap chunk with data."""
         chunk_start_time = time.time()
@@ -382,6 +560,7 @@ class GapFillerExtractor:
             "success": False,
             "records_fetched": 0,
             "records_written": 0,
+            "candles_written": 0,
             "error": None,
             "duration": 0,
         }
@@ -439,12 +618,21 @@ class GapFillerExtractor:
                 )
                 result["records_written"] = records_written
 
+                # #300: mirror the same chunk into the Mongo candles_*
+                # namespace. Deliberately AFTER the primary write and outside
+                # its retry envelope — the mirror is best-effort and must not
+                # be able to fail or re-drive a successful primary repair.
+                result["candles_written"] = self.mirror_chunk_to_candles(
+                    symbol, klines_data, candles_adapter
+                )
+
             result["success"] = True
             result["duration"] = time.time() - chunk_start_time
 
             self.logger.info(
                 f"✅ Filled gap for {symbol}: {gap_start.isoformat()} to {gap_end.isoformat()}, "
                 f"fetched={result['records_fetched']}, written={result['records_written']}, "
+                f"candles={result['candles_written']}, "
                 f"duration={result['duration']:.2f}s"
             )
 
@@ -466,6 +654,47 @@ class GapFillerExtractor:
             self.logger.error(f"❌ Failed to fill gap for {symbol}: {e}")
             return result
 
+    def _open_candles_adapter(self, symbol: str) -> Any:
+        """Open a Data Manager adapter dedicated to the candles mirror (#300).
+
+        Returns ``None`` when dual-write is off, when the Data Manager adapter
+        is not importable, or when the connection cannot be established. A
+        ``None`` adapter degrades the job to its historical primary-store-only
+        behaviour instead of failing the symbol.
+        """
+        if not self.candles_dual_write:
+            return None
+
+        if DataManagerAdapter is None:
+            self.logger.warning(  # type: ignore[unreachable]
+                "MongoDB candles dual-write requested but DataManagerAdapter "
+                "is unavailable; skipping the candles mirror."
+            )
+            return None
+
+        try:
+            adapter = DataManagerAdapter(
+                base_url=constants.DATA_MANAGER_URL,
+                database=self.candles_database,
+            )
+            adapter.connect_sync()
+            return adapter
+        except Exception as e:
+            self.logger.error(
+                f"Failed to connect the candles dual-write adapter for "
+                f"{symbol}: {e}. Continuing with primary-store gap filling only."
+            )
+            return None
+
+    def _close_candles_adapter(self, candles_adapter: Any) -> None:
+        """Best-effort teardown of the candles mirror adapter (#300)."""
+        if candles_adapter is None:
+            return
+        try:
+            candles_adapter.disconnect_sync()
+        except Exception as e:
+            self.logger.warning(f"Error disconnecting candles adapter: {e}")
+
     def process_symbol_gaps(self, symbol: str, binance_client: BinanceClient) -> dict:
         """Process all gaps for a single symbol."""
         symbol_start_time = time.time()
@@ -476,6 +705,7 @@ class GapFillerExtractor:
             "gaps_filled": 0,
             "total_records_fetched": 0,
             "total_records_written": 0,
+            "total_candles_written": 0,
             "weekly_chunks_processed": 0,
             "error": None,
             "duration": 0,
@@ -517,6 +747,8 @@ class GapFillerExtractor:
                 operation_name=f"database connection for {symbol}",
             )
 
+            candles_adapter = self._open_candles_adapter(symbol)
+
             try:
                 # Retry gap detection with more specific error handling
                 gaps = self.detect_gaps_for_symbol(symbol, db_adapter)
@@ -551,6 +783,7 @@ class GapFillerExtractor:
                                 chunk_end,
                                 binance_client,
                                 db_adapter,
+                                candles_adapter,
                             )
 
                             result["weekly_chunks_processed"] += 1
@@ -560,6 +793,9 @@ class GapFillerExtractor:
                             result["total_records_written"] += chunk_result[
                                 "records_written"
                             ]
+                            result["total_candles_written"] += chunk_result.get(
+                                "candles_written", 0
+                            )
 
                             if chunk_result["success"]:
                                 result["gaps_filled"] += 1
@@ -622,6 +858,7 @@ class GapFillerExtractor:
                     self.logger.warning(
                         f"Error disconnecting from database: {disconnect_error}"
                     )
+                self._close_candles_adapter(candles_adapter)
 
         try:
             return retry_with_backoff(
@@ -704,6 +941,10 @@ class GapFillerExtractor:
                 "total_records_fetched": 0,
                 "total_records_written": 0,
                 "total_weekly_chunks_processed": 0,
+                "candles_dual_write_enabled": self.candles_dual_write,
+                "total_mongodb_gaps_filled": 0,
+                "total_candles_written": 0,
+                "candles_dropped_over_budget": 0,
                 "duration_seconds": time.time() - extraction_start_time,
                 "errors": [f"Binance client initialization failed: {e}"],
             }
@@ -772,6 +1013,20 @@ class GapFillerExtractor:
         self.logger.info(
             f"📅 Weekly chunks processed: {self.stats['total_weekly_chunks_processed']}"
         )
+        if self.candles_dual_write:
+            self.logger.info(
+                f"🍃 MongoDB candle gaps filled: "
+                f"{self.stats['total_mongodb_gaps_filled']}"
+            )
+            self.logger.info(
+                f"🍃 MongoDB candles written: {self.stats['total_candles_written']} "
+                f"(budget remaining: {self._candles_budget_remaining})"
+            )
+            if self.stats["candles_dropped_over_budget"]:
+                self.logger.warning(
+                    f"⚠️  Candles dropped over budget: "
+                    f"{self.stats['candles_dropped_over_budget']}"
+                )
         self.logger.info(f"⏱️  Total duration: {format_duration(total_duration)}")
 
         if self.stats["errors"]:
@@ -791,6 +1046,10 @@ class GapFillerExtractor:
             "total_weekly_chunks_processed": self.stats[
                 "total_weekly_chunks_processed"
             ],
+            "candles_dual_write_enabled": self.candles_dual_write,
+            "total_mongodb_gaps_filled": self.stats["total_mongodb_gaps_filled"],
+            "total_candles_written": self.stats["total_candles_written"],
+            "candles_dropped_over_budget": self.stats["candles_dropped_over_budget"],
             "duration_seconds": total_duration,
             "errors": self.stats["errors"],
         }
@@ -811,6 +1070,10 @@ Examples:
 
   # Fill gaps with custom weekly chunk size
   python extract_klines_gap_filler.py --period 15m --weekly-chunk-days 5
+
+  # Also mirror filled gaps into the MongoDB candles_* collections (#300)
+  python extract_klines_gap_filler.py --period 5m --db-adapter data_manager \\
+      --candles-dual-write --candles-max-records 50000
         """,
     )
 
@@ -882,6 +1145,38 @@ Examples:
 
     parser.add_argument(
         "--db-uri", type=str, help="Database connection URI (overrides default)"
+    )
+
+    candles_group = parser.add_mutually_exclusive_group()
+    candles_group.add_argument(
+        "--candles-dual-write",
+        dest="candles_dual_write",
+        action="store_true",
+        default=None,
+        help=(
+            "Also mirror filled gaps into the MongoDB candles_{SYMBOL}_{period} "
+            "collections (#300). Default comes from CANDLES_DUAL_WRITE_ENABLED "
+            "(off)."
+        ),
+    )
+    candles_group.add_argument(
+        "--no-candles-dual-write",
+        dest="candles_dual_write",
+        action="store_false",
+        default=None,
+        help="Explicitly disable the MongoDB candles mirror, overriding the env var.",
+    )
+
+    parser.add_argument(
+        "--candles-max-records",
+        type=int,
+        default=constants.CANDLES_DUAL_WRITE_MAX_RECORDS_PER_RUN,
+        help=(
+            "Hard ceiling on candle documents mirrored into MongoDB per run "
+            "(default: CANDLES_DUAL_WRITE_MAX_RECORDS_PER_RUN). The candles_* "
+            "namespace is capped-count trimmed downstream, so this bound "
+            "exists to protect the Atlas quota."
+        ),
     )
 
     parser.add_argument(
@@ -986,6 +1281,8 @@ def _main_impl():
             batch_size=args.batch_size,
             weekly_chunk_days=args.weekly_chunk_days,
             max_gap_size_days=args.max_gap_size_days,
+            candles_dual_write=args.candles_dual_write,
+            candles_max_records=args.candles_max_records,
         )
 
         if args.dry_run:
@@ -1001,6 +1298,13 @@ def _main_impl():
             gaps_found=result["total_gaps_found"],
             errors=result["errors"][:10],
         )
+
+        if result.get("candles_dual_write_enabled"):
+            logger.info(
+                "🍃 MongoDB candles mirror: %d gap chunk(s), %d candle(s) written",
+                result.get("total_mongodb_gaps_filled", 0),
+                result.get("total_candles_written", 0),
+            )
 
         if result["success"]:
             logger.info("🎉 Gap filling completed successfully!")
