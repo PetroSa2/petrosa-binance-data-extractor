@@ -184,7 +184,29 @@ class MySQLAdapter(BaseAdapter):
             Column("extracted_at", DateTime, nullable=False),
             Column("extractor_version", String(20), nullable=False),
             Column("source", String(50), nullable=False),
-            Index(f"idx_{table_name}_symbol_timestamp", "symbol", "timestamp"),
+            # UNIQUE is load-bearing, not just an optimisation: ``write()``
+            # relies on ON DUPLICATE KEY UPDATE / INSERT IGNORE to collapse
+            # re-extractions of the same bar. Without a unique key on
+            # (symbol, timestamp) neither clause can ever fire and every
+            # re-extraction appends a new row instead.
+            #
+            # This shipped non-unique, so a second writer against klines_d1
+            # silently doubled the table from 2026-03 onward: 400-row reads
+            # returned only ~193 distinct days, starving
+            # minervini_trend_template (min_periods=265) in bot-ta-analysis.
+            # The MongoDB path already did this correctly - see
+            # jobs/extract_klines_mongodb.py creating its (symbol, timestamp)
+            # index with unique=True.
+            #
+            # Existing tables were deduplicated and altered in place; this
+            # only governs tables created from here on.
+            # Refs: PetroSa2/petrosa_k8s#1157, PetroSa2/petrosa-bot-ta-analysis#303
+            Index(
+                f"uniq_{table_name}_symbol_timestamp",
+                "symbol",
+                "timestamp",
+                unique=True,
+            ),
             Index(f"idx_{table_name}_timestamp", "timestamp"),
             Index(f"idx_{table_name}_open_time", "open_time"),
         )
