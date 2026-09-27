@@ -1,6 +1,6 @@
 """Guard public documentation against obsolete direct-MySQL guidance."""
 
-from pathlib import Path
+import pathlib
 import re
 
 
@@ -17,13 +17,13 @@ DOC_FILES = (
 )
 
 
-def find_obsolete_guidance(path: Path) -> list[str]:
+def find_obsolete_guidance(path: pathlib.Path) -> list[str]:
     """Return obsolete matches in one documentation file."""
     return FORBIDDEN.findall(path.read_text(encoding="utf-8"))
 
 
 def test_public_docs_use_data_manager():
-    root = Path(__file__).parents[1]
+    root = pathlib.Path(__file__).parents[1]
     assert not [match for filename in DOC_FILES for match in find_obsolete_guidance(root / filename)]
 
 
