@@ -114,6 +114,35 @@ class TestBaseDataManagerClient:
             "rates": [{"rate": 1}],
         }
 
+    def test_typed_ingest_timeout_is_wrapped(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        with patch.object(
+            client.session, "post", side_effect=requests.exceptions.Timeout("Timeout")
+        ):
+            with pytest.raises(TimeoutError) as exc_info:
+                client.ingest_klines("BTCUSDT", "5m", [])
+        assert "Request timed out" in str(exc_info.value)
+
+    def test_typed_ingest_connection_error_is_wrapped(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        with patch.object(
+            client.session,
+            "post",
+            side_effect=requests.exceptions.ConnectionError("refused"),
+        ):
+            with pytest.raises(ConnectionError) as exc_info:
+                client.ingest_funding("BTCUSDT", [])
+        assert "Connection failed" in str(exc_info.value)
+
+    def test_typed_ingest_http_error_is_wrapped(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        response = Mock()
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError("500")
+        with patch.object(client.session, "post", return_value=response):
+            with pytest.raises(APIError) as exc_info:
+                client.ingest_klines("BTCUSDT", "5m", [])
+        assert "API error" in str(exc_info.value)
+
     def test_insert_connection_error(self):
         """Test insert with connection error."""
         client = BaseDataManagerClient(base_url="http://localhost:8000")
