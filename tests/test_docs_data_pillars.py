@@ -1,10 +1,11 @@
 """Guard public documentation against obsolete direct-MySQL guidance."""
 
-import pathlib
-
-
-FORBIDDEN = __import__("re").compile(
-    r"(?i)DB_ADAPTER=mysql|MySQLAdapter|MYSQL_URI|\(Primary\) - Production|writes directly to MySQL"
+FORBIDDEN = (
+    "db_adapter=mysql",
+    "mysqladapter",
+    "mysql_uri",
+    "(primary) - production",
+    "writes directly to mysql",
 )
 DOC_FILES = (
     "README.md",
@@ -16,13 +17,14 @@ DOC_FILES = (
 )
 
 
-def find_obsolete_guidance(path: pathlib.Path) -> list[str]:
+def find_obsolete_guidance(path) -> list[str]:
     """Return obsolete matches in one documentation file."""
-    return FORBIDDEN.findall(path.read_text(encoding="utf-8"))
+    contents = path.read_text(encoding="utf-8").lower()
+    return [pattern for pattern in FORBIDDEN if pattern in contents]
 
 
 def test_public_docs_use_data_manager():
-    root = pathlib.Path(__file__).parents[1]
+    root = __import__("pathlib").Path(__file__).parents[1]
     assert not [match for filename in DOC_FILES for match in find_obsolete_guidance(root / filename)]
 
 
