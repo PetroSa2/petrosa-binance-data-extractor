@@ -1,7 +1,7 @@
 """Guard public documentation against obsolete direct-MySQL guidance."""
 
-import pathlib
 import re
+import pathlib
 
 
 FORBIDDEN = re.compile(
