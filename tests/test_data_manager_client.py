@@ -87,6 +87,33 @@ class TestBaseDataManagerClient:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
             assert exc_info.value is not None
 
+    def test_typed_klines_ingest_posts_without_database(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        response = Mock()
+        response.json.return_value = {"upserted": 1}
+        response.raise_for_status = Mock()
+        with patch.object(client.session, "post", return_value=response) as post:
+            result = client.ingest_klines("BTCUSDT", "5m", [{"close": 1}])
+        assert result["upserted"] == 1
+        assert post.call_args.kwargs["json"] == {
+            "symbol": "BTCUSDT",
+            "interval": "5m",
+            "klines": [{"close": 1}],
+        }
+
+    def test_typed_funding_ingest_posts_without_database(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        response = Mock()
+        response.json.return_value = {"inserted": 1}
+        response.raise_for_status = Mock()
+        with patch.object(client.session, "post", return_value=response) as post:
+            result = client.ingest_funding("BTCUSDT", [{"rate": 1}])
+        assert result["inserted"] == 1
+        assert post.call_args.kwargs["json"] == {
+            "symbol": "BTCUSDT",
+            "rates": [{"rate": 1}],
+        }
+
     def test_insert_connection_error(self):
         """Test insert with connection error."""
         client = BaseDataManagerClient(base_url="http://localhost:8000")
