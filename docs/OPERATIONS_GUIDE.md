@@ -41,17 +41,9 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petros
 # 1. Check daily data extraction summary
 kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps --since=24h | grep -i "extracted\|processed"
 
-# 2. Verify database connectivity
-kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
-import os
-from db.mysql_adapter import MySQLAdapter
-try:
-    adapter = MySQLAdapter(os.environ['MYSQL_URI'])
-    adapter.connect()
-    print('Database connection: OK')
-except Exception as e:
-    print(f'Database connection: FAILED - {e}')
-"
+# 2. Verify data-manager connectivity
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- sh -c \
+  'curl "$DATA_MANAGER_URL/health"'
 ```
 
 ## 🔍 Monitoring Commands
@@ -159,24 +151,16 @@ docker pull your-username/petrosa-binance-extractor:latest
 - Verify image exists and is accessible
 - Check network connectivity
 
-#### 4. Database Connection Issues
+#### 4. Data-manager Connection Issues
 
 ```bash
-# Test database connectivity
-kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
-import os
-from db.mysql_adapter import MySQLAdapter
-try:
-    adapter = MySQLAdapter(os.environ['MYSQL_URI'])
-    adapter.connect()
-    print('Database connection successful')
-except Exception as e:
-    print(f'Database connection failed: {e}')
-"
+# Test data-manager connectivity
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- sh -c \
+  'curl "$DATA_MANAGER_URL/health"'
 ```
 
 **Solutions:**
-- Verify database credentials
+- Verify data-manager URL and credentials
 - Check network connectivity
 - Ensure database is running
 
@@ -227,14 +211,9 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petros
 
 1. **Assessment**:
    ```bash
-   # Check database connectivity
-   kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
-   import os
-   from db.mysql_adapter import MySQLAdapter
-   adapter = MySQLAdapter(os.environ['MYSQL_URI'])
-   adapter.connect()
-   # Add data verification logic
-   "
+    # Check data-manager connectivity
+    kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- sh -c \
+      'curl "$DATA_MANAGER_URL/health"'
    ```
 
 2. **Recovery**:

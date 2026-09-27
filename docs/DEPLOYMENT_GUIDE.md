@@ -9,7 +9,7 @@ This guide provides detailed instructions for deploying the Petrosa Binance Data
 ### Infrastructure Requirements
 - [ ] Kubernetes cluster (v1.20+)
 - [ ] Docker Hub account with repository access
-- [ ] Database instance (MySQL/MongoDB)
+- [ ] Data-manager API reachable from the cluster
 - [ ] Binance API credentials
 - [ ] kubectl installed
 
@@ -40,9 +40,9 @@ cat > .env.production << EOF
 BINANCE_API_KEY=your_production_api_key
 BINANCE_SECRET_KEY=your_production_secret_key
 
-# Database Configuration
-MYSQL_URI=mysql+pymysql://user:password@host:port/database
-MONGODB_URI=mongodb://user:password@host:port/database
+# Data-manager configuration
+DB_ADAPTER=data_manager
+DATA_MANAGER_URL=http://petrosa-data-manager:80
 
 # OpenTelemetry Configuration (service names are now hardcoded)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
@@ -82,9 +82,9 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml get namespace petrosa-apps
 > Update your manifests to mount or reference this secret as needed.
 
 ```bash
-# Example: create/update secret with MySQL URI
+# Example: create/update secret with data-manager configuration
 kubectl --kubeconfig=k8s/kubeconfig.yaml create secret generic petrosa-sensitive-credentials \
-  --from-literal=MYSQL_URI="mysql+pymysql://user:password@host:port/database" \
+  --from-literal=DATA_MANAGER_URL="http://petrosa-data-manager:80" \
   -n petrosa-apps --dry-run=client -o yaml | kubectl --kubeconfig=k8s/kubeconfig.yaml apply -f -
 
 # Verify secret
@@ -152,19 +152,11 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petros
 kubectl --kubeconfig=k8s/kubeconfig.yaml logs -l app=binance-extractor -n petrosa-apps | grep -i "telemetry\|otel"
 ```
 
-### 2. Database Connectivity
+### 2. Data-manager Connectivity
 
 ```bash
-kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- python -c "
-import os
-from db.mysql_adapter import MySQLAdapter
-try:
-    adapter = MySQLAdapter(os.environ['MYSQL_URI'])
-    adapter.connect()
-    print('Database connection: SUCCESS')
-except Exception as e:
-    print(f'Database connection: FAILED - {e}')
-"
+kubectl --kubeconfig=k8s/kubeconfig.yaml exec -it deployment/binance-extractor -n petrosa-apps -- sh -c \
+  'curl "$DATA_MANAGER_URL/health"'
 ```
 
 ### 3. API Connectivity
@@ -198,7 +190,7 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml describe pod -l app=binance-extractor -
 
 ```bash
 kubectl --kubeconfig=k8s/kubeconfig.yaml get secrets -n petrosa-apps
-kubectl --kubeconfig=k8s/kubeconfig.yaml get secret petrosa-sensitive-credentials -n petrosa-apps -o jsonpath='{.data.MYSQL_URI}' | base64 -d
+kubectl --kubeconfig=k8s/kubeconfig.yaml describe secret petrosa-sensitive-credentials -n petrosa-apps
 ```
 
 ## References

@@ -1,5 +1,8 @@
 # Gap Filler — MongoDB `candles_*` Dual-Write (Operator Guide)
 
+> **Superseded:** production runs `--db-adapter=data_manager`; MongoDB is primary (P1).
+> The MySQL-primary/Mongo-mirror model below is historical.
+
 **Issue:** [PetroSa2/petrosa-binance-data-extractor#300](https://github.com/PetroSa2/petrosa-binance-data-extractor/issues/300)
 **Status:** shipped, **disabled by default**
 **Applies to:** `jobs/extract_klines_gap_filler.py`

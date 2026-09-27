@@ -11,7 +11,7 @@ When working on this service, read the master cursorrules first to understand th
 
 ### Service Context
 
-The **Binance Data Extractor** is a batch processing system that extracts historical cryptocurrency market data from the Binance REST API and stores it in MySQL for downstream consumption by the TA Bot. It operates as a set of Kubernetes CronJobs running on different schedules to collect OHLCV klines, funding rates, and trade data across multiple symbols and timeframes.
+The **Binance Data Extractor** is a batch processing system that extracts historical cryptocurrency market data from the Binance REST API and writes it through the data-manager API for downstream consumption. It operates as a set of Kubernetes CronJobs running on different schedules to collect OHLCV klines, funding rates, and trade data across multiple symbols and timeframes.
 
 This service is the **primary data ingestion layer** for historical analysis, providing the foundation data that powers the TA Bot's 28+ technical analysis strategies. It includes gap detection and automatic backfilling to ensure data completeness and consistency.
 
@@ -24,8 +24,8 @@ Unlike the real-time socket-client, this service operates on a scheduled basis (
 - **GitHub tooling**: Prefer the configured `github` MCP server for repository, issue, pull request, review, release,
   and Actions operations, and `github-projects` for Projects v2. Use `gh` only as the documented fallback for
   non-MCP clients, deterministic scripts, runners, or unsupported operations.
-- **NATS Topics**: Not applicable (this service writes directly to MySQL, not NATS)
-- **Database Architecture**: See master § Database Architecture (MySQL section)
+- **NATS Topics**: Not applicable (this service writes through the data-manager API, not NATS)
+- **Database Architecture**: This service writes through the data-manager API (`DB_ADAPTER=data_manager`); it opens no database connection.
 - **Deployment Patterns**: See master § Data Extractor Configuration
 - **Shared Resources**: See master § Shared Resources (ConfigMaps, Secrets)
 
@@ -150,7 +150,7 @@ def fetch_klines(symbol: str, interval: str, start_time: int, end_time: int):
 # Detect gaps in historical data
 def detect_gaps(symbol: str, interval: str) -> List[Gap]:
     """
-    Query MySQL for gaps in kline data.
+    Query the data-manager API for gaps in kline data.
 
     Returns list of (start_time, end_time) tuples representing missing ranges.
     """
@@ -240,24 +240,13 @@ if current_weight > WEIGHT_LIMIT_PER_MINUTE * 0.9:
     await asyncio.sleep(60)  # Wait for weight reset
 ```
 
-#### 2. MySQL Connection Timeouts
+#### 2. Data-manager connectivity
 
-**Symptom**: `pymysql.err.OperationalError: (2013, 'Lost connection to MySQL server')`
+**Symptom**: data extraction cannot reach the persistence API.
 
-**Solutions**:
-```python
-# Increase connection timeout
-SQLALCHEMY_POOL_PRE_PING = True
-SQLALCHEMY_POOL_RECYCLE = 3600
-
-# Use connection pooling
-engine = create_engine(
-    MYSQL_URI,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    pool_recycle=3600
-)
+**Solution**:
+```bash
+curl "$DATA_MANAGER_URL/health"
 ```
 
 #### 3. Duplicate Data
@@ -305,7 +294,7 @@ KLINE_LIMIT_PER_REQUEST=1000    # Max klines per API call
 LOOKBACK_HOURS=24                # How far back to fetch on each run
 
 # Database settings (from secret)
-MYSQL_URI=mysql+pymysql://user:pass@host:3306/binance_data
+DATA_MANAGER_URL=http://petrosa-data-manager:80
 
 # Binance API (from secret)
 BINANCE_API_KEY=<from-secret>
@@ -386,6 +375,6 @@ SELECT * FROM gap_detection_log WHERE detected_at > NOW() - INTERVAL 24 HOUR;
 
 - For ecosystem-wide rules, deployment patterns, and shared configurations: **See master cursorrules**
 - For work tracking and GitHub Projects workflow: **See master § Centralized Work Tracking with GitHub Projects**
-- For NATS integration patterns: **Not applicable** (this service writes to MySQL only)
+- For NATS integration patterns: **Not applicable** (this service writes through data-manager only)
 - For Kubernetes best practices: **See master § Deployment Patterns → Data Extractor Configuration**
 - For pre-merge cleanup: **See master § Pre-Merge Intelligent Cleanup Workflow** - Cursor AI automatically reorganizes files, removes outdated content, and consolidates documentation before merges using semantic understanding
