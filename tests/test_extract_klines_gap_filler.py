@@ -392,17 +392,8 @@ class TestParseArguments:
                 "--dry-run",
             ],
         ):
-            args = gap_filler.parse_arguments()
-            assert args.period == "1h"
-            assert args.symbols == "BTCUSDT,ETHUSDT"
-            assert args.max_workers == 5
-            assert args.batch_size == 500
-            assert args.weekly_chunk_days == 3
-            assert args.max_gap_size_days == 15
-            assert args.db_adapter == "mysql"
-            assert args.db_uri == "mysql://test"
-            assert args.log_level == "DEBUG"
-            assert args.dry_run is True
+            with pytest.raises(SystemExit):
+                gap_filler.parse_arguments()
 
 
 class TestMainFunction:
@@ -490,7 +481,7 @@ class TestMainFunction:
         mock_args.batch_size = 1000
         mock_args.weekly_chunk_days = 7
         mock_args.max_gap_size_days = 30
-        mock_args.db_adapter = "mysql"
+        mock_args.db_adapter = "data_manager"
         mock_args.db_uri = None
         mock_args.log_level = "INFO"
         mock_args.dry_run = False
@@ -514,7 +505,7 @@ class TestMainFunction:
 
         exit_code = self._run_main_and_catch_exit()
         assert exit_code == 0
-        assert any(
+        assert not any(
             "DEPRECATED" in call.args[0] for call in mock_logger.warning.call_args_list
         )
 

@@ -31,8 +31,8 @@ try:
         setup_telemetry(
             service_name=constants.OTEL_SERVICE_NAME_FUNDING,
             service_type="cronjob",
-            enable_mysql=True,
-            enable_mongodb=True,
+            enable_mysql=False,
+            enable_mongodb=False,
             auto_attach_logging=True,
         )
 except ImportError:
@@ -58,7 +58,7 @@ def parse_arguments():
         "--db-adapter",
         type=str,
         default=constants.DB_ADAPTER,
-        choices=["mongodb", "mysql", "data_manager"],
+        choices=["data_manager"],
     )
     parser.add_argument("--db-uri", type=str, help="Database connection URI")
     parser.add_argument("--batch-size", type=int, default=constants.DB_BATCH_SIZE)
@@ -84,14 +84,6 @@ def main():
     except ImportError:
         pass
 
-    if args.db_adapter in ("mysql", "mariadb"):
-        logger.warning(
-            "DEPRECATED: extract_funding is using the direct MySQL adapter "
-            "(--db-adapter=%s). This path is being retired per #294 in favor "
-            "of --db-adapter=data_manager; update the deployed cronjob args.",
-            args.db_adapter,
-        )
-
     logger.info("Starting Binance funding rates extraction job")
     start_date = None
     end_date = None
@@ -116,14 +108,7 @@ def main():
     total_records = 0
     errors = []
     try:
-        if args.db_uri:
-            db_uri = args.db_uri
-        elif args.db_adapter == "mongodb":
-            db_uri = constants.MONGODB_URI
-        elif args.db_adapter == "data_manager":
-            db_uri = constants.DATA_MANAGER_URL
-        else:
-            db_uri = constants.MYSQL_URI
+        db_uri = args.db_uri or constants.DATA_MANAGER_URL
         db_adapter = get_adapter(args.db_adapter, db_uri)
         client = BinanceClient()
         fetcher = FundingRatesFetcher(client)

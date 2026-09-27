@@ -104,7 +104,7 @@ class PipelineRunner:
         # Import and run the job
         try:
             if job_name == "klines":
-                from jobs.extract_klines_production import main as klines_main
+                from jobs.extract_klines_data_manager import main as klines_main
 
                 return self._run_klines_job(klines_main, **kwargs)
             elif job_name == "funding":

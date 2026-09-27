@@ -25,17 +25,11 @@ numpy<2.0
 # For local development, install from path:
 # pip install -e ../petrosa_k8s/petrosa-otel[all]
 # For production, this will be published to private PyPI
-petrosa-otel[all]>=1.1.0
-# Explicit SQLAlchemy instrumentation (required by utils/telemetry.py and MySQL adapter)
-opentelemetry-instrumentation-sqlalchemy>=0.45b0
+petrosa-otel[fastapi]>=1.1.0
 
 # PostgreSQL adapter (optional)
 psycopg2-binary>=2.9.0
 pydantic>=2.0.0,<3.0.0
-
-# Database adapters
-pymongo>=4.0.0
-pymysql>=1.1.0
 
 # Time utilities
 python-dateutil>=2.8.2
@@ -45,9 +39,6 @@ python-dotenv>=1.0.0
 
 # HTTP client
 requests>=2.31.0
-
-# Database ORM
-sqlalchemy>=2.0.0
 
 # Logging and monitoring
 structlog>=23.0.0

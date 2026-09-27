@@ -77,27 +77,6 @@ except ImportError:
 OTLPSpanExporter = HTTPSpanExporter or GRPCSpanExporter  # noqa: F401
 
 
-# ---------------------------------------------------------------------------
-# Optional instrumentors — each in its own guard
-# ---------------------------------------------------------------------------
-try:
-    from opentelemetry.instrumentation.sqlalchemy import (
-        SQLAlchemyInstrumentor,  # noqa: F401
-    )
-
-    SQLALCHEMY_INSTR_AVAILABLE = True
-except ImportError:
-    SQLALCHEMY_INSTR_AVAILABLE = False
-    SQLAlchemyInstrumentor = None  # type: ignore
-
-try:
-    from opentelemetry.instrumentation.pymongo import PymongoInstrumentor  # noqa: F401
-
-    PYMONGO_AVAILABLE = True
-except ImportError:
-    PYMONGO_AVAILABLE = False
-    PymongoInstrumentor = None  # type: ignore
-
 try:
     from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor  # noqa: F401
 
@@ -210,8 +189,8 @@ class TelemetryManager:
                 service_type="cronjob",
                 otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
                 protocol=os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf"),
-                enable_mysql=True,
-                enable_mongodb=True,
+                enable_mysql=False,
+                enable_mongodb=False,
                 auto_attach_logging=False,
             )
             if ok:
@@ -349,10 +328,8 @@ class TelemetryManager:
         # Map of instrumentor names to their classes and availability flags
         instrumentors = [
             ("Requests", RequestsInstrumentor),
-            ("SQLAlchemy", SQLAlchemyInstrumentor),
             ("Logging", LoggingInstrumentor),
             ("URLLib3", URLLib3Instrumentor if URLLIB3_AVAILABLE else None),
-            ("Pymongo", PymongoInstrumentor if PYMONGO_AVAILABLE else None),
         ]
 
         for name, instr_cls in instrumentors:

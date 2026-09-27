@@ -196,8 +196,6 @@ class PipelineSimulator:
 
         instrumentations = {
             "requests": "opentelemetry.instrumentation.requests",
-            "pymongo": "opentelemetry.instrumentation.pymongo",
-            "sqlalchemy": "opentelemetry.instrumentation.sqlalchemy",
             "logging": "opentelemetry.instrumentation.logging",
             "urllib3": "opentelemetry.instrumentation.urllib3",
         }
@@ -223,8 +221,7 @@ class PipelineSimulator:
         print("\n🏃‍♂️ Testing Job Initialization...")
 
         jobs = [
-            ("Klines Production", "jobs.extract_klines_production"),
-            ("Klines Manual", "jobs.extract_klines"),
+            ("Klines Data Manager", "jobs.extract_klines_data_manager"),
             ("Funding Rates", "jobs.extract_funding"),
         ]
 

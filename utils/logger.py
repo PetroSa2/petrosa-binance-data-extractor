@@ -80,8 +80,6 @@ def setup_logging(
     # Configure third-party loggers
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
-    logging.getLogger("pymongo").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
     # Create logger with service context
     logger = structlog.get_logger(constants.OTEL_SERVICE_NAME)

@@ -44,8 +44,8 @@ try:
         setup_telemetry(
             service_name=constants.OTEL_SERVICE_NAME_KLINES,
             service_type="cronjob",
-            enable_mysql=True,
-            enable_mongodb=True,
+            enable_mysql=False,
+            enable_mongodb=False,
             auto_attach_logging=True,
         )
 except ImportError:

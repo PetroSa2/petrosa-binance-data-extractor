@@ -362,6 +362,26 @@ class TestChaos:
             assert result["status"] == "error"
 
 
+class TestTypedIngest:
+    @pytest.mark.asyncio
+    async def test_klines_ingest_omits_database_field(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        with patch.object(client._client, "ingest_klines") as ingest:
+            ingest.return_value = {"inserted_count": 1}
+            result = await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
+        assert result["inserted_count"] == 1
+        ingest.assert_called_once_with("BTCUSDT", "5m", [{"close": 1}])
+
+    @pytest.mark.asyncio
+    async def test_funding_ingest_omits_database_field(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        with patch.object(client._client, "ingest_funding") as ingest:
+            ingest.return_value = {"inserted_count": 1}
+            result = await client.insert_funding_rates("BTCUSDT", [{"rate": 1}])
+        assert result["inserted_count"] == 1
+        ingest.assert_called_once_with("BTCUSDT", [{"rate": 1}])
+
+
 class TestDataManagerClientFindGaps:
     """Tests for DataManagerClient.find_gaps (k8s-extractor#298).
 

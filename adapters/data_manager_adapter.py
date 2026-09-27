@@ -39,7 +39,7 @@ class DataManagerAdapter:
         base_url: str | None = None,
         timeout: int = 30,
         max_retries: int = 3,
-        database: str = "mongodb",
+        database: str | None = None,
     ):
         """
         Initialize the Data Manager adapter.
@@ -48,12 +48,10 @@ class DataManagerAdapter:
             base_url: Data Manager API base URL
             timeout: Request timeout in seconds
             max_retries: Maximum number of retry attempts
-            database: Target database for data operations
         """
         self.base_url = base_url or constants.DATA_MANAGER_URL
         self.timeout = timeout or constants.DATA_MANAGER_TIMEOUT
         self.max_retries = max_retries or constants.DATA_MANAGER_MAX_RETRIES
-        self.database = database or constants.DATA_MANAGER_DATABASE
 
         self._client: DataManagerClient | None = None
         self._connected = False
@@ -190,7 +188,6 @@ class DataManagerAdapter:
                     symbol=_obs_symbol,
                     interval=_obs_interval,
                     klines_data=data_dicts,
-                    database=self.database,
                 )
 
             elif collection_name.startswith("funding_"):
@@ -199,13 +196,12 @@ class DataManagerAdapter:
                 result = await self._client.insert_funding_rates(
                     symbol=_obs_symbol,
                     funding_data=data_dicts,
-                    database=self.database,
                 )
 
             else:
                 # Generic insert for other collection types
                 result = self._client._client.insert(
-                    database=self.database,
+                    database="mongodb",
                     collection=collection_name,
                     records=data_dicts,
                 )
@@ -268,7 +264,7 @@ class DataManagerAdapter:
 
             # Query for latest records
             result = self._client._client.query(
-                database=self.database,
+                database="mongodb",
                 collection=collection_name,
                 params={
                     "filter": filter_dict,
@@ -320,7 +316,6 @@ class DataManagerAdapter:
                     interval=interval,
                     start_time=start_time,
                     end_time=end_time,
-                    database=self.database,
                 )
                 return gaps
             else:

@@ -93,7 +93,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Default command (can be overridden)
-CMD ["python", "-m", "jobs.extract_klines_production"]
+CMD ["python", "-m", "jobs.extract_klines_data_manager"]
 
 # Development stage (for local development)
 FROM production AS development

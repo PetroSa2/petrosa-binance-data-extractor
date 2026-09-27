@@ -29,14 +29,12 @@ class TestDataManagerAdapterInit:
             mock_constants.DATA_MANAGER_URL = "http://localhost:8000"
             mock_constants.DATA_MANAGER_TIMEOUT = 30
             mock_constants.DATA_MANAGER_MAX_RETRIES = 3
-            mock_constants.DATA_MANAGER_DATABASE = "mongodb"
 
             adapter = DataManagerAdapter()
 
             assert adapter.base_url == "http://localhost:8000"
             assert adapter.timeout == 30
             assert adapter.max_retries == 3
-            assert adapter.database == "mongodb"
             assert adapter._connected is False
             assert adapter._client is None
 
@@ -46,13 +44,11 @@ class TestDataManagerAdapterInit:
             base_url="http://custom:9000",
             timeout=60,
             max_retries=5,
-            database="mysql",
         )
 
         assert adapter.base_url == "http://custom:9000"
         assert adapter.timeout == 60
         assert adapter.max_retries == 5
-        assert adapter.database == "mysql"
 
 
 class TestDataManagerAdapterConnection:

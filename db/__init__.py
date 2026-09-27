@@ -2,9 +2,9 @@
 Database adapters package.
 """
 
+from typing import Any
+
 from .base_adapter import BaseAdapter, DatabaseError
-from .mongodb_adapter import MongoDBAdapter
-from .mysql_adapter import MySQLAdapter
 
 # Import Data Manager adapter
 try:
@@ -16,11 +16,7 @@ except ImportError:
     DataManagerAdapter = None
 
 # Adapter registry
-ADAPTERS: dict[str, type[BaseAdapter]] = {
-    "mongodb": MongoDBAdapter,
-    "mysql": MySQLAdapter,
-    "mariadb": MySQLAdapter,  # MariaDB uses same adapter as MySQL
-}
+ADAPTERS: dict[str, type[Any]] = {}
 
 # Add Data Manager adapter if available
 if DATA_MANAGER_AVAILABLE:
@@ -29,12 +25,12 @@ if DATA_MANAGER_AVAILABLE:
 
 def get_adapter(
     adapter_type: str, connection_string: str | None = None, **kwargs
-) -> BaseAdapter:
+) -> Any:
     """
     Factory function to get the appropriate database adapter.
 
     Args:
-        adapter_type: Type of adapter ('mongodb', 'mysql', 'postgresql')
+        adapter_type: Type of adapter (only 'data_manager')
         connection_string: Database connection string
         **kwargs: Additional adapter-specific options
 
@@ -59,8 +55,6 @@ def get_adapter(
 __all__ = [
     "BaseAdapter",
     "DatabaseError",
-    "MongoDBAdapter",
-    "MySQLAdapter",
     "get_adapter",
     "ADAPTERS",
 ]

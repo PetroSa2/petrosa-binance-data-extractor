@@ -237,7 +237,7 @@ class TestPublishPersistFailedAlert:
 
 class TestRetryWithBackoffUsesClassifier:
     def test_retries_on_transient_error(self):
-        from jobs.extract_klines_production import retry_with_backoff
+        from jobs.extract_klines_gap_filler import retry_with_backoff
 
         call_count = 0
 
@@ -255,7 +255,7 @@ class TestRetryWithBackoffUsesClassifier:
         assert call_count == 3
 
     def test_does_not_retry_non_transient(self):
-        from jobs.extract_klines_production import retry_with_backoff
+        from jobs.extract_klines_gap_filler import retry_with_backoff
 
         call_count = 0
 
@@ -272,7 +272,7 @@ class TestRetryWithBackoffUsesClassifier:
         assert call_count == 1
 
     def test_raises_after_exhausting_transient_retries(self):
-        from jobs.extract_klines_production import retry_with_backoff
+        from jobs.extract_klines_gap_filler import retry_with_backoff
 
         def always_transient():
             raise ConnectionError("2013 connection lost")
