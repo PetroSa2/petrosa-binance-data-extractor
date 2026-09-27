@@ -1092,7 +1092,6 @@ DATA_MANAGER_DATABASE=mongodb
 
 # Legacy Database Configuration (Deprecated)
 # The extractor opens no database connection; data-manager owns persistence.
-# MONGODB_URI=mongodb://localhost:27017
 ```
 
 ### Quick Start Commands
