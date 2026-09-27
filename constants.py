@@ -101,11 +101,9 @@ KLINES_JOB_MAX_FAILURE_RATIO = float(os.getenv("KLINES_JOB_MAX_FAILURE_RATIO", "
 
 # MongoDB candles dual-write for the gap filler (#300).
 #
-# The gap filler historically only repaired the MySQL `klines_*` tables. The
-# execution read path (petrosa-bot-ta-analysis via petrosa-data-manager) now
-# serves candles from the Mongo `candles_{SYMBOL}_{timeframe}` namespace
-# established by data-manager#275, so a gap repaired in MySQL alone left the
-# strategy calculators starved.
+# The gap filler now sends repairs through data-manager. The execution read path
+# (petrosa-bot-ta-analysis via petrosa-data-manager) serves candles from the
+# Mongo `candles_{SYMBOL}_{timeframe}` namespace established by data-manager#275.
 #
 # This dual-write is deliberately OPT-IN and BOUNDED. data-manager#274/#287
 # established the standing rule for this namespace — never write to Mongo
@@ -117,7 +115,7 @@ KLINES_JOB_MAX_FAILURE_RATIO = float(os.getenv("KLINES_JOB_MAX_FAILURE_RATIO", "
 # CANDLES_DUAL_WRITE_ENABLED   - master off-switch (default OFF).
 # CANDLES_DUAL_WRITE_MAX_RECORDS_PER_RUN - hard per-process ceiling on the
 #   number of candle documents this job may mirror into Mongo. Once the budget
-#   is exhausted the job keeps filling MySQL gaps and skips the mirror.
+#   is exhausted the job keeps filling data-manager gaps and skips the mirror.
 # CANDLES_DUAL_WRITE_DATABASE  - Data Manager `database` routing value.
 # CANDLES_COLLECTION_PREFIX    - collection prefix, matches
 #   data_manager.db.repositories.candle_repository.mongo_collection_name.

@@ -178,8 +178,8 @@ BINANCE_API_SECRET=your_api_secret
 JWT_SECRET_KEY=your_jwt_secret
 
 # Data Extractor
-DB_ADAPTER=mysql
-MYSQL_URI=mysql+pymysql://username:password@localhost:3306/binance_data
+DB_ADAPTER=data_manager
+DATA_MANAGER_URL=http://petrosa-data-manager:80
 BINANCE_API_KEY=your_api_key
 BINANCE_API_SECRET=your_api_secret
 ```

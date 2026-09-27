@@ -1,6 +1,6 @@
 # Petrosa Binance Data Extractor
 
-**Historical cryptocurrency data extraction system with gap detection and multi-database support**
+**Historical cryptocurrency data extraction system with gap detection and data-manager integration**
 
 A production-ready batch processing system that extracts, validates, and stores historical market data from Binance. Supports klines (candlesticks), funding rates, and trades data with automatic gap detection and filling capabilities.
 
@@ -81,8 +81,8 @@ OTEL_NO_AUTO_INIT=1 ENVIRONMENT=testing ./venv/bin/pytest tests/ -v --cov=. --co
 | Service | Purpose | Input | Output | Status |
 |---------|---------|-------|--------|--------|
 | **petrosa-socket-client** | Real-time WebSocket data ingestion | Binance WebSocket API | NATS: `binance.websocket.data` | Real-time Processing |
-| **petrosa-binance-data-extractor** | Historical data extraction & gap filling | Binance REST API | MySQL (klines, funding rates, trades) | **YOU ARE HERE** |
-| **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | MySQL klines data | NATS: `signals.trading` | Signal Generation |
+| **petrosa-binance-data-extractor** | Historical data extraction & gap filling | Binance REST API | data-manager API (MongoDB) | **YOU ARE HERE** |
+| **petrosa-bot-ta-analysis** | Technical analysis (28 strategies) | data-manager API (MongoDB) | NATS: `signals.trading` | Signal Generation |
 | **petrosa-realtime-strategies** | Real-time signal generation | NATS: `binance.websocket.data` | NATS: `signals.trading` | Live Processing |
 | **petrosa-tradeengine** | Order execution & trade management | NATS: `signals.trading` | Binance Orders API, MongoDB audit | Order Execution |
 | **petrosa_k8s** | Centralized infrastructure | Kubernetes manifests | Cluster resources | Infrastructure |
@@ -111,22 +111,15 @@ OTEL_NO_AUTO_INIT=1 ENVIRONMENT=testing ./venv/bin/pytest tests/ -v --cov=. --co
 │ • Validate records   │
 │ • Parallel processing│
 └──────┬───────────────┘
-       │ MySQL INSERT (batch 2000 records)
+       │ data-manager API (batch 2000 records)
        │
        ▼
 ┌──────────────────────────────────────┐
-│       MySQL Database                  │
+│       data-manager API                │
 │                                      │
-│  Tables:                             │
-│  • symbol_klines_15m                 │
-│  • symbol_klines_1h                  │
-│  • symbol_klines_1d                  │
-│  • symbol_funding_rates              │
-│  • symbol_trades                     │
-│                                      │
-│  Indexes:                            │
-│  • (symbol, open_time) UNIQUE        │
-│  • (symbol, timestamp)               │
+│  MongoDB operational collections     │
+│  Historic MySQL copy kept by         │
+│  data-manager                        │
 └──────┬───────────────────────────────┘
        │
        ▼
@@ -181,19 +174,13 @@ GET https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&startTim
 
 #### Database Storage
 
-**Supported Databases:**
-- **MySQL** (Primary) - Production use
-- **MongoDB** - Alternative storage
-- **PostgreSQL** - Future support
+**Supported Storage:**
+- **`data_manager` (production):** writes through the data-manager API; the extractor opens no database connection.
 
-**Connection Patterns:**
-```python
-# MySQL (via SQLAlchemy)
-mysql+pymysql://user:password@host:3306/database
+**Connection Pattern:** configure `DATA_MANAGER_URL`; the extractor does not open a database connection.
 
-# MongoDB (via Motor)
-mongodb://user:password@host:27017/database
-```
+The data-manager is the only service that connects to any database. MongoDB is the operational store;
+data-manager may maintain a historic MySQL copy.
 
 ### Shared Data Contracts
 
@@ -239,31 +226,6 @@ class KlineModel(BaseModel):
             Decimal: str,
             datetime: lambda v: v.isoformat()
         }
-```
-
-**Database Schema (MySQL):**
-```sql
-CREATE TABLE symbol_klines_15m (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    symbol VARCHAR(20) NOT NULL,
-    open_time DATETIME(3) NOT NULL,
-    close_time DATETIME(3) NOT NULL,
-    open_price DECIMAL(20, 8) NOT NULL,
-    high_price DECIMAL(20, 8) NOT NULL,
-    low_price DECIMAL(20, 8) NOT NULL,
-    close_price DECIMAL(20, 8) NOT NULL,
-    volume DECIMAL(20, 8) NOT NULL,
-    quote_asset_volume DECIMAL(20, 8) NOT NULL,
-    number_of_trades INT NOT NULL,
-    taker_buy_base_asset_volume DECIMAL(20, 8) NOT NULL,
-    taker_buy_quote_asset_volume DECIMAL(20, 8) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_symbol_time (symbol, open_time),
-    KEY idx_symbol (symbol),
-    KEY idx_open_time (open_time),
-    KEY idx_symbol_time (symbol, open_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 #### Funding Rate Model
@@ -422,12 +384,12 @@ spec:
             - 15m
             env:
             - name: DB_ADAPTER
-              value: "mysql"
-            - name: MYSQL_URI
+              value: "data_manager"
+            - name: DATA_MANAGER_URL
               valueFrom:
                 secretKeyRef:
                   name: petrosa-sensitive-credentials
-                  key: MYSQL_URI
+                  key: DATA_MANAGER_URL
           restartPolicy: OnFailure
 ```
 
@@ -612,7 +574,7 @@ def main():
     symbols = args.symbols.split(",")
 
     # Initialize database adapter
-    adapter = get_adapter(constants.DB_ADAPTER, constants.MYSQL_URI)
+    adapter = get_data_manager_client(constants.DATA_MANAGER_URL)
 
     # Initialize fetcher
     fetcher = KlinesFetcher(
@@ -908,7 +870,7 @@ class KlinesFetcher:
 **Efficient Batch Inserts:**
 
 ```python
-class MySQLAdapter(BaseAdapter):
+class DataManagerClient:
     """MySQL database adapter with batch insert optimization."""
 
     def __init__(self, connection_string: str):
@@ -1000,8 +962,8 @@ class MySQLAdapter(BaseAdapter):
 | `BINANCE_API_URL` | `https://api.binance.com` | Binance REST API URL |
 | `BINANCE_FUTURES_API_URL` | `https://fapi.binance.com` | Binance Futures API URL |
 | `DEFAULT_SYMBOLS` | `BTCUSDT,ETHUSDT,BNBUSDT` | Default symbols to extract |
-| `DB_ADAPTER` | `mysql` | Database adapter (mysql, mongodb, postgresql) |
-| `MYSQL_URI` | `mysql://user:pass@localhost:3306/db` | MySQL connection string |
+| `DB_ADAPTER` | `data_manager` | Persistence API adapter |
+| `DATA_MANAGER_URL` | `http://petrosa-data-manager:80` | Data-manager API URL |
 | `DB_BATCH_SIZE` | `2000` | Batch size for inserts |
 | `MAX_WORKERS` | `4` | Parallel extraction workers |
 | `API_RATE_LIMIT` | `1200` | API rate limit (requests/min) |
@@ -1074,9 +1036,8 @@ print(f"Last kline at: {last_time}")
    - Check `API_RATE_LIMIT` setting
 
 2. **Database Connection Issues**
-   - Verify `MYSQL_URI` credentials
-   - Check connection pool settings
-   - Test connectivity: `mysql -h host -u user -p`
+   - Verify `DATA_MANAGER_URL`
+   - Test connectivity: `curl "$DATA_MANAGER_URL/health"`
 
 3. **Missing Data Gaps**
    - Run gap filler: `python -m jobs.extract_klines_gap_filler`
@@ -1130,8 +1091,7 @@ DATA_MANAGER_MAX_RETRIES=3
 DATA_MANAGER_DATABASE=mongodb
 
 # Legacy Database Configuration (Deprecated)
-# MYSQL_URI=mysql://user:pass@localhost:3306
-# MONGODB_URI=mongodb://localhost:27017
+# The extractor opens no database connection; data-manager owns persistence.
 ```
 
 ### Quick Start Commands
