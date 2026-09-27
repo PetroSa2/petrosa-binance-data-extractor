@@ -27,9 +27,7 @@ def client():
 def mock_config_manager():
     """Mock configuration manager."""
     mock_manager = Mock()
-    mock_manager.get_symbols = AsyncMock(
-        return_value=["BTCUSDT", "ETHUSDT", "BNBUSDT"]
-    )
+    mock_manager.get_symbols = AsyncMock(return_value=["BTCUSDT", "ETHUSDT", "BNBUSDT"])
     mock_manager.set_symbols = AsyncMock()
     mock_manager.get_rate_limits = AsyncMock(
         return_value={"requests_per_minute": 1200, "concurrent_requests": 5}
@@ -380,7 +378,9 @@ class TestRateLimitsEndpoints:
         self, mock_get_manager, client, mock_config_manager
     ):
         """Test updating rate limits with error."""
-        mock_config_manager.set_rate_limits = AsyncMock(side_effect=Exception("DB error"))
+        mock_config_manager.set_rate_limits = AsyncMock(
+            side_effect=Exception("DB error")
+        )
         mock_get_manager.return_value = mock_config_manager
 
         response = client.post(

@@ -24,7 +24,9 @@ async def test_get_symbols_returns_stored_value():
     def handler(request):
         return httpx.Response(200, json={"value": ["BTCUSDT"]})
 
-    with patch("services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)):
+    with patch(
+        "services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)
+    ):
         assert await ConfigManager().get_symbols() == ["BTCUSDT"]
 
 
@@ -42,7 +44,9 @@ async def test_get_symbols_unreachable_logs_and_returns_default(caplog):
     def handler(request):
         raise httpx.ConnectError("data-manager down", request=request)
 
-    with patch("services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)):
+    with patch(
+        "services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)
+    ):
         with caplog.at_level("ERROR"):
             result = await ConfigManager().get_symbols()
     assert result == constants.DEFAULT_SYMBOLS
@@ -61,7 +65,9 @@ async def test_set_symbols_sends_audited_value():
         }
         return httpx.Response(200, json={"value": ["BTCUSDT"]})
 
-    with patch("services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)):
+    with patch(
+        "services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)
+    ):
         await ConfigManager().set_symbols(["BTCUSDT"], "tester", "why")
 
 
@@ -80,7 +86,9 @@ async def test_rate_limits_defaults_and_setter():
         }
         return httpx.Response(200, json={})
 
-    with patch("services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)):
+    with patch(
+        "services.config_manager.httpx.AsyncClient", lambda **_: client_for(handler)
+    ):
         manager = ConfigManager()
         assert await manager.get_rate_limits() == {
             "requests_per_minute": constants.API_RATE_LIMIT_PER_MINUTE,
