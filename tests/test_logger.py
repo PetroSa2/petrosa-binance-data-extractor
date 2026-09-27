@@ -422,7 +422,7 @@ class TestSetupLogging:
         import logging as stdlib_logging
 
         setup_logging(level="INFO", format_type="json")
-        for name in ("urllib3", "requests", "pymongo", "sqlalchemy"):
+        for name in ("urllib3", "requests"):
             assert stdlib_logging.getLogger(name).level == stdlib_logging.WARNING
 
     def test_bound_logger_carries_service_metadata(self):

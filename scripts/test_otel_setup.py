@@ -74,8 +74,6 @@ def test_instrumentation_packages():
         "opentelemetry.sdk",
         "opentelemetry.exporter.otlp.proto.grpc.trace_exporter",
         "opentelemetry.instrumentation.requests",
-        "opentelemetry.instrumentation.pymongo",
-        "opentelemetry.instrumentation.sqlalchemy",
         "opentelemetry.instrumentation.logging",
         "opentelemetry.instrumentation.urllib3",
     ]

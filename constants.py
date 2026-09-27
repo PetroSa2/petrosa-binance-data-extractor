@@ -59,7 +59,6 @@ NATS_ENABLED = os.getenv("NATS_ENABLED", "false").lower() == "true"
 DATA_MANAGER_URL = os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:80")
 DATA_MANAGER_TIMEOUT = int(os.getenv("DATA_MANAGER_TIMEOUT", "30"))
 DATA_MANAGER_MAX_RETRIES = int(os.getenv("DATA_MANAGER_MAX_RETRIES", "3"))
-DATA_MANAGER_DATABASE = os.getenv("DATA_MANAGER_DATABASE", "mongodb")
 
 # Per-symbol extraction retry (k8s#280): a single symbol hitting a transient
 # error (Binance rate-limit/5xx already-retried-and-exhausted, or a
@@ -131,14 +130,8 @@ CANDLES_DUAL_WRITE_MAX_RECORDS_PER_RUN = int(
 CANDLES_DUAL_WRITE_DATABASE = os.getenv("CANDLES_DUAL_WRITE_DATABASE", "mongodb")
 CANDLES_COLLECTION_PREFIX = os.getenv("CANDLES_COLLECTION_PREFIX", "candles")
 
-# Legacy database configuration (deprecated - use DATA_MANAGER_URL instead)
-# Per #294, the direct MySQL adapter remains in use by the klines gap-filler
-# until PetroSa2/petrosa_k8s#1065 flips its CronJob to the data-manager gateway.
-# Klines retention runs in data-manager; this repo no longer owns that job.
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-MYSQL_URI = os.getenv("MYSQL_URI", "mysql://user:pass@localhost:3306")
-POSTGRESQL_URI = os.getenv("POSTGRESQL_URI", "postgresql://user:pass@localhost:5432")
-DB_ADAPTER = os.getenv("DB_ADAPTER", "mysql")
+# All persistence is delegated to data-manager; callers cannot select a store.
+DB_ADAPTER = os.getenv("DB_ADAPTER", "data_manager")
 DB_BATCH_SIZE = int(os.getenv("DB_BATCH_SIZE", "2000"))
 
 # Extraction settings

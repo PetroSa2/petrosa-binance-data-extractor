@@ -18,6 +18,7 @@ from urllib3.util.retry import Retry
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+_OPERATIONAL_DB = "mongodb"
 
 
 class APIError(Exception):
@@ -71,6 +72,33 @@ class BaseDataManagerClient:
         payload = {"database": database, "collection": collection, "records": records}
         try:
             response = self.session.post(url, json=payload, timeout=self.timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout as e:
+            raise TimeoutError(f"Request timed out: {e}")
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(f"Connection failed: {e}")
+        except requests.exceptions.HTTPError as e:
+            raise APIError(f"API error: {e}")
+
+    def ingest_klines(self, symbol: str, interval: str, klines: list[dict]) -> dict:
+        """Insert klines through data-manager's typed ingest contract."""
+        return self._post_json(
+            "/api/v1/ingest/klines",
+            {"symbol": symbol, "interval": interval, "klines": klines},
+        )
+
+    def ingest_funding(self, symbol: str, rates: list[dict]) -> dict:
+        """Insert funding rates through data-manager's typed ingest contract."""
+        return self._post_json(
+            "/api/v1/ingest/funding", {"symbol": symbol, "rates": rates}
+        )
+
+    def _post_json(self, path: str, payload: dict[str, Any]) -> dict:
+        try:
+            response = self.session.post(
+                f"{self.base_url}{path}", json=payload, timeout=self.timeout
+            )
             response.raise_for_status()
             return response.json()
         except requests.exceptions.Timeout as e:
@@ -201,11 +229,7 @@ class DataManagerClient:
         logger.info(f"Initialized Data Manager client: {self.base_url}")
 
     async def insert_klines(
-        self,
-        symbol: str,
-        interval: str,
-        klines_data: list[dict[str, Any]],
-        database: str = "mongodb",
+        self, symbol: str, interval: str, klines_data: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """
         Insert klines data into the data manager.
@@ -214,7 +238,6 @@ class DataManagerClient:
             symbol: Trading symbol (e.g., 'BTCUSDT')
             interval: Kline interval (e.g., '15m', '1h')
             klines_data: List of kline records to insert
-            database: Target database ('mongodb' or 'mysql')
 
         Returns:
             Insert result with count of inserted records
@@ -236,11 +259,7 @@ class DataManagerClient:
                 f"Inserting {len(klines_data)} klines for {symbol} ({interval})"
             )
 
-            result = self._client.insert(
-                database=database,
-                collection=collection_name,
-                records=klines_data,
-            )
+            result = self._client.ingest_klines(symbol, interval, klines_data)
             if isawaitable(result):
                 result = await result
 
@@ -263,10 +282,7 @@ class DataManagerClient:
             raise
 
     async def insert_funding_rates(
-        self,
-        symbol: str,
-        funding_data: list[dict[str, Any]],
-        database: str = "mongodb",
+        self, symbol: str, funding_data: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """
         Insert funding rates data into the data manager.
@@ -274,7 +290,6 @@ class DataManagerClient:
         Args:
             symbol: Trading symbol (e.g., 'BTCUSDT')
             funding_data: List of funding rate records to insert
-            database: Target database ('mongodb' or 'mysql')
 
         Returns:
             Insert result with count of inserted records
@@ -288,11 +303,7 @@ class DataManagerClient:
         try:
             logger.info(f"Inserting {len(funding_data)} funding rates for {symbol}")
 
-            result = self._client.insert(
-                database=database,
-                collection=collection_name,
-                records=funding_data,
-            )
+            result = self._client.ingest_funding(symbol, funding_data)
             if isawaitable(result):
                 result = await result
 
@@ -327,7 +338,7 @@ class DataManagerClient:
         try:
             # Query for the latest record
             result = self._client.query(
-                database=database,
+                database=_OPERATIONAL_DB,
                 collection=collection_name,
                 params={
                     "filter": {"symbol": symbol},
@@ -408,7 +419,7 @@ class DataManagerClient:
             # filter only — see docstring above), then window/sort them
             # client-side.
             result = self._client.query(
-                database=database,
+                database=_OPERATIONAL_DB,
                 collection=collection_name,
                 params={
                     "filter": {"symbol": symbol},

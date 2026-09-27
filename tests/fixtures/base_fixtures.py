@@ -50,7 +50,6 @@ def mock_environment_variables():
         "ENVIRONMENT": "testing",
         "LOG_LEVEL": "DEBUG",
         "OTEL_NO_AUTO_INIT": "1",
-        "MONGODB_URI": "mongodb://localhost:27017/test_petrosa",
         "MYSQL_HOST": "localhost",
         "MYSQL_PORT": "3306",
         "MYSQL_USER": "test_user",
@@ -294,54 +293,6 @@ def mock_requests_session():
     session.request = Mock(return_value=mock_response)
 
     return session
-
-
-@pytest.fixture
-def mock_pymongo_client():
-    """Mock PyMongo client with realistic MongoDB behavior."""
-    client = Mock()
-    database = Mock()
-    collection = Mock()
-
-    # Mock collection operations
-    collection.insert_many = Mock(return_value=Mock(inserted_ids=[1, 2, 3]))
-    collection.find = Mock(return_value=[])
-    collection.count_documents = Mock(return_value=0)
-    collection.create_index = Mock()
-    collection.delete_many = Mock(return_value=Mock(deleted_count=0))
-
-    # Mock database and client hierarchy
-    database.__getitem__ = Mock(return_value=collection)
-    client.__getitem__ = Mock(return_value=database)
-    client.close = Mock()
-
-    return client
-
-
-@pytest.fixture
-def mock_pymysql_connection():
-    """Mock PyMySQL connection with realistic MySQL behavior."""
-    connection = Mock()
-    cursor = Mock()
-
-    # Mock cursor operations
-    cursor.execute = Mock()
-    cursor.executemany = Mock()
-    cursor.fetchall = Mock(return_value=[])
-    cursor.fetchone = Mock(return_value=None)
-    cursor.rowcount = 0
-    cursor.close = Mock()
-
-    # Mock connection context manager
-    cursor_context = Mock()
-    cursor_context.__enter__ = Mock(return_value=cursor)
-    cursor_context.__exit__ = Mock(return_value=None)
-    connection.cursor = Mock(return_value=cursor_context)
-    connection.commit = Mock()
-    connection.rollback = Mock()
-    connection.close = Mock()
-
-    return connection
 
 
 @pytest.fixture

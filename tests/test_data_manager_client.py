@@ -87,6 +87,62 @@ class TestBaseDataManagerClient:
                 client.insert("mongodb", "test_collection", [{"id": 1}])
             assert exc_info.value is not None
 
+    def test_typed_klines_ingest_posts_without_database(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        response = Mock()
+        response.json.return_value = {"upserted": 1}
+        response.raise_for_status = Mock()
+        with patch.object(client.session, "post", return_value=response) as post:
+            result = client.ingest_klines("BTCUSDT", "5m", [{"close": 1}])
+        assert result["upserted"] == 1
+        assert post.call_args.kwargs["json"] == {
+            "symbol": "BTCUSDT",
+            "interval": "5m",
+            "klines": [{"close": 1}],
+        }
+
+    def test_typed_funding_ingest_posts_without_database(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        response = Mock()
+        response.json.return_value = {"inserted": 1}
+        response.raise_for_status = Mock()
+        with patch.object(client.session, "post", return_value=response) as post:
+            result = client.ingest_funding("BTCUSDT", [{"rate": 1}])
+        assert result["inserted"] == 1
+        assert post.call_args.kwargs["json"] == {
+            "symbol": "BTCUSDT",
+            "rates": [{"rate": 1}],
+        }
+
+    def test_typed_ingest_timeout_is_wrapped(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        with patch.object(
+            client.session, "post", side_effect=requests.exceptions.Timeout("Timeout")
+        ):
+            with pytest.raises(TimeoutError) as exc_info:
+                client.ingest_klines("BTCUSDT", "5m", [])
+        assert "Request timed out" in str(exc_info.value)
+
+    def test_typed_ingest_connection_error_is_wrapped(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        with patch.object(
+            client.session,
+            "post",
+            side_effect=requests.exceptions.ConnectionError("refused"),
+        ):
+            with pytest.raises(ConnectionError) as exc_info:
+                client.ingest_funding("BTCUSDT", [])
+        assert "Connection failed" in str(exc_info.value)
+
+    def test_typed_ingest_http_error_is_wrapped(self):
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        response = Mock()
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError("500")
+        with patch.object(client.session, "post", return_value=response):
+            with pytest.raises(APIError) as exc_info:
+                client.ingest_klines("BTCUSDT", "5m", [])
+        assert "API error" in str(exc_info.value)
+
     def test_insert_connection_error(self):
         """Test insert with connection error."""
         client = BaseDataManagerClient(base_url="http://localhost:8000")
@@ -360,6 +416,26 @@ class TestChaos:
 
             # Should return the response even if unexpected
             assert result["status"] == "error"
+
+
+class TestTypedIngest:
+    @pytest.mark.asyncio
+    async def test_klines_ingest_omits_database_field(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        with patch.object(client._client, "ingest_klines") as ingest:
+            ingest.return_value = {"inserted_count": 1}
+            result = await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
+        assert result["inserted_count"] == 1
+        ingest.assert_called_once_with("BTCUSDT", "5m", [{"close": 1}])
+
+    @pytest.mark.asyncio
+    async def test_funding_ingest_omits_database_field(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        with patch.object(client._client, "ingest_funding") as ingest:
+            ingest.return_value = {"inserted_count": 1}
+            result = await client.insert_funding_rates("BTCUSDT", [{"rate": 1}])
+        assert result["inserted_count"] == 1
+        ingest.assert_called_once_with("BTCUSDT", [{"rate": 1}])
 
 
 class TestDataManagerClientFindGaps:

@@ -195,50 +195,6 @@ class TestMessagingFunctions:
 class TestNATSMessagingIntegration:
     """Test NATS messaging integration with extraction jobs."""
 
-    @patch("utils.messaging.publish_extraction_completion_sync")
-    def test_nats_messaging_in_extraction_job(self, mock_publish):
-        """Test that NATS messaging is called during extraction."""
-        # Import the extraction function
-        from jobs.extract_klines import extract_klines_for_symbol
-
-        # Mock dependencies
-        mock_fetcher = Mock()
-        mock_fetcher.fetch_klines.return_value = [Mock(), Mock()]  # 2 klines
-
-        mock_db_adapter = Mock()
-        mock_db_adapter.query_latest.return_value = []
-        mock_db_adapter.write_batch.return_value = 2
-        mock_db_adapter.find_gaps.return_value = []
-
-        mock_args = Mock()
-        mock_args.incremental = False
-        mock_args.dry_run = False
-        mock_args.batch_size = 1000
-        mock_args.check_gaps = True
-        mock_args.limit = None
-
-        mock_logger = Mock()
-
-        # Call the extraction function
-        result = extract_klines_for_symbol(
-            symbol="BTCUSDT",
-            period="15m",
-            start_date=None,
-            end_date=None,
-            fetcher=mock_fetcher,
-            db_adapter=mock_db_adapter,
-            args=mock_args,
-            logger=mock_logger,
-        )
-
-        # Verify the result
-        assert result["success"] is True
-        assert result["records_fetched"] == 2
-        assert result["records_written"] == 2
-
-        # Note: The actual NATS messaging is called in the main function,
-        # not in extract_klines_for_symbol, so we don't test it here
-
 
 class TestSyncWrappers:
     """Drive the async wrappers' real event-loop logic, not just the mock."""

@@ -7,6 +7,8 @@ import os
 import sys
 from unittest.mock import Mock, patch
 
+import pytest
+
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -20,7 +22,7 @@ class TestParseArguments:
             args = extract_funding.parse_arguments()
             assert args.limit == 1000
             assert args.current_only is False
-            assert args.db_adapter in ["mongodb", "mysql"]
+            assert args.db_adapter == "data_manager"
             assert args.batch_size == extract_funding.constants.DB_BATCH_SIZE
             assert args.log_level == extract_funding.constants.LOG_LEVEL
             assert args.dry_run is False
@@ -50,17 +52,20 @@ class TestParseArguments:
                 "--dry-run",
             ],
         ):
+            with pytest.raises(SystemExit) as exc_info:
+                extract_funding.parse_arguments()
+            assert exc_info.value.code == 2
+
+    def test_legacy_adapter_is_rejected(self):
+        with patch("sys.argv", ["extract_funding.py", "--db-adapter", "mysql"]):
+            with pytest.raises(SystemExit) as exc_info:
+                extract_funding.parse_arguments()
+            assert exc_info.value.code == 2
+
+    def test_custom_arguments_data_manager(self):
+        with patch("sys.argv", ["extract_funding.py", "--db-adapter", "data_manager"]):
             args = extract_funding.parse_arguments()
-            assert args.symbol == "BTCUSDT"
-            assert args.start_date == "2024-01-01"
-            assert args.end_date == "2024-01-02"
-            assert args.limit == 500
-            assert args.current_only is True
-            assert args.db_adapter == "mysql"
-            assert args.db_uri == "mysql://test"
-            assert args.batch_size == 50
-            assert args.log_level == "DEBUG"
-            assert args.dry_run is True
+            assert args.db_adapter == "data_manager"
 
 
 class TestMain:
@@ -147,7 +152,7 @@ class TestMain:
         mock_args.end_date = None
         mock_args.limit = 1000
         mock_args.current_only = True
-        mock_args.db_adapter = "mysql"
+        mock_args.db_adapter = "data_manager"
         mock_args.db_uri = None
         mock_args.batch_size = 100
         mock_args.log_level = "INFO"
@@ -164,7 +169,7 @@ class TestMain:
 
         exit_code = self._run_main_and_catch_exit()
         assert exit_code == 0
-        assert any(
+        assert not any(
             "DEPRECATED" in call.args[0] for call in mock_logger.warning.call_args_list
         )
 

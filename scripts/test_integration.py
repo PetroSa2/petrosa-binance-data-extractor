@@ -17,8 +17,7 @@ def test_job_telemetry_setup():
     print("🧪 Testing Job Telemetry Setup...")
 
     jobs = [
-        "jobs.extract_klines_production",
-        "jobs.extract_klines",
+        "jobs.extract_klines_data_manager",
         "jobs.extract_funding",
     ]
 

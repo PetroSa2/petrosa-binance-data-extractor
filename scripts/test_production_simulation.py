@@ -149,8 +149,7 @@ class ProductionEnvironmentSimulator:
         print("\n🏃‍♂️ Testing job readiness...")
 
         jobs = [
-            ("Klines Production", "jobs.extract_klines_production"),
-            ("Klines Manual", "jobs.extract_klines"),
+            ("Klines Data Manager", "jobs.extract_klines_data_manager"),
             ("Funding Rates", "jobs.extract_funding"),
         ]
 

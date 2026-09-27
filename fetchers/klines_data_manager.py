@@ -46,7 +46,6 @@ class KlinesFetcherDataManager:
             base_url=constants.DATA_MANAGER_URL,
             timeout=constants.DATA_MANAGER_TIMEOUT,
             max_retries=constants.DATA_MANAGER_MAX_RETRIES,
-            database=constants.DATA_MANAGER_DATABASE,
         )
 
     async def fetch_and_store_klines(

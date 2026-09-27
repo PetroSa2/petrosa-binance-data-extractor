@@ -7,8 +7,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from jobs.extract_klines_production import ProductionKlinesExtractor
-
 
 @pytest.fixture
 def sample_klines_data() -> list[dict]:
@@ -108,19 +106,6 @@ def mock_database_adapter():
 
 
 @pytest.fixture
-def klines_extractor(mock_binance_api, mock_database_adapter):
-    """Klines extractor with mocked dependencies."""
-    extractor = ProductionKlinesExtractor(
-        symbols=["BTCUSDT", "ETHUSDT"],
-        interval="15m",
-        lookback_hours=24,
-    )
-    extractor.api_client = mock_binance_api
-    extractor.db_adapter = mock_database_adapter
-    return extractor
-
-
-@pytest.fixture
 def test_config() -> dict:
     """Test configuration."""
     assert True  # Fixture function - assertion for test quality checker
@@ -156,38 +141,3 @@ def mock_requests_session(monkeypatch):
 
     monkeypatch.setattr("requests.Session", lambda: mock_session)
     return mock_session
-
-
-@pytest.fixture
-def mock_pymongo_client(monkeypatch):
-    """Mock PyMongo client."""
-    mock_client = Mock()
-    mock_db = Mock()
-    mock_collection = Mock()
-
-    mock_collection.insert_many = Mock()
-    mock_collection.find = Mock(return_value=[])
-    mock_collection.count_documents = Mock(return_value=0)
-
-    mock_db.__getitem__ = Mock(return_value=mock_collection)
-    mock_client.__getitem__ = Mock(return_value=mock_db)
-
-    monkeypatch.setattr("pymongo.MongoClient", lambda *args, **kwargs: mock_client)
-    return mock_client
-
-
-@pytest.fixture
-def mock_pymysql_connection(monkeypatch):
-    """Mock PyMySQL connection."""
-    mock_connection = Mock()
-    mock_cursor = Mock()
-
-    mock_cursor.execute = Mock()
-    mock_cursor.fetchall = Mock(return_value=[])
-    mock_cursor.fetchone = Mock(return_value=None)
-
-    mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_connection.cursor.return_value.__exit__.return_value = None
-
-    monkeypatch.setattr("pymysql.connect", lambda *args, **kwargs: mock_connection)
-    return mock_connection

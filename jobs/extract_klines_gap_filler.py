@@ -56,8 +56,8 @@ try:
         setup_telemetry(
             service_name=service_name,
             service_type="cronjob",
-            enable_mysql=True,
-            enable_mongodb=True,
+            enable_mysql=False,
+            enable_mongodb=False,
             auto_attach_logging=True,
         )
 except ImportError:
@@ -712,21 +712,7 @@ class GapFillerExtractor:
         }
 
         def _process_symbol():
-            db_uri = self.db_uri
-            if not db_uri:
-                if self.db_adapter_name == "mysql":
-                    db_uri = constants.MYSQL_URI
-                elif self.db_adapter_name == "mongodb":
-                    db_uri = constants.MONGODB_URI
-                elif self.db_adapter_name == "postgresql":
-                    db_uri = constants.POSTGRESQL_URI
-                elif self.db_adapter_name == "data_manager":
-                    db_uri = constants.DATA_MANAGER_URL
-
-                if not db_uri:
-                    raise ValueError(
-                        f"No database URI available for adapter: {self.db_adapter_name}"
-                    )
+            db_uri = self.db_uri or constants.DATA_MANAGER_URL
 
             db_adapter = get_adapter(self.db_adapter_name, db_uri)
 
@@ -1138,7 +1124,7 @@ Examples:
     parser.add_argument(
         "--db-adapter",
         type=str,
-        choices=["mongodb", "mysql", "postgresql", "data_manager"],
+        choices=["data_manager"],
         default=constants.DB_ADAPTER,
         help="Database adapter to use",
     )
@@ -1247,27 +1233,7 @@ def _main_impl():
             backfill=True,
         )
 
-        if args.db_adapter in ("mysql", "mariadb"):
-            logger.warning(
-                "DEPRECATED: klines_gap_filler is using the direct MySQL adapter "
-                "(--db-adapter=%s). This path is being retired per #294 in favor "
-                "of --db-adapter=data_manager; update the deployed cronjob args.",
-                args.db_adapter,
-            )
-
-        db_uri = args.db_uri
-        if db_uri is None:
-            if args.db_adapter == "mysql":
-                db_uri = constants.MYSQL_URI
-            elif args.db_adapter == "mongodb":
-                db_uri = constants.MONGODB_URI
-            elif args.db_adapter == "postgresql":
-                db_uri = constants.POSTGRESQL_URI
-            elif args.db_adapter == "data_manager":
-                db_uri = constants.DATA_MANAGER_URL
-            else:
-                logger.error(f"No database URI found for adapter: {args.db_adapter}")
-                sys.exit(1)
+        db_uri = args.db_uri or constants.DATA_MANAGER_URL
 
         logger.info(f"Using database adapter: {args.db_adapter}")
         logger.info(f"Database URI configured: {'Yes' if db_uri else 'No'}")
