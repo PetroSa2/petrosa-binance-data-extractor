@@ -130,7 +130,7 @@ async def get_symbols():
     """
     try:
         config_manager = get_config_manager()
-        symbols = config_manager.get_symbols()
+        symbols = await config_manager.get_symbols()
 
         return APIResponse(
             success=True,
@@ -171,7 +171,9 @@ async def update_symbols(request: SymbolsUpdate):
                 )
 
         config_manager = get_config_manager()
-        config_manager.set_symbols(request.symbols, request.changed_by, request.reason)
+        await config_manager.set_symbols(
+            request.symbols, request.changed_by, request.reason
+        )
 
         # TODO: Update all CronJobs with new symbol list
 
@@ -199,7 +201,7 @@ async def get_rate_limits():
     """
     try:
         config_manager = get_config_manager()
-        limits = config_manager.get_rate_limits()
+        limits = await config_manager.get_rate_limits()
 
         return APIResponse(
             success=True,
@@ -232,7 +234,7 @@ async def update_rate_limits(request: RateLimitsUpdate):
     """
     try:
         config_manager = get_config_manager()
-        config_manager.set_rate_limits(
+        await config_manager.set_rate_limits(
             request.requests_per_minute,
             request.concurrent_requests,
             request.changed_by,
