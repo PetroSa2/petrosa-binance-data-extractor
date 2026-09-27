@@ -392,8 +392,9 @@ class TestParseArguments:
                 "--dry-run",
             ],
         ):
-            with pytest.raises(SystemExit):
+            with pytest.raises(SystemExit) as exc_info:
                 gap_filler.parse_arguments()
+            assert exc_info.value.code == 2
 
 
 class TestMainFunction:

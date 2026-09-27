@@ -52,13 +52,15 @@ class TestParseArguments:
                 "--dry-run",
             ],
         ):
-            with pytest.raises(SystemExit):
+            with pytest.raises(SystemExit) as exc_info:
                 extract_funding.parse_arguments()
+            assert exc_info.value.code == 2
 
     def test_legacy_adapter_is_rejected(self):
         with patch("sys.argv", ["extract_funding.py", "--db-adapter", "mysql"]):
-            with pytest.raises(SystemExit):
+            with pytest.raises(SystemExit) as exc_info:
                 extract_funding.parse_arguments()
+            assert exc_info.value.code == 2
 
     def test_custom_arguments_data_manager(self):
         with patch("sys.argv", ["extract_funding.py", "--db-adapter", "data_manager"]):
