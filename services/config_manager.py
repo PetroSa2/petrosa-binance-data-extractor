@@ -1,168 +1,96 @@
-"""
-Configuration manager for data extractor settings.
-
-Persists configuration to MongoDB and provides access to runtime settings.
-"""
+"""Configuration manager for data extractor settings."""
 
 import logging
-from datetime import datetime, timezone
+from typing import Any
 
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-
-    UTC = timezone.utc  # noqa: UP017
-from typing import Any, Dict, List, Optional
+import httpx
 
 import constants
-from db.mongodb_adapter import MongoDBAdapter
 
 logger = logging.getLogger(__name__)
 
 
 class ConfigManager:
-    """Manages configuration persistence in MongoDB."""
+    """Manage runtime configuration through data-manager."""
 
-    def __init__(self, mongodb_uri: Optional[str] = None):
-        """
-        Initialize configuration manager.
+    SERVICE = "binance-data-extractor"
 
-        Args:
-            mongodb_uri: MongoDB connection string (defaults to constants.MONGODB_URI)
-        """
-        self.mongodb_uri = mongodb_uri or constants.MONGODB_URI
-        self.adapter: Optional[MongoDBAdapter] = None
-        self.collection_name = "data_extractor_config"
+    def _client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(base_url=constants.DATA_MANAGER_URL, timeout=5.0)
 
-    def connect(self):
-        """Connect to MongoDB."""
-        if not self.adapter:
-            self.adapter = MongoDBAdapter(
-                self.mongodb_uri, database_name="petrosa_config"
+    async def _get_value(self, key: str, default: Any) -> Any:
+        try:
+            async with self._client() as client:
+                response = await client.get(
+                    f"/api/v1/config/services/{self.SERVICE}/keys/{key}"
+                )
+            if response.status_code == 404:
+                return default
+            response.raise_for_status()
+            return response.json().get("value", default)
+        except httpx.RequestError as exc:
+            logger.error("Data-manager unavailable while reading %s: %s", key, exc)
+            return default
+
+    async def _set_value(
+        self, key: str, value: Any, changed_by: str, reason: str | None
+    ) -> None:
+        async with self._client() as client:
+            response = await client.put(
+                f"/api/v1/config/services/{self.SERVICE}/keys/{key}",
+                json={"value": value, "changed_by": changed_by, "reason": reason},
             )
-            self.adapter.connect()
-            logger.info("Connected to MongoDB for configuration storage")
+        response.raise_for_status()
 
-    def disconnect(self):
-        """Disconnect from MongoDB."""
-        if self.adapter:
-            self.adapter.disconnect()
-            self.adapter = None
-            logger.info("Disconnected from MongoDB")
+    async def get_symbols(self) -> list[str]:
+        """Get configured symbols, falling back safely when unavailable."""
+        return await self._get_value("symbols", constants.DEFAULT_SYMBOLS)
 
-    def get_symbols(self) -> list[str]:
-        """Get currently configured symbols for extraction."""
-        self.connect()
-        try:
-            config = self._get_config("symbols")
-            if config:
-                return config.get("value", constants.DEFAULT_SYMBOLS)
-            return constants.DEFAULT_SYMBOLS
-        except Exception as e:
-            logger.error(f"Error getting symbols: {e}")
-            return constants.DEFAULT_SYMBOLS
+    async def set_symbols(
+        self, symbols: list[str], changed_by: str, reason: str | None = None
+    ) -> None:
+        """Update symbols through data-manager with an audit record."""
+        await self._set_value("symbols", symbols, changed_by, reason)
 
-    def set_symbols(
-        self, symbols: list[str], changed_by: str, reason: Optional[str] = None
-    ):
-        """Update symbols for extraction."""
-        self.connect()
-        try:
-            self._set_config(
-                "symbols",
-                {"value": symbols, "changed_by": changed_by, "reason": reason},
-            )
-            logger.info(f"Updated extraction symbols: {symbols}")
-        except Exception as e:
-            logger.error(f"Error setting symbols: {e}")
-            raise
+    async def get_rate_limits(self) -> dict[str, Any]:
+        """Get configured rate limits, falling back to service defaults."""
+        defaults = {
+            "requests_per_minute": constants.API_RATE_LIMIT_PER_MINUTE,
+            "concurrent_requests": constants.MAX_WORKERS,
+        }
+        return await self._get_value("rate_limits", defaults)
 
-    def get_rate_limits(self) -> dict[str, Any]:
-        """Get current rate limit configuration."""
-        self.connect()
-        try:
-            config = self._get_config("rate_limits")
-            if config:
-                return config.get("value", {})
-            return {
-                "requests_per_minute": constants.API_RATE_LIMIT_PER_MINUTE,
-                "concurrent_requests": constants.MAX_WORKERS,
-            }
-        except Exception as e:
-            logger.error(f"Error getting rate limits: {e}")
-            return {
-                "requests_per_minute": constants.API_RATE_LIMIT_PER_MINUTE,
-                "concurrent_requests": constants.MAX_WORKERS,
-            }
-
-    def set_rate_limits(
+    async def set_rate_limits(
         self,
         requests_per_minute: int,
         concurrent_requests: int,
         changed_by: str,
-        reason: Optional[str] = None,
-    ):
-        """Update rate limit configuration."""
-        self.connect()
-        try:
-            self._set_config(
-                "rate_limits",
-                {
-                    "value": {
-                        "requests_per_minute": requests_per_minute,
-                        "concurrent_requests": concurrent_requests,
-                    },
-                    "changed_by": changed_by,
-                    "reason": reason,
-                },
-            )
-            logger.info(
-                f"Updated rate limits: {requests_per_minute}/min, {concurrent_requests} concurrent"
-            )
-        except Exception as e:
-            logger.error(f"Error setting rate limits: {e}")
-            raise
-
-    def _get_config(self, key: str) -> Optional[dict[str, Any]]:
-        """Get configuration value by key."""
-        if not self.adapter or not self.adapter._connected:
-            self.connect()
-
-        collection = self.adapter.database[self.collection_name]
-        doc = collection.find_one({"key": key})
-        return doc
-
-    def _set_config(self, key: str, value: dict[str, Any]):
-        """Set configuration value by key."""
-        if not self.adapter or not self.adapter._connected:
-            self.connect()
-
-        collection = self.adapter.database[self.collection_name]
-        doc = {
-            "key": key,
-            "value": value.get("value"),
-            "changed_by": value.get("changed_by"),
-            "reason": value.get("reason"),
-            "updated_at": datetime.now(UTC),
-        }
-
-        collection.update_one({"key": key}, {"$set": doc}, upsert=True)
+        reason: str | None = None,
+    ) -> None:
+        """Update rate limits through data-manager with an audit record."""
+        await self._set_value(
+            "rate_limits",
+            {
+                "requests_per_minute": requests_per_minute,
+                "concurrent_requests": concurrent_requests,
+            },
+            changed_by,
+            reason,
+        )
 
 
-# Global config manager instance
-_config_manager: Optional[ConfigManager] = None
+_config_manager: ConfigManager | None = None
 
 
 def get_config_manager() -> ConfigManager:
-    """Get global config manager instance."""
+    """Get the global config manager instance."""
     global _config_manager
     if _config_manager is None:
         _config_manager = ConfigManager()
     return _config_manager
 
 
-def set_config_manager(manager: ConfigManager):
-    """Set global config manager instance (for testing)."""
+def set_config_manager(manager: ConfigManager) -> None:
+    """Set the global config manager instance, primarily for tests."""
     global _config_manager
     _config_manager = manager
