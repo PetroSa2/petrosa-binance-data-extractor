@@ -25,7 +25,11 @@ def find_obsolete_guidance(path) -> list[str]:
 
 def test_public_docs_use_data_manager():
     root = __import__("pathlib").Path(__file__).parents[1]
-    assert not [match for filename in DOC_FILES for match in find_obsolete_guidance(root / filename)]
+    assert not [
+        match
+        for filename in DOC_FILES
+        for match in find_obsolete_guidance(root / filename)
+    ]
 
 
 def test_checker_flags_mysql_adapter_in_temp_file(tmp_path):
