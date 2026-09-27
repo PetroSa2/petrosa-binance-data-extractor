@@ -1,10 +1,9 @@
 """Guard public documentation against obsolete direct-MySQL guidance."""
 
-import re
 import pathlib
 
 
-FORBIDDEN = re.compile(
+FORBIDDEN = __import__("re").compile(
     r"(?i)DB_ADAPTER=mysql|MySQLAdapter|MYSQL_URI|\(Primary\) - Production|writes directly to MySQL"
 )
 DOC_FILES = (
