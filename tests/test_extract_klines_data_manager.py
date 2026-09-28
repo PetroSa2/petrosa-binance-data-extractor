@@ -161,6 +161,31 @@ class TestDataManagerKlinesExtractor:
             assert result["records_fetched"] > 0
 
     @pytest.mark.asyncio
+    async def test_extract_symbol_data_skips_future_latest_timestamp(self):
+        """A future latest record must not create an invalid extraction range."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["BTCUSDT"], period="1h", max_workers=1, lookback_hours=24
+        )
+        mock_client = MagicMock()
+
+        with patch(
+            "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+        ) as mock_fetcher_class:
+            mock_fetcher = AsyncMock()
+            mock_fetcher_class.return_value = mock_fetcher
+            mock_fetcher.get_latest_timestamp = AsyncMock(
+                return_value=datetime.now(UTC) + timedelta(hours=1)
+            )
+
+            result = await extractor.extract_symbol_data("BTCUSDT", mock_client)
+
+        assert result["success"] is True
+        assert result["records_fetched"] == 0
+        assert result["records_written"] == 0
+        mock_fetcher.fetch_and_store_klines.assert_not_awaited()
+        mock_fetcher.find_gaps.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_extract_symbol_data_failure(self):
         """Test extraction failure handling (all attempts exhausted)."""
         extractor = DataManagerKlinesExtractor(

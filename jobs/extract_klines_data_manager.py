@@ -179,6 +179,20 @@ class DataManagerKlinesExtractor:
         # Calculate extraction window
         start_time, end_time = self._calculate_extraction_window(last_timestamp)
 
+        # A future latest record can occur when the upstream store contains a
+        # clock-skewed or otherwise out-of-order record. There is no valid
+        # Binance range to request until wall clock time catches up, so treat
+        # this symbol as an idempotent no-op instead of retrying a permanently
+        # invalid request three times and failing the CronJob.
+        if start_time >= end_time:
+            result["success"] = True
+            result["duration"] = time.time() - symbol_start_time
+            self.logger.warning(
+                f"Skipping {symbol}: latest data is ahead of the extraction "
+                f"window (start={start_time.isoformat()}, end={end_time.isoformat()})"
+            )
+            return result
+
         self.logger.info(
             f"Extracting {symbol} ({self.period}): "
             f"from {start_time.isoformat()} to {end_time.isoformat()}"
