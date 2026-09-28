@@ -420,6 +420,38 @@ class TestChaos:
 
 class TestTypedIngest:
     @pytest.mark.asyncio
+    async def test_klines_ingest_falls_back_for_contract_rejection(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        typed_error = APIError("unprocessable", status_code=422)
+        with (
+            patch.object(client._client, "ingest_klines", side_effect=typed_error),
+            patch.object(
+                client._client,
+                "insert",
+                return_value={"inserted_count": 1},
+            ) as generic_insert,
+        ):
+            result = await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
+
+        assert result["inserted_count"] == 1
+        generic_insert.assert_called_once_with(
+            database="mongodb",
+            collection="klines_5m",
+            records=[{"close": 1}],
+        )
+
+    @pytest.mark.asyncio
+    async def test_klines_ingest_does_not_fallback_for_other_errors(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        with patch.object(
+            client._client,
+            "ingest_klines",
+            side_effect=APIError("server error", status_code=500),
+        ):
+            with pytest.raises(APIError):
+                await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
+
+    @pytest.mark.asyncio
     async def test_klines_ingest_omits_database_field(self):
         client = DataManagerClient(base_url="http://localhost:8000")
         with patch.object(client._client, "ingest_klines") as ingest:

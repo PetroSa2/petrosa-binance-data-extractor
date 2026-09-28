@@ -22,9 +22,11 @@ _OPERATIONAL_DB = "mongodb"
 
 
 class APIError(Exception):
-    """API error exception."""
+    """API error exception with the HTTP status for compatibility handling."""
 
-    pass
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class ConnectionError(Exception):
@@ -79,7 +81,7 @@ class BaseDataManagerClient:
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(f"Connection failed: {e}")
         except requests.exceptions.HTTPError as e:
-            raise APIError(f"API error: {e}")
+            raise APIError(f"API error: {e}", response.status_code) from e
 
     def ingest_klines(self, symbol: str, interval: str, klines: list[dict]) -> dict:
         """Insert klines through data-manager's typed ingest contract."""
@@ -106,7 +108,11 @@ class BaseDataManagerClient:
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(f"Connection failed: {e}")
         except requests.exceptions.HTTPError as e:
-            raise APIError(f"API error: {e}")
+            response_text = getattr(response, "text", "")
+            detail = response_text[:500] if isinstance(response_text, str) else ""
+            raise APIError(
+                f"API error: {e}; response={detail}", response.status_code
+            ) from e
 
     def query(self, database: str, collection: str, params: dict) -> dict:
         """Query records via Data Manager API using GET /api/v1/{database}/{collection}.
@@ -259,7 +265,23 @@ class DataManagerClient:
                 f"Inserting {len(klines_data)} klines for {symbol} ({interval})"
             )
 
-            result = self._client.ingest_klines(symbol, interval, klines_data)
+            try:
+                result = self._client.ingest_klines(symbol, interval, klines_data)
+            except APIError as error:
+                if error.status_code != 422:
+                    raise
+                logger.warning(
+                    "Typed kline ingest rejected the batch; retrying through the "
+                    "generic Mongo persistence contract",
+                    symbol=symbol,
+                    interval=interval,
+                    error=str(error),
+                )
+                result = self._client.insert(
+                    database=_OPERATIONAL_DB,
+                    collection=collection_name,
+                    records=klines_data,
+                )
             if isawaitable(result):
                 result = await result
 
