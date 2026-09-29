@@ -47,6 +47,34 @@ class TestBaseDataManagerClient:
         assert client.timeout == 30
         assert client.session is not None
 
+    def test_init_sets_gateway_identity_headers(self, monkeypatch):
+        monkeypatch.setenv("DM_SERVICE_NAME", "extractor-test")
+        monkeypatch.setenv("DM_SERVICE_TOKEN", "secret-token")
+
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+
+        assert client.session.headers["X-Petrosa-Service"] == "extractor-test"
+        assert client.session.headers["Authorization"] == "Bearer secret-token"
+
+    def test_init_without_token_sends_only_service_identity(self, monkeypatch):
+        monkeypatch.setenv("DM_SERVICE_NAME", "extractor-test")
+        monkeypatch.delenv("DM_SERVICE_TOKEN", raising=False)
+
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+
+        assert client.session.headers["X-Petrosa-Service"] == "extractor-test"
+        assert "Authorization" not in client.session.headers
+
+    def test_missing_token_is_not_logged(self, monkeypatch, caplog):
+        monkeypatch.setenv("DM_SERVICE_NAME", "extractor-test")
+        monkeypatch.setenv("DM_SERVICE_TOKEN", "secret-token")
+        client = BaseDataManagerClient(base_url="http://localhost:8000")
+        monkeypatch.delenv("DM_SERVICE_TOKEN", raising=False)
+
+        BaseDataManagerClient(base_url="http://localhost:8000")
+
+        assert "secret-token" not in caplog.text
+
     def test_init_strips_trailing_slash(self):
         """Test that trailing slash is stripped from base_url."""
         client = BaseDataManagerClient(base_url="http://localhost:8000/")
