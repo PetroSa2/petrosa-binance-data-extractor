@@ -15,10 +15,12 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+import constants
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 _OPERATIONAL_DB = "mongodb"
+_missing_token_warning_emitted = False
 
 
 class APIError(Exception):
@@ -48,6 +50,8 @@ class BaseDataManagerClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.session = requests.Session()
+        self.session.headers.update(constants.get_data_manager_headers())
+        self._warn_if_token_missing()
 
         # Configure retries
         retry_strategy = Retry(
@@ -67,6 +71,17 @@ class BaseDataManagerClient:
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+
+    @staticmethod
+    def _warn_if_token_missing() -> None:
+        global _missing_token_warning_emitted
+        if constants.get_data_manager_headers().get("Authorization"):
+            return
+        if not _missing_token_warning_emitted:
+            logger.warning(
+                "DM_SERVICE_TOKEN is unset; data-manager requests use service identity only"
+            )
+            _missing_token_warning_emitted = True
 
     def insert(self, database: str, collection: str, records: list[dict]) -> dict:
         """Insert records via Data Manager API."""
