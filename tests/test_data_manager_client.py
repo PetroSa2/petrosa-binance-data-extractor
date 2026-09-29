@@ -104,9 +104,10 @@ class TestBaseDataManagerClient:
             "data": [{"close": 1}],
         }
         schema = json.loads(
-            Path(__file__).with_name("contracts").joinpath(
-                "data_manager_klines_ingest_schema.json"
-            ).read_text()
+            Path(__file__)
+            .with_name("contracts")
+            .joinpath("data_manager_klines_ingest_schema.json")
+            .read_text()
         )
         assert set(schema["required"]).issubset(payload)
         assert set(payload) == set(schema["properties"])
@@ -459,9 +460,7 @@ class TestTypedIngest:
         )
         with (
             patch.object(client._client, "ingest_klines", side_effect=typed_error),
-            patch.object(
-                client._client, "insert", return_value={"inserted_count": 1}
-            ),
+            patch.object(client._client, "insert", return_value={"inserted_count": 1}),
             patch("clients.data_manager_client.logger.error") as error_log,
         ):
             await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
