@@ -74,6 +74,7 @@ def get_data_manager_headers() -> dict[str, str]:
         headers["Authorization"] = f"Bearer {token}"
     return headers
 
+
 # Per-symbol extraction retry (k8s#280): a single symbol hitting a transient
 # error (Binance rate-limit/5xx already-retried-and-exhausted, or a
 # dependency-not-ready race) previously failed the whole CronJob attempt
