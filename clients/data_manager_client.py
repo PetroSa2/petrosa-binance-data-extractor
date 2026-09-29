@@ -102,7 +102,7 @@ class BaseDataManagerClient:
         """Insert klines through data-manager's typed ingest contract."""
         return self._post_json(
             "/api/v1/ingest/klines",
-            {"symbol": symbol, "interval": interval, "klines": klines},
+            {"symbol": symbol, "interval": interval, "data": klines},
         )
 
     def ingest_funding(self, symbol: str, rates: list[dict]) -> dict:
@@ -246,6 +246,7 @@ class DataManagerClient:
             timeout=self.timeout,
             max_retries=self.max_retries,
         )
+        self._typed_kline_fallback_logged = False
 
         logger.info(f"Initialized Data Manager client: {self.base_url}")
 
@@ -285,13 +286,15 @@ class DataManagerClient:
             except APIError as error:
                 if error.status_code != 422:
                     raise
-                logger.warning(
-                    "Typed kline ingest rejected the batch; retrying through the "
-                    "generic Mongo persistence contract",
-                    symbol=symbol,
-                    interval=interval,
-                    error=str(error),
-                )
+                if not self._typed_kline_fallback_logged:
+                    logger.error(
+                        "Typed kline ingest rejected the batch; retrying through the "
+                        "generic Mongo persistence contract",
+                        symbol=symbol,
+                        interval=interval,
+                        error=str(error),
+                    )
+                    self._typed_kline_fallback_logged = True
                 result = self._client.insert(
                     database=_OPERATIONAL_DB,
                     collection=collection_name,

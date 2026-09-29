@@ -12,7 +12,9 @@ Tests cover:
 - Chaos testing (network failures)
 """
 
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
 
 try:
     from datetime import UTC
@@ -123,11 +125,21 @@ class TestBaseDataManagerClient:
         with patch.object(client.session, "post", return_value=response) as post:
             result = client.ingest_klines("BTCUSDT", "5m", [{"close": 1}])
         assert result["upserted"] == 1
-        assert post.call_args.kwargs["json"] == {
+        payload = post.call_args.kwargs["json"]
+        assert payload == {
             "symbol": "BTCUSDT",
             "interval": "5m",
-            "klines": [{"close": 1}],
+            "data": [{"close": 1}],
         }
+        schema = json.loads(
+            Path(__file__)
+            .with_name("contracts")
+            .joinpath("data_manager_klines_ingest_schema.json")
+            .read_text()
+        )
+        assert set(schema["required"]).issubset(payload)
+        assert set(payload) == set(schema["properties"])
+        assert isinstance(payload["data"], list)
 
     def test_typed_funding_ingest_posts_without_database(self):
         client = BaseDataManagerClient(base_url="http://localhost:8000")
@@ -469,6 +481,25 @@ class TestTypedIngest:
         )
 
     @pytest.mark.asyncio
+    async def test_klines_fallback_logs_contract_response_once(self):
+        client = DataManagerClient(base_url="http://localhost:8000")
+        typed_error = APIError(
+            'API error: 422; response={"detail":"missing data"}', status_code=422
+        )
+        with (
+            patch.object(client._client, "ingest_klines", side_effect=typed_error),
+            patch.object(client._client, "insert", return_value={"inserted_count": 1}),
+            patch("clients.data_manager_client.logger.error") as error_log,
+        ):
+            await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
+            await client.insert_klines("BTCUSDT", "5m", [{"close": 2}])
+
+        error_log.assert_called_once()
+        assert "missing data" in error_log.call_args.args[0] or "missing data" in str(
+            error_log.call_args.kwargs
+        )
+
+    @pytest.mark.asyncio
     async def test_klines_ingest_does_not_fallback_for_other_errors(self):
         client = DataManagerClient(base_url="http://localhost:8000")
         with patch.object(
@@ -480,7 +511,7 @@ class TestTypedIngest:
                 await client.insert_klines("BTCUSDT", "5m", [{"close": 1}])
 
     @pytest.mark.asyncio
-    async def test_klines_ingest_omits_database_field(self):
+    async def test_klines_ingest_uses_pinned_data_contract(self):
         client = DataManagerClient(base_url="http://localhost:8000")
         with patch.object(client._client, "ingest_klines") as ingest:
             ingest.return_value = {"inserted_count": 1}

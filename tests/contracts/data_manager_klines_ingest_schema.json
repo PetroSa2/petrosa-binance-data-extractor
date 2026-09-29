@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "data-manager typed klines ingest request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["symbol", "interval", "data"],
+  "properties": {
+    "symbol": {"type": "string"},
+    "interval": {"type": "string"},
+    "data": {"type": "array", "items": {"type": "object"}}
+  }
+}
