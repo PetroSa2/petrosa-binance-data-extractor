@@ -16,7 +16,11 @@ class ConfigManager:
     SERVICE = "binance-data-extractor"
 
     def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(base_url=constants.DATA_MANAGER_URL, timeout=5.0)
+        return httpx.AsyncClient(
+            base_url=constants.DATA_MANAGER_URL,
+            timeout=5.0,
+            headers=constants.get_data_manager_headers(),
+        )
 
     async def _get_value(self, key: str, default: Any) -> Any:
         try:

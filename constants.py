@@ -59,6 +59,20 @@ NATS_ENABLED = os.getenv("NATS_ENABLED", "false").lower() == "true"
 DATA_MANAGER_URL = os.getenv("DATA_MANAGER_URL", "http://petrosa-data-manager:80")
 DATA_MANAGER_TIMEOUT = int(os.getenv("DATA_MANAGER_TIMEOUT", "30"))
 DATA_MANAGER_MAX_RETRIES = int(os.getenv("DATA_MANAGER_MAX_RETRIES", "3"))
+DATA_MANAGER_SERVICE_NAME = os.getenv(
+    "DM_SERVICE_NAME", "petrosa-binance-data-extractor"
+)
+DATA_MANAGER_SERVICE_TOKEN = os.getenv("DM_SERVICE_TOKEN", "")
+
+
+def get_data_manager_headers() -> dict[str, str]:
+    """Return gateway identity headers without exposing the token in logs."""
+    service_name = os.getenv("DM_SERVICE_NAME", DATA_MANAGER_SERVICE_NAME)
+    token = os.getenv("DM_SERVICE_TOKEN", DATA_MANAGER_SERVICE_TOKEN)
+    headers = {"X-Petrosa-Service": service_name}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
 
 # Per-symbol extraction retry (k8s#280): a single symbol hitting a transient
 # error (Binance rate-limit/5xx already-retried-and-exhausted, or a
