@@ -21,6 +21,7 @@ sys.path.insert(0, project_root)
 import constants  # noqa: E402
 from fetchers import BinanceClient  # noqa: E402
 from fetchers.klines_data_manager import KlinesFetcherDataManager  # noqa: E402
+from utils.ingest_observability import IngestObservability  # noqa: E402
 from utils.logger import (  # noqa: E402
     get_logger,
     log_extraction_completion,
@@ -94,6 +95,7 @@ class DataManagerKlinesExtractor:
 
         # Thread-safe logger
         self.logger = get_logger(__name__)
+        self.observability = IngestObservability()
 
         # Statistics
         self.stats: dict[str, Any] = {
@@ -143,6 +145,12 @@ class DataManagerKlinesExtractor:
                         f"❌ {symbol} failed after {attempt} attempt(s): {e}",
                         exc_info=True,
                     )
+                    self.observability.record_event(
+                        source="binance",
+                        outcome="error",
+                        interval=self.period,
+                        latency_seconds=result["duration"],
+                    )
                     return result
 
                 delay = self.symbol_retry_backoff_seconds * (
@@ -187,13 +195,19 @@ class DataManagerKlinesExtractor:
         if start_time >= end_time:
             result["success"] = True
             result["duration"] = time.time() - symbol_start_time
-            self.logger.warning(
+            self.logger.debug(
                 f"Skipping {symbol}: latest data is ahead of the extraction "
                 f"window (start={start_time.isoformat()}, end={end_time.isoformat()})"
             )
+            self.observability.record_event(
+                source="binance",
+                outcome="skipped",
+                interval=self.period,
+                latency_seconds=result["duration"],
+            )
             return result
 
-        self.logger.info(
+        self.logger.debug(
             f"Extracting {symbol} ({self.period}): "
             f"from {start_time.isoformat()} to {end_time.isoformat()}"
         )
@@ -225,8 +239,14 @@ class DataManagerKlinesExtractor:
 
         result["success"] = True
         result["duration"] = time.time() - symbol_start_time
+        self.observability.record_event(
+            source="binance",
+            outcome="success",
+            interval=self.period,
+            latency_seconds=result["duration"],
+        )
 
-        self.logger.info(
+        self.logger.debug(
             f"✅ {symbol}: fetched={result['records_fetched']}, "
             f"written={result['records_written']}, "
             f"duration={result['duration']:.2f}s"
@@ -322,7 +342,7 @@ class DataManagerKlinesExtractor:
         try:
             # Process symbols sequentially (async but not parallel to avoid overwhelming Data Manager)
             for symbol in self.symbols:
-                self.logger.info(f"Processing symbol: {symbol}")
+                self.logger.debug(f"Processing symbol: {symbol}")
 
                 try:
                     result = await self.extract_symbol_data(symbol, binance_client)
@@ -424,6 +444,8 @@ class DataManagerKlinesExtractor:
             self.logger.warning(f"⚠️  Errors encountered: {len(self.stats['errors'])}")
             for error in self.stats["errors"][:5]:  # Show first 5 errors
                 self.logger.warning(f"   - {error}")
+
+        self.observability.shutdown()
 
         return {
             "success": job_success,
