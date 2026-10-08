@@ -163,4 +163,4 @@ fi
 echo ""
 echo "📚 For more information, see:"
 echo "- docs/CI_CD_BEST_PRACTICES.md"
-echo "- docs/CI_CD_QUICK_REFERENCE.md"
+echo "- docs/INDEX.md"

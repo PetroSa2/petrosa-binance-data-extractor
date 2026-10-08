@@ -3,8 +3,7 @@
 # Petrosa Binance Data Extractor - Development Setup Script
 #
 # This script sets up the development environment for this repository.
-# For detailed instructions, see: docs/REPOSITORY_SETUP_GUIDE.md
-# For quick reference, see: docs/QUICK_REFERENCE.md
+# For maintained documentation, see: docs/INDEX.md
 
 set -e
 
@@ -26,7 +25,7 @@ if ! command -v microk8s > /dev/null 2>&1; then
     echo "❌ MicroK8s not installed. Please install it first:"
     echo "   Linux: sudo snap install microk8s --classic"
     echo "   macOS: brew install microk8s"
-    echo "   See docs/REPOSITORY_SETUP_GUIDE.md for detailed instructions"
+    echo "   See docs/INDEX.md for maintained documentation"
     exit 1
 elif ! microk8s status > /dev/null 2>&1; then
     echo "⚠️  MicroK8s not running. Starting MicroK8s..."
@@ -42,7 +41,7 @@ if kubectl --kubeconfig=k8s/kubeconfig.yaml --insecure-skip-tls-verify get nodes
 else
     echo "❌ Cluster connection failed. Please check:"
     echo "   - MicroK8s is running: microk8s status"
-    echo "   - See docs/REPOSITORY_SETUP_GUIDE.md for troubleshooting"
+    echo "   - See docs/INDEX.md for troubleshooting guidance"
     exit 1
 fi
 
@@ -59,8 +58,7 @@ echo ""
 echo "🎉 Setup complete!"
 echo ""
 echo "📚 Useful references:"
-echo "   - Setup Guide: docs/REPOSITORY_SETUP_GUIDE.md"
-echo "   - Quick Reference: docs/QUICK_REFERENCE.md"
+    echo "   - Documentation Index: docs/INDEX.md"
 echo ""
 echo "🔧 Common commands:"
 echo "   - Check status: kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps"

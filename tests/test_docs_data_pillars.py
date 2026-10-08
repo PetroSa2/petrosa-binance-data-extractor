@@ -10,10 +10,9 @@ FORBIDDEN = (
 DOC_FILES = (
     "README.md",
     ".env.example",
-    "docs/agent-rules.md",
     "docs/DEPLOYMENT_GUIDE.md",
     "docs/OPERATIONS_GUIDE.md",
-    "docs/QUICK_REFERENCE.md",
+    "docs/INDEX.md",
 )
 
 
