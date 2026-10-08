@@ -285,18 +285,71 @@ class TestDataManagerKlinesExtractor:
             assert "dependency not ready" in result["error"]
             assert mock_fetcher_class.call_count == expected_attempts
 
-    def test_calculate_extraction_window_normal(self):
-        """Test extraction window calculation for normal case."""
+    @pytest.mark.parametrize(
+        ("period", "current_time", "last_timestamp", "expected_start", "expected_end"),
+        [
+            (
+                "30m",
+                datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+            (
+                "30m",
+                datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 30, tzinfo=UTC),
+            ),
+            (
+                "15m",
+                datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 45, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+            (
+                "15m",
+                datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 15, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 30, tzinfo=UTC),
+            ),
+            (
+                "1h",
+                datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
+                datetime(2026, 10, 8, 15, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+            (
+                "1h",
+                datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+        ],
+    )
+    def test_calculate_extraction_window_schedule_boundaries(
+        self, period, current_time, last_timestamp, expected_start, expected_end
+    ):
+        """Calculate interval boundaries for both scheduled offsets."""
         extractor = DataManagerKlinesExtractor(
-            symbols=["BTCUSDT"], period="15m", max_workers=1, lookback_hours=24
+            symbols=["BTCUSDT"], period=period, max_workers=1, lookback_hours=24
         )
 
-        last_timestamp = datetime.now(UTC) - timedelta(hours=2)
-        start_time, end_time = extractor._calculate_extraction_window(last_timestamp)
+        with patch(
+            "jobs.extract_klines_data_manager.get_current_utc_time",
+            return_value=current_time,
+        ):
+            start_time, end_time = extractor._calculate_extraction_window(
+                last_timestamp
+            )
 
-        assert start_time < last_timestamp  # Has overlap
-        assert end_time > start_time
-        assert end_time < datetime.now(UTC)  # Has buffer
+        assert start_time == expected_start
+        assert end_time == expected_end
 
     def test_calculate_extraction_window_old_timestamp(self):
         """Test extraction window when last timestamp is very old."""
@@ -324,6 +377,37 @@ class TestDataManagerKlinesExtractor:
 
         assert start_time.tzinfo is not None  # Should be timezone-aware
         assert end_time.tzinfo is not None
+
+    @pytest.mark.asyncio
+    async def test_extract_symbol_data_empty_window_is_successful_noop(self):
+        """A schedule with no closed candle succeeds without making API calls."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["BTCUSDT"], period="1h", max_workers=1, lookback_hours=24
+        )
+        mock_client = MagicMock()
+
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch(
+                "jobs.extract_klines_data_manager.get_current_utc_time",
+                return_value=datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+            ),
+        ):
+            mock_fetcher = AsyncMock()
+            mock_fetcher_class.return_value = mock_fetcher
+            mock_fetcher.get_latest_timestamp = AsyncMock(
+                return_value=datetime(2026, 10, 8, 16, 0, tzinfo=UTC)
+            )
+
+            result = await extractor.extract_symbol_data("BTCUSDT", mock_client)
+
+        assert result["success"] is True
+        assert result["records_fetched"] == 0
+        assert result["records_written"] == 0
+        mock_fetcher.fetch_and_store_klines.assert_not_awaited()
+        mock_fetcher.find_gaps.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_run_extraction_multiple_symbols(self):
@@ -790,7 +874,7 @@ class TestCornerCases:
             mock_fetcher_class.return_value = mock_fetcher
 
             mock_fetcher.get_latest_timestamp = AsyncMock(
-                return_value=datetime.now(UTC)
+                return_value=datetime.now(UTC) - timedelta(hours=1)
             )
             mock_fetcher.fetch_and_store_klines = AsyncMock(return_value=[])  # Empty
             mock_fetcher.find_gaps = AsyncMock(return_value=[])
@@ -911,7 +995,7 @@ class TestChaos:
             mock_fetcher_class.return_value = mock_fetcher
 
             mock_fetcher.get_latest_timestamp = AsyncMock(
-                return_value=datetime.now(UTC)
+                return_value=datetime.now(UTC) - timedelta(hours=2)
             )
 
             # Simulate network timeout
@@ -943,7 +1027,7 @@ class TestChaos:
             mock_fetcher_class.return_value = mock_fetcher
 
             mock_fetcher.get_latest_timestamp = AsyncMock(
-                return_value=datetime.now(UTC)
+                return_value=datetime.now(UTC) - timedelta(hours=2)
             )
 
             # Partial/corrupted response

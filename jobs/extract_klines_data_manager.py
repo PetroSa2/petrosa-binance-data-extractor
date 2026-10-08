@@ -35,7 +35,12 @@ from utils.messaging import (  # noqa: E402
     publish_extraction_completion_sync,
 )
 from utils.telemetry import get_tracer  # noqa: E402
-from utils.time_utils import format_duration, get_current_utc_time  # noqa: E402
+from utils.time_utils import (  # noqa: E402
+    align_timestamp_to_interval,
+    format_duration,
+    get_current_utc_time,
+    get_interval_timedelta,
+)
 
 # Initialize OpenTelemetry as early as possible
 try:
@@ -285,8 +290,10 @@ class DataManagerKlinesExtractor:
                 tzinfo=datetime.now().astimezone().tzinfo
             )
 
-        # Start from the last timestamp, but ensure we have some overlap
-        start_time = last_timestamp - timedelta(minutes=self.OVERLAP_MINUTES)
+        interval_delta = get_interval_timedelta(self.period)
+        start_time = align_timestamp_to_interval(
+            last_timestamp + interval_delta, self.period
+        )
 
         # If we're too far behind, limit the catch-up window
         earliest_start = current_time - timedelta(days=self.MAX_CATCHUP_DAYS)
@@ -297,8 +304,9 @@ class DataManagerKlinesExtractor:
                 f"Last timestamp is very old, limiting catch-up to {self.MAX_CATCHUP_DAYS} day"
             )
 
-        # End time is current time minus a small buffer
-        end_time = current_time - timedelta(minutes=self.END_TIME_BUFFER_MINUTES)
+        end_time = align_timestamp_to_interval(
+            current_time - timedelta(minutes=self.END_TIME_BUFFER_MINUTES), self.period
+        )
 
         self.logger.info(
             f"Extraction window: {start_time.isoformat()} to {end_time.isoformat()} "
