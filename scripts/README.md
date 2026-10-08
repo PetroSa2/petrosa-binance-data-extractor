@@ -3,8 +3,8 @@
 This directory contains utility scripts for the Petrosa Binance Data Extractor.
 
 ## 📚 Setup References
-- **[Repository Setup Guide](../docs/REPOSITORY_SETUP_GUIDE.md)** - Complete setup and configuration guide
-- **[Quick Reference Card](../docs/QUICK_REFERENCE.md)** - Essential commands and troubleshooting
+- **[Documentation Index](../docs/INDEX.md)** - Maintained service documentation
+- **[Agent Instructions](../AGENTS.md)** - Commands and repository rules
 
 ## 🔧 Available Scripts
 
@@ -40,4 +40,4 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml get all -n petrosa-apps
 - This repository uses **local MicroK8s cluster**, not AWS EKS
 - Always use `kubectl --kubeconfig=k8s/kubeconfig.yaml` for cluster operations
 - For port forwarding: `kubectl --kubeconfig=k8s/kubeconfig.yaml port-forward`
-- See [Quick Reference](../docs/QUICK_REFERENCE.md) for common commands
+- See [Agent Instructions](../AGENTS.md) for common commands

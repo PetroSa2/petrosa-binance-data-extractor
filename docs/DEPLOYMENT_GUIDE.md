@@ -194,5 +194,5 @@ kubectl --kubeconfig=k8s/kubeconfig.yaml describe secret petrosa-sensitive-crede
 ```
 
 ## References
-- See `docs/REPOSITORY_SETUP_GUIDE.md` for full setup and troubleshooting
-- See `docs/QUICK_REFERENCE.md` for common commands
+- See `docs/INDEX.md` for the maintained documentation set
+- See `AGENTS.md` for repository commands
