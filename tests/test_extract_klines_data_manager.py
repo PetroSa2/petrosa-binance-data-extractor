@@ -288,12 +288,48 @@ class TestDataManagerKlinesExtractor:
     @pytest.mark.parametrize(
         ("period", "current_time", "last_timestamp", "expected_start", "expected_end"),
         [
-            ("30m", datetime(2026, 10, 8, 17, 5, tzinfo=UTC), datetime(2026, 10, 8, 16, 0, tzinfo=UTC), datetime(2026, 10, 8, 16, 30, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC)),
-            ("30m", datetime(2026, 10, 8, 17, 35, tzinfo=UTC), datetime(2026, 10, 8, 16, 30, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC), datetime(2026, 10, 8, 17, 30, tzinfo=UTC)),
-            ("15m", datetime(2026, 10, 8, 17, 5, tzinfo=UTC), datetime(2026, 10, 8, 16, 30, tzinfo=UTC), datetime(2026, 10, 8, 16, 45, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC)),
-            ("15m", datetime(2026, 10, 8, 17, 35, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC), datetime(2026, 10, 8, 17, 15, tzinfo=UTC), datetime(2026, 10, 8, 17, 30, tzinfo=UTC)),
-            ("1h", datetime(2026, 10, 8, 17, 5, tzinfo=UTC), datetime(2026, 10, 8, 15, 0, tzinfo=UTC), datetime(2026, 10, 8, 16, 0, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC)),
-            ("1h", datetime(2026, 10, 8, 17, 35, tzinfo=UTC), datetime(2026, 10, 8, 16, 0, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC), datetime(2026, 10, 8, 17, 0, tzinfo=UTC)),
+            (
+                "30m",
+                datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+            (
+                "30m",
+                datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 30, tzinfo=UTC),
+            ),
+            (
+                "15m",
+                datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 45, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+            (
+                "15m",
+                datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 15, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 30, tzinfo=UTC),
+            ),
+            (
+                "1h",
+                datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
+                datetime(2026, 10, 8, 15, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
+            (
+                "1h",
+                datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+            ),
         ],
     )
     def test_calculate_extraction_window_schedule_boundaries(
@@ -308,7 +344,9 @@ class TestDataManagerKlinesExtractor:
             "jobs.extract_klines_data_manager.get_current_utc_time",
             return_value=current_time,
         ):
-            start_time, end_time = extractor._calculate_extraction_window(last_timestamp)
+            start_time, end_time = extractor._calculate_extraction_window(
+                last_timestamp
+            )
 
         assert start_time == expected_start
         assert end_time == expected_end
@@ -349,7 +387,9 @@ class TestDataManagerKlinesExtractor:
         mock_client = MagicMock()
 
         with (
-            patch("jobs.extract_klines_data_manager.KlinesFetcherDataManager") as mock_fetcher_class,
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
             patch(
                 "jobs.extract_klines_data_manager.get_current_utc_time",
                 return_value=datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
