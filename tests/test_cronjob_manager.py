@@ -89,15 +89,25 @@ class TestCronJobManager:
         mock_api = Mock()
         mock_batch_api.return_value = mock_api
 
-        # Mock CronJob template
+        # CronJob template with a real V1JobSpec: V1Job validates its ``spec`` (pydantic), so a Mock is
+        # rejected by current kubernetes clients
+        from kubernetes import client as k8s_client
+
+        job_spec = k8s_client.V1JobSpec(
+            template=k8s_client.V1PodTemplateSpec(
+                spec=k8s_client.V1PodSpec(
+                    containers=[
+                        k8s_client.V1Container(
+                            name="extractor",
+                            image="extractor:test",
+                            args=["--period=15m"],
+                        )
+                    ]
+                )
+            )
+        )
         mock_cronjob = Mock()
-        mock_container = Mock()
-        mock_container.args = ["--period=15m"]
-        mock_template = Mock()
-        mock_template.spec.containers = [mock_container]
-        mock_job_spec = Mock()
-        mock_job_spec.template = mock_template
-        mock_cronjob.spec.job_template.spec = mock_job_spec
+        mock_cronjob.spec.job_template.spec = job_spec
         mock_api.read_namespaced_cron_job.return_value = mock_cronjob
 
         # Mock created Job
@@ -112,6 +122,12 @@ class TestCronJobManager:
         assert result["timeframe"] == "15m"
         assert result["symbol"] == "BTCUSDT"
         mock_api.create_namespaced_job.assert_called_once()
+        body = mock_api.create_namespaced_job.call_args.kwargs["body"]
+        assert body.spec.template.spec.containers[0].args == [
+            "--period=15m",
+            "--symbol=BTCUSDT",
+        ]
+        assert body.metadata.labels["timeframe"] == "15m"
 
 
 class TestCronJobManagerErrorPaths:
