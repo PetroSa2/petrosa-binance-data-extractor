@@ -357,3 +357,43 @@ class TestMain:
         mock_fetcher.fetch_current_funding_rates.assert_called()
         mock_get_adapter.return_value.write_batch.assert_not_called()
         mock_log_completion.assert_called()
+
+    def test_main_historical_no_work_records_skipped_run(self):
+        mock_args = Mock(
+            symbol=None,
+            symbols="BTCUSDT",
+            start_date="2024-01-01",
+            end_date="2024-01-02",
+            limit=1000,
+            current_only=False,
+            db_adapter="data_manager",
+            db_uri=None,
+            batch_size=100,
+            log_level="INFO",
+            dry_run=False,
+        )
+        adapter = Mock()
+        adapter.__enter__ = Mock(return_value=adapter)
+        adapter.__exit__ = Mock(return_value=None)
+        fetcher = Mock()
+        fetcher.fetch_funding_rates_batch.return_value = []
+        observability = Mock()
+
+        with (
+            patch("jobs.extract_funding.parse_arguments", return_value=mock_args),
+            patch("jobs.extract_funding.setup_logging", return_value=Mock()),
+            patch("jobs.extract_funding.log_extraction_start"),
+            patch("jobs.extract_funding.log_extraction_completion"),
+            patch("jobs.extract_funding.get_adapter", return_value=adapter),
+            patch("jobs.extract_funding.BinanceClient"),
+            patch("jobs.extract_funding.FundingRatesFetcher", return_value=fetcher),
+            patch(
+                "jobs.extract_funding.IngestObservability", return_value=observability
+            ),
+        ):
+            exit_code = self._run_main_and_catch_exit()
+
+        assert exit_code == 0
+        adapter.write_batch.assert_not_called()
+        observability.record_run.assert_called_once()
+        assert observability.record_run.call_args.kwargs["skipped_outcomes"] == 1

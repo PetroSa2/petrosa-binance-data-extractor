@@ -14,6 +14,7 @@ from utils.telemetry import get_meter
 logger = logging.getLogger(__name__)
 INGEST_EVENT_LABELS = ("source", "outcome", "interval")
 INGEST_LATENCY_LABELS = ("source", "interval")
+INGEST_RUN_LABELS = ("source", "interval", "outcome")
 
 
 class IngestObservability:
@@ -29,6 +30,11 @@ class IngestObservability:
         meter = get_meter("petrosa.ingest")
         self.events = None
         self.latency = None
+        self.runs = None
+        self.records_fetched = None
+        self.records_written = None
+        self.gaps = None
+        self.skipped = None
         if meter is not None:
             self.events = meter.create_counter(
                 name="petrosa_ingest_events_total",
@@ -39,6 +45,31 @@ class IngestObservability:
                 name="petrosa_ingest_latency_seconds",
                 description="Ingest event latency in seconds",
                 unit="s",
+            )
+            self.runs = meter.create_counter(
+                name="petrosa_ingest_runs_total",
+                description="Completed ingest runs by bounded source, interval, and outcome",
+                unit="1",
+            )
+            self.records_fetched = meter.create_counter(
+                name="petrosa_ingest_records_fetched_total",
+                description="Records fetched by completed ingest runs",
+                unit="1",
+            )
+            self.records_written = meter.create_counter(
+                name="petrosa_ingest_records_written_total",
+                description="Records written by completed ingest runs",
+                unit="1",
+            )
+            self.gaps = meter.create_counter(
+                name="petrosa_ingest_gaps_total",
+                description="Gaps found by completed ingest runs",
+                unit="1",
+            )
+            self.skipped = meter.create_counter(
+                name="petrosa_ingest_skipped_total",
+                description="Skipped outcomes in completed ingest runs",
+                unit="1",
             )
 
     def record_event(
@@ -81,6 +112,52 @@ class IngestObservability:
                 "p50": self._percentile(values, 0.50),
                 "p95": self._percentile(values, 0.95),
             },
+        }
+        logger.info(json.dumps(summary, separators=(",", ":"), sort_keys=True))
+        return summary
+
+    def record_run(
+        self,
+        *,
+        source: str,
+        interval: str,
+        symbols: list[str],
+        records_fetched: int,
+        records_written: int,
+        gaps_found: int,
+        skipped_outcomes: int,
+        duration_seconds: float,
+        success: bool,
+        errors: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Emit one durable run event and aggregate metrics with bounded labels."""
+        outcome = "success" if success else "failure"
+        labels = {"source": source, "interval": interval, "outcome": outcome}
+        if self.runs is not None:
+            self.runs.add(1, labels)
+            self.records_fetched.add(max(0, records_fetched), labels)
+            self.records_written.add(max(0, records_written), labels)
+            self.gaps.add(max(0, gaps_found), labels)
+            self.skipped.add(max(0, skipped_outcomes), labels)
+        if self.latency is not None:
+            self.latency.record(
+                max(0.0, duration_seconds), {"source": source, "interval": interval}
+            )
+
+        summary = {
+            "event": "INGEST_RUN",
+            "source": source,
+            "timeframe": interval,
+            "symbols": symbols,
+            "symbols_count": len(symbols),
+            "records_fetched": records_fetched,
+            "records_written": records_written,
+            "gaps_found": gaps_found,
+            "skipped_outcomes": skipped_outcomes,
+            "duration_seconds": round(max(0.0, duration_seconds), 3),
+            "success": success,
+            "outcome": outcome,
+            "errors": errors or [],
         }
         logger.info(json.dumps(summary, separators=(",", ":"), sort_keys=True))
         return summary

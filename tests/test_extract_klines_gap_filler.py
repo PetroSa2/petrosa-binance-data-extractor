@@ -228,6 +228,8 @@ class TestGapFillerExtractor:
         assert result["success"] is True
         assert result["total_symbols"] == 1
         assert result["symbols_processed"] == 1
+        assert result["skipped_outcomes"] == 1
+        assert extractor.observability.runs is not None
 
 
 class TestGapFillerDataManagerAdapter:

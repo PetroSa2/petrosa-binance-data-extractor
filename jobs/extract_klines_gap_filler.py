@@ -31,6 +31,7 @@ try:
     from adapters.data_manager_adapter import DataManagerAdapter  # noqa: E402
 except ImportError:  # pragma: no cover - optional dependency, mirrors db/__init__.py
     DataManagerAdapter = None  # noqa: E402
+from utils.ingest_observability import IngestObservability  # noqa: E402
 from utils.logger import (  # noqa: E402
     get_logger,
     log_extraction_completion,
@@ -253,6 +254,9 @@ class GapFillerExtractor:
         )
 
         self.logger = get_logger(__name__)
+        self.observability = IngestObservability(
+            service=constants.OTEL_SERVICE_NAME_KLINES
+        )
         self._lock = threading.Lock()
         self._candles_budget_remaining = max(0, self.candles_max_records)
         self._candles_budget_warned = False
@@ -264,6 +268,7 @@ class GapFillerExtractor:
             "total_gaps_filled": 0,
             "total_records_fetched": 0,
             "total_records_written": 0,
+            "skipped_outcomes": 0,
             "total_weekly_chunks_processed": 0,
             "total_mongodb_gaps_filled": 0,
             "total_candles_written": 0,
@@ -563,6 +568,7 @@ class GapFillerExtractor:
             "candles_written": 0,
             "error": None,
             "duration": 0,
+            "outcome": "failure",
         }
 
         def _fill_chunk():
@@ -743,6 +749,7 @@ class GapFillerExtractor:
                 if not gaps:
                     self.logger.info(f"No gaps found for {symbol}")
                     result["success"] = True
+                    result["outcome"] = "skipped"
                     return result
 
                 self.logger.info(f"Found {len(gaps)} gaps for {symbol}")
@@ -800,6 +807,7 @@ class GapFillerExtractor:
                         time.sleep(random.uniform(1.0, 3.0))
 
                 result["success"] = True
+                result["outcome"] = "success"
                 result["duration"] = time.time() - symbol_start_time
 
                 self.logger.info(
@@ -859,6 +867,7 @@ class GapFillerExtractor:
         except Exception as e:
             result["error"] = str(e)
             result["duration"] = time.time() - symbol_start_time
+            result["outcome"] = "failure"
             self.logger.error(f"❌ {symbol} failed after all retries: {e}")
             return result
 
@@ -879,6 +888,20 @@ class GapFillerExtractor:
         except Exception as e:
             self.logger.warning(f"Tracing setup failed: {e}, running without tracing")
             return self._run_gap_filling_impl()
+
+    def _record_run_observability(self, result: dict[str, Any]) -> None:
+        self.observability.record_run(
+            source="klines_gap_filling",
+            interval=self.period,
+            symbols=self.symbols,
+            records_fetched=result["total_records_fetched"],
+            records_written=result["total_records_written"],
+            gaps_found=result["total_gaps_found"],
+            skipped_outcomes=result.get("skipped_outcomes", 0),
+            duration_seconds=result["duration_seconds"],
+            success=result["success"],
+            errors=result["errors"],
+        )
 
     def _run_gap_filling_impl(self) -> dict:
         """Implementation of run_gap_filling method."""
@@ -917,7 +940,7 @@ class GapFillerExtractor:
             self.logger.error(
                 f"❌ Failed to initialize Binance client after all retries: {e}"
             )
-            return {
+            result = {
                 "success": False,
                 "total_symbols": len(self.symbols),
                 "symbols_processed": 0,
@@ -926,6 +949,7 @@ class GapFillerExtractor:
                 "total_gaps_filled": 0,
                 "total_records_fetched": 0,
                 "total_records_written": 0,
+                "skipped_outcomes": 0,
                 "total_weekly_chunks_processed": 0,
                 "candles_dual_write_enabled": self.candles_dual_write,
                 "total_mongodb_gaps_filled": 0,
@@ -934,6 +958,8 @@ class GapFillerExtractor:
                 "duration_seconds": time.time() - extraction_start_time,
                 "errors": [f"Binance client initialization failed: {e}"],
             }
+            self._record_run_observability(result)
+            return result
 
         results = []
 
@@ -966,6 +992,9 @@ class GapFillerExtractor:
                                 self.stats["total_weekly_chunks_processed"] += result[
                                     "weekly_chunks_processed"
                                 ]
+                                self.stats["skipped_outcomes"] += int(
+                                    result.get("outcome") == "skipped"
+                                )
                             else:
                                 self.stats["symbols_failed"] += 1
                                 self.stats["errors"].append(
@@ -1020,7 +1049,7 @@ class GapFillerExtractor:
             for error in self.stats["errors"][:5]:
                 self.logger.warning(f"   - {error}")
 
-        return {
+        result = {
             "success": self.stats["symbols_failed"] == 0,
             "total_symbols": len(self.symbols),
             "symbols_processed": self.stats["symbols_processed"],
@@ -1029,6 +1058,7 @@ class GapFillerExtractor:
             "total_gaps_filled": self.stats["total_gaps_filled"],
             "total_records_fetched": self.stats["total_records_fetched"],
             "total_records_written": self.stats["total_records_written"],
+            "skipped_outcomes": self.stats["skipped_outcomes"],
             "total_weekly_chunks_processed": self.stats[
                 "total_weekly_chunks_processed"
             ],
@@ -1039,6 +1069,8 @@ class GapFillerExtractor:
             "duration_seconds": total_duration,
             "errors": self.stats["errors"],
         }
+        self._record_run_observability(result)
+        return result
 
 
 def parse_arguments():
