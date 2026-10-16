@@ -16,6 +16,7 @@ sys.path.insert(0, project_root)
 import constants  # noqa: E402
 from db import get_adapter  # noqa: E402
 from fetchers import BinanceClient, FundingRatesFetcher  # noqa: E402
+from utils.ingest_observability import IngestObservability  # noqa: E402
 from utils.logger import (  # noqa: E402
     log_extraction_completion,
     log_extraction_start,
@@ -75,6 +76,7 @@ def main():
 
     # Setup logging (may call basicConfig)
     logger = setup_logging(level=args.log_level)
+    observability = IngestObservability(service=constants.OTEL_SERVICE_NAME_FUNDING)
 
     # Attach OTel logging handler LAST (after logging is configured)
     try:
@@ -105,8 +107,11 @@ def main():
         start_date=start_date.isoformat() if start_date else "N/A",
     )
     extraction_start_time = time.time()
-    total_records = 0
+    total_records_fetched = 0
+    total_records_written = 0
+    skipped_outcomes = 0
     errors = []
+    fetcher = None
     try:
         db_uri = args.db_uri or constants.DATA_MANAGER_URL
         db_adapter = get_adapter(args.db_adapter, db_uri)
@@ -123,10 +128,12 @@ def main():
                         written = db_adapter.write_batch(
                             current_rates, collection_name, args.batch_size
                         )
-                        total_records += written
+                        total_records_fetched += len(current_rates)
+                        total_records_written += int(written or 0)
                         logger.info("Wrote %d current funding rates", written)
                     else:
-                        total_records += len(current_rates)
+                        total_records_fetched += len(current_rates)
+                        skipped_outcomes += len(symbols) if not current_rates else 0
                         logger.info(
                             "Fetched %d current funding rates (dry run)",
                             len(current_rates),
@@ -150,12 +157,14 @@ def main():
                             written = db_adapter.write_batch(
                                 rates, collection_name, args.batch_size
                             )
-                            total_records += written
+                            total_records_fetched += len(rates)
+                            total_records_written += int(written or 0)
                             logger.info(
                                 "Wrote %d funding rates for %s", written, symbol
                             )
                         else:
-                            total_records += len(rates)
+                            total_records_fetched += len(rates)
+                            skipped_outcomes += 1 if not rates else 0
                             logger.info(
                                 "Fetched %d funding rates for %s (dry run)",
                                 len(rates),
@@ -164,22 +173,36 @@ def main():
                     except Exception as e:
                         logger.error("Failed to process %s: %s", symbol, e)
                         errors.append(str(e))
-        fetcher.close()
+        if fetcher is not None:
+            fetcher.close()
     except Exception as e:
         logger.error("Extraction failed: %s", e)
         errors.append(str(e))
-        sys.exit(1)
+        if fetcher is not None:
+            fetcher.close()
     extraction_duration = time.time() - extraction_start_time
+    observability.record_run(
+        source="funding",
+        interval="funding",
+        symbols=symbols,
+        records_fetched=total_records_fetched,
+        records_written=total_records_written,
+        gaps_found=0,
+        skipped_outcomes=skipped_outcomes,
+        duration_seconds=extraction_duration,
+        success=not errors,
+        errors=errors,
+    )
     log_extraction_completion(
         log=logger,
         extractor_type="funding_rates",
-        total_records=total_records,
+        total_records=total_records_written,
         duration_seconds=extraction_duration,
         errors=errors,
     )
     logger.info(
         "Extraction completed: %d records in %s",
-        total_records,
+        total_records_written,
         format_duration(extraction_duration),
     )
     sys.exit(0 if not errors else 1)

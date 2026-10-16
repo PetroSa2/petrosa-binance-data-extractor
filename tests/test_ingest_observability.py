@@ -21,9 +21,11 @@ def test_metric_names_and_allowlisted_labels() -> None:
     with patch("utils.ingest_observability.get_meter", return_value=meter):
         IngestObservability()
 
-    assert (
-        meter.create_counter.call_args.kwargs["name"] == "petrosa_ingest_events_total"
-    )
+    counter_names = {
+        call.kwargs["name"] for call in meter.create_counter.call_args_list
+    }
+    assert "petrosa_ingest_events_total" in counter_names
+    assert "petrosa_ingest_runs_total" in counter_names
     assert (
         meter.create_histogram.call_args.kwargs["name"]
         == "petrosa_ingest_latency_seconds"
@@ -52,3 +54,29 @@ def test_event_uses_only_bounded_labels_and_summary_shape() -> None:
     assert set(meter.create_histogram.return_value.record.call_args.args[1]) == set(
         INGEST_LATENCY_LABELS
     )
+
+
+def test_run_summary_records_gateway_write_without_run_cardinality() -> None:
+    meter = fake_meter()
+    with patch("utils.ingest_observability.get_meter", return_value=meter):
+        observability = IngestObservability()
+        summary = observability.record_run(
+            source="funding",
+            interval="funding",
+            symbols=["BTCUSDT", "ETHUSDT"],
+            records_fetched=4,
+            records_written=4,
+            gaps_found=0,
+            skipped_outcomes=0,
+            duration_seconds=1.25,
+            success=True,
+        )
+
+    assert summary["timeframe"] == "funding"
+    assert summary["symbols_count"] == 2
+    assert summary["records_fetched"] == 4
+    assert summary["records_written"] == 4
+    assert summary["success"] is True
+    labels = meter.create_counter.return_value.add.call_args.args[1]
+    assert set(labels) == {"source", "interval", "outcome"}
+    assert "run_id" not in labels
