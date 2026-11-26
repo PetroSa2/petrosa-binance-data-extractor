@@ -326,6 +326,13 @@ class TestDataManagerKlinesExtractor:
                 datetime(2026, 11, 26, 18, 15, tzinfo=UTC),
             ),
             (
+                "15m",  # 30 s after 18:30: the 18:15 candle has not settled for 60 s yet
+                datetime(2026, 11, 26, 18, 30, 30, tzinfo=UTC),
+                datetime(2026, 11, 26, 17, 45, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 0, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 0, tzinfo=UTC),
+            ),
+            (
                 "1h",
                 datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
                 datetime(2026, 10, 8, 15, 0, tzinfo=UTC),

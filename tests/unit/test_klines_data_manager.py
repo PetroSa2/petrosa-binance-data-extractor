@@ -316,7 +316,9 @@ async def test_find_gaps_exception(klines_fetcher):
 
 
 @pytest.mark.asyncio
-async def test_one_candle_window_is_fetched_once_906(klines_fetcher, mock_binance_client):
+async def test_one_candle_window_is_fetched_once_906(
+    klines_fetcher, mock_binance_client
+):
     """start == end (one closed candle due) fetches that candle in one call and stops.
 
     petrosa-data-manager#906: the loop was `current_start < end_time`, so a one-candle window
@@ -343,9 +345,7 @@ async def test_one_candle_window_is_fetched_once_906(klines_fetcher, mock_binanc
         ]
     ]
 
-    result = await klines_fetcher.fetch_and_store_klines(
-        "XRPUSDT", "15m", open_, open_
-    )
+    result = await klines_fetcher.fetch_and_store_klines("XRPUSDT", "15m", open_, open_)
 
     assert len(result) == 1
     assert mock_binance_client.get_klines.call_count == 1
