@@ -63,9 +63,9 @@ class DataManagerKlinesExtractor:
 
     # Configuration constants
     OVERLAP_MINUTES = 30  # Minutes of overlap to catch missed data
-    END_TIME_BUFFER_MINUTES = (
-        5  # Buffer before current time to avoid incomplete candles
-    )
+    # Seconds after a candle closes before it is fetched (petrosa-data-manager#906). The window's end
+    # is the open of the newest candle closed at least this long ago, fetched inclusive.
+    CLOSE_SETTLE_SECONDS = 60
     MAX_CATCHUP_DAYS = 1  # Maximum days to catch up at once
 
     def __init__(
@@ -197,7 +197,7 @@ class DataManagerKlinesExtractor:
         # Binance range to request until wall clock time catches up, so treat
         # this symbol as an idempotent no-op instead of retrying a permanently
         # invalid request three times and failing the CronJob.
-        if start_time >= end_time:
+        if start_time > end_time:
             result["success"] = True
             result["duration"] = time.time() - symbol_start_time
             self.logger.debug(
@@ -304,8 +304,15 @@ class DataManagerKlinesExtractor:
                 f"Last timestamp is very old, limiting catch-up to {self.MAX_CATCHUP_DAYS} day"
             )
 
+        # The newest CLOSED candle: Binance's endTime includes the candle that opens at it, so
+        # end_time is that candle's open and the window is inclusive. (Before #906 the end was
+        # the candle holding now - 5 min and a one-candle window, start == end, was skipped, so
+        # every other 15m run wrote nothing and candles landed up to ~32 min late.)
         end_time = align_timestamp_to_interval(
-            current_time - timedelta(minutes=self.END_TIME_BUFFER_MINUTES), self.period
+            current_time
+            - interval_delta
+            - timedelta(seconds=self.CLOSE_SETTLE_SECONDS),
+            self.period,
         )
 
         self.logger.info(

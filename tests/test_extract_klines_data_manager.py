@@ -288,47 +288,63 @@ class TestDataManagerKlinesExtractor:
     @pytest.mark.parametrize(
         ("period", "current_time", "last_timestamp", "expected_start", "expected_end"),
         [
+            # end_time is the open of the newest candle closed >= 60 s ago, fetched inclusive
+            # (petrosa-data-manager#906); before, it could be the open of a still-open candle.
             (
                 "30m",
                 datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
-                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
             ),
             (
                 "30m",
                 datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
                 datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
-                datetime(2026, 10, 8, 17, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
             ),
             (
                 "15m",
                 datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 30, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 45, tzinfo=UTC),
-                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 45, tzinfo=UTC),
             ),
             (
                 "15m",
                 datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
                 datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
                 datetime(2026, 10, 8, 17, 15, tzinfo=UTC),
-                datetime(2026, 10, 8, 17, 30, tzinfo=UTC),
+                datetime(2026, 10, 8, 17, 15, tzinfo=UTC),
+            ),
+            (
+                "15m",  # the production case: one candle due at the :32 run
+                datetime(2026, 11, 26, 18, 32, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 0, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 15, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 15, tzinfo=UTC),
+            ),
+            (
+                "15m",  # 30 s after 18:30: the 18:15 candle has not settled for 60 s yet
+                datetime(2026, 11, 26, 18, 30, 30, tzinfo=UTC),
+                datetime(2026, 11, 26, 17, 45, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 0, tzinfo=UTC),
+                datetime(2026, 11, 26, 18, 0, tzinfo=UTC),
             ),
             (
                 "1h",
                 datetime(2026, 10, 8, 17, 5, tzinfo=UTC),
                 datetime(2026, 10, 8, 15, 0, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
-                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
             ),
             (
-                "1h",
+                "1h",  # no candle closed since the last one: start > end, nothing fetched
                 datetime(2026, 10, 8, 17, 35, tzinfo=UTC),
                 datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
                 datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
-                datetime(2026, 10, 8, 17, 0, tzinfo=UTC),
+                datetime(2026, 10, 8, 16, 0, tzinfo=UTC),
             ),
         ],
     )
@@ -377,6 +393,36 @@ class TestDataManagerKlinesExtractor:
 
         assert start_time.tzinfo is not None  # Should be timezone-aware
         assert end_time.tzinfo is not None
+
+    @pytest.mark.asyncio
+    async def test_one_due_candle_is_fetched_not_skipped_906(self):
+        """At 18:32 the 18:15 candle (closed 18:30) is due alone: it is fetched (was skipped)."""
+        extractor = DataManagerKlinesExtractor(
+            symbols=["XRPUSDT"], period="15m", max_workers=1, lookback_hours=24
+        )
+        with (
+            patch(
+                "jobs.extract_klines_data_manager.KlinesFetcherDataManager"
+            ) as mock_fetcher_class,
+            patch(
+                "jobs.extract_klines_data_manager.get_current_utc_time",
+                return_value=datetime(2026, 11, 26, 18, 32, tzinfo=UTC),
+            ),
+        ):
+            mock_fetcher = AsyncMock()
+            mock_fetcher_class.return_value = mock_fetcher
+            mock_fetcher.get_latest_timestamp = AsyncMock(
+                return_value=datetime(2026, 11, 26, 18, 0, tzinfo=UTC)
+            )
+            mock_fetcher.fetch_and_store_klines = AsyncMock(return_value=[MagicMock()])
+            mock_fetcher.find_gaps = AsyncMock(return_value=[])
+            result = await extractor.extract_symbol_data("XRPUSDT", MagicMock())
+
+        assert result["success"] is True
+        mock_fetcher.fetch_and_store_klines.assert_awaited_once()
+        kwargs = mock_fetcher.fetch_and_store_klines.await_args.kwargs
+        assert kwargs["start_time"] == datetime(2026, 11, 26, 18, 15, tzinfo=UTC)
+        assert kwargs["end_time"] == datetime(2026, 11, 26, 18, 15, tzinfo=UTC)
 
     @pytest.mark.asyncio
     async def test_extract_symbol_data_empty_window_is_successful_noop(self):
