@@ -85,7 +85,9 @@ class KlinesFetcherDataManager:
         end_time = align_timestamp_to_interval(end_time, interval)
 
         # Validate time range
-        validate_time_range(start_time, end_time)
+        # end_time is inclusive (the open of the newest closed candle, petrosa-data-manager#906):
+        # validate the equivalent half-open range so a one-candle window (start == end) is valid.
+        validate_time_range(start_time, end_time + timedelta(milliseconds=1))
 
         logger.info(
             "Fetching and storing klines",
@@ -106,7 +108,8 @@ class KlinesFetcherDataManager:
             # Connect to Data Manager
             await self.data_adapter.connect()
 
-            while current_start < end_time:
+            # Inclusive: end_time is the open of the newest closed candle (petrosa-data-manager#906).
+            while current_start <= end_time:
                 # Calculate chunk end time
                 chunk_end = min(current_start + max_range, end_time)
 
